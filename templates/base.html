@@ -114,11 +114,22 @@
              href="#">
             <i class="bi bi-people"></i>Usuarios
           </a>
+       <li class="nav-item">
+          <a class="nav-link {% if 'departamentos' in request.path %}active{% endif %}"
+             href="{% url 'departamento_lista' %}">
+            <i class="bi bi-grid me-1"></i>Departamentos
+          </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if 'infraestructura' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-grid"></i>Infraestructura
+          <a class="nav-link {% if 'habitaciones' in request.path %}active{% endif %}"
+             href="{% url 'habitacion_lista' %}">
+            <i class="bi bi-door-open me-1"></i>Habitaciones
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'camas' in request.path %}active{% endif %}"
+             href="{% url 'cama_lista' %}">
+            <i class="bi bi-hospital me-1"></i>Camas
           </a>
         </li>
         {% endif %}

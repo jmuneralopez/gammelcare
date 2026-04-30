@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Habitaciones{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-door-open me-2"></i>Habitaciones
+  </h4>
+  <a href="{% url 'habitacion_crear' %}" class="btn btn-gc">
+    <i class="bi bi-plus-circle me-1"></i>Nueva Habitación
+  </a>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead style="background-color:#D6E4F0;">
+        <tr>
+          <th style="color:#1F4E79;">#</th>
+          <th style="color:#1F4E79;">Número</th>
+          <th style="color:#1F4E79;">Departamento</th>
+          <th style="color:#1F4E79;">Descripción</th>
+          <th style="color:#1F4E79;">Estado</th>
+          <th style="color:#1F4E79;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for hab in habitaciones %}
+        <tr>
+          <td>{{ hab.pk }}</td>
+          <td class="fw-semibold">{{ hab.numero }}</td>
+          <td>{{ hab.departamento.nombre }}</td>
+          <td class="text-muted">{{ hab.descripcion|default:"—" }}</td>
+          <td>
+            {% if hab.activo %}
+              <span class="badge bg-success">Activa</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactiva</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'habitacion_editar' hab.pk %}"
+               class="btn btn-sm btn-outline-primary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'habitacion_desactivar' hab.pk %}"
+               class="btn btn-sm {% if hab.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+               onclick="return confirm('¿Confirma cambiar el estado de esta habitación?')">
+              <i class="bi bi-{% if hab.activo %}pause-circle{% else %}play-circle{% endif %}"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+            No hay habitaciones registradas.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
