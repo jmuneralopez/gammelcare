@@ -125,3 +125,4 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_URL = '/usuarios/login/'
 LOGIN_REDIRECT_URL = '/usuarios/dashboard/'
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
+FERNET_KEY = config('FERNET_KEY')

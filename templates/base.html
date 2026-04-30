@@ -135,8 +135,8 @@
         {% endif %}
         <li class="nav-item">
           <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-person-lines-fill"></i>Residentes
+            href="{% url 'residente_lista' %}">
+            <i class="bi bi-person-lines-fill me-1"></i>Residentes
           </a>
         </li>
         {% if user.rol.nombre == 'clinico' or user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
