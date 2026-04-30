@@ -1,0 +1,9 @@
+postgres pgadmin
+nombre: gammelcare_user
+contraseña: gammelcare2026*
+
+
+ python manage.py createsuperuser
+Nombre de usuario (leave blank to use 'lenovo'): admin
+Dirección de correo electrónico: jmuneralopez@gmail.com
+Password:Ju4nc4rl0s
