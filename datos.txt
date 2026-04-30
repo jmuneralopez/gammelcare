@@ -1,4 +1,9 @@
+postgres
+USER postgres WITH PASSWORD 'postgres2026*';
+
+
 postgres pgadmin
+
 nombre: gammelcare_user
 contraseña: gammelcare2026*
 
