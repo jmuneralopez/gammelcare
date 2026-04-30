@@ -5,8 +5,8 @@ from django.utils import timezone
 from usuarios.decorators import administrador_requerido, clinico_requerido
 from auditoria.models import RegistroAuditoria
 from infraestructura.models import Cama
-from .models import Residente, AsignacionCama
-from .forms import ResidenteForm
+from .models import Residente, AsignacionCama, ExpedienteIngreso
+from .forms import ResidenteForm, ExpedienteIngresoForm
 
 
 def registrar_auditoria(usuario, accion, descripcion, request):
@@ -41,25 +41,39 @@ def residente_lista(request):
 def residente_crear(request):
     hogar = request.user.hogar
     form = ResidenteForm(request.POST or None, hogar=hogar)
+    expediente_form = ExpedienteIngresoForm(request.POST or None)
 
-    if request.method == 'POST' and form.is_valid():
-        cama = form.cleaned_data['cama']
+    if request.method == 'POST' and form.is_valid() and expediente_form.is_valid():
+        cama = form.cleaned_data.get('cama')
 
-        residente = Residente(hogar=hogar, fecha_nacimiento=form.cleaned_data['fecha_nacimiento'])
+        residente = Residente(
+            hogar=hogar,
+            fecha_nacimiento=form.cleaned_data['fecha_nacimiento'],
+            tipo_documento=form.cleaned_data['tipo_documento'],
+            nacionalidad=form.cleaned_data['nacionalidad'],
+            eps=form.cleaned_data.get('eps', ''),
+            servicio_ambulancia=form.cleaned_data.get('servicio_ambulancia', ''),
+        )
         residente.set_nombre(form.cleaned_data['nombre_completo'])
         residente.set_documento(form.cleaned_data['numero_documento'])
         residente.set_contacto(form.cleaned_data['contacto_emergencia'])
-        residente.cama_actual = cama
+
+        if cama:
+            residente.cama_actual = cama
         residente.save()
 
-        cama.estado = 'ocupada'
-        cama.save()
+        if cama:
+            cama.estado = 'ocupada'
+            cama.save()
+            AsignacionCama.objects.create(
+                residente=residente,
+                cama=cama,
+                activo=True
+            )
 
-        AsignacionCama.objects.create(
-            residente=residente,
-            cama=cama,
-            activo=True
-        )
+        expediente = expediente_form.save(commit=False)
+        expediente.residente = residente
+        expediente.save()
 
         registrar_auditoria(
             usuario=request.user,
@@ -73,6 +87,7 @@ def residente_crear(request):
 
     return render(request, 'residentes/residente_form.html', {
         'form': form,
+        'expediente_form': expediente_form,
         'titulo': 'Nuevo Residente',
         'accion': 'Registrar'
     })
@@ -82,6 +97,7 @@ def residente_crear(request):
 @clinico_requerido
 def residente_detalle(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
+    expediente = getattr(residente, 'expediente', None)
 
     registrar_auditoria(
         usuario=request.user,
@@ -95,6 +111,7 @@ def residente_detalle(request, pk):
         'nombre': residente.get_nombre(),
         'documento': residente.get_documento(),
         'contacto': residente.get_contacto(),
+        'expediente': expediente,
         'notas': residente.notas.all().order_by('-fecha_creacion'),
         'asignaciones': residente.asignaciones.all().order_by('-fecha_inicio'),
     })
@@ -105,25 +122,43 @@ def residente_detalle(request, pk):
 def residente_editar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     hogar = request.user.hogar
+    expediente, _ = ExpedienteIngreso.objects.get_or_create(residente=residente)
 
     initial = {
         'nombre_completo': residente.get_nombre(),
         'numero_documento': residente.get_documento(),
         'fecha_nacimiento': residente.fecha_nacimiento,
+        'tipo_documento': residente.tipo_documento,
+        'nacionalidad': residente.nacionalidad,
+        'eps': residente.eps,
+        'servicio_ambulancia': residente.servicio_ambulancia,
         'contacto_emergencia': residente.get_contacto(),
         'cama': residente.cama_actual,
     }
 
-    form = ResidenteForm(request.POST or None, hogar=hogar, initial=initial)
+    form = ResidenteForm(
+        request.POST or None,
+        hogar=hogar,
+        cama_actual=residente.cama_actual,
+        initial=initial
+    )
+    expediente_form = ExpedienteIngresoForm(
+        request.POST or None,
+        instance=expediente
+    )
 
-    if request.method == 'POST' and form.is_valid():
+    if request.method == 'POST' and form.is_valid() and expediente_form.is_valid():
         residente.set_nombre(form.cleaned_data['nombre_completo'])
         residente.set_documento(form.cleaned_data['numero_documento'])
         residente.set_contacto(form.cleaned_data['contacto_emergencia'])
         residente.fecha_nacimiento = form.cleaned_data['fecha_nacimiento']
+        residente.tipo_documento = form.cleaned_data['tipo_documento']
+        residente.nacionalidad = form.cleaned_data['nacionalidad']
+        residente.eps = form.cleaned_data.get('eps', '')
+        residente.servicio_ambulancia = form.cleaned_data.get('servicio_ambulancia', '')
 
-        nueva_cama = form.cleaned_data['cama']
-        if nueva_cama != residente.cama_actual:
+        nueva_cama = form.cleaned_data.get('cama')
+        if nueva_cama and nueva_cama != residente.cama_actual:
             if residente.cama_actual:
                 residente.cama_actual.estado = 'disponible'
                 residente.cama_actual.save()
@@ -141,11 +176,14 @@ def residente_editar(request, pk):
             )
 
         residente.save()
+        expediente_form.save()
+
         messages.success(request, 'Residente actualizado correctamente.')
         return redirect('residente_lista')
 
     return render(request, 'residentes/residente_form.html', {
         'form': form,
+        'expediente_form': expediente_form,
         'titulo': 'Editar Residente',
         'accion': 'Guardar cambios'
     })
@@ -155,17 +193,37 @@ def residente_editar(request, pk):
 @administrador_requerido
 def residente_desactivar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    residente.activo = not residente.activo
 
-    if not residente.activo and residente.cama_actual:
-        residente.cama_actual.estado = 'disponible'
-        residente.cama_actual.save()
-        AsignacionCama.objects.filter(
-            residente=residente, activo=True
-        ).update(fecha_fin=timezone.now(), activo=False)
-        residente.cama_actual = None
+    if request.method == 'POST':
+        motivo = request.POST.get('motivo_retiro')
+        residente.activo = False
+        residente.motivo_retiro = motivo
 
+        if residente.cama_actual:
+            residente.cama_actual.estado = 'disponible'
+            residente.cama_actual.save()
+            AsignacionCama.objects.filter(
+                residente=residente, activo=True
+            ).update(fecha_fin=timezone.now(), activo=False)
+            residente.cama_actual = None
+
+        residente.save()
+        messages.success(request, 'Residente dado de alta correctamente.')
+        return redirect('residente_lista')
+
+    return render(request, 'residentes/residente_confirmar_alta.html', {
+        'residente': residente,
+        'nombre': residente.get_nombre(),
+        'motivos': Residente.MOTIVO_RETIRO,
+    })
+
+
+@login_required
+@administrador_requerido
+def residente_reactivar(request, pk):
+    residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
+    residente.activo = True
+    residente.motivo_retiro = None
     residente.save()
-    estado = 'activado' if residente.activo else 'dado de alta'
-    messages.success(request, f'Residente {estado} correctamente.')
+    messages.success(request, 'Residente reactivado correctamente.')
     return redirect('residente_lista')

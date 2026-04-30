@@ -1,5 +1,6 @@
+from django.db import models
 from django import forms
-from .models import Residente, AsignacionCama
+from .models import Residente, ExpedienteIngreso
 from infraestructura.models import Cama
 
 
@@ -11,6 +12,11 @@ class ResidenteForm(forms.Form):
             'placeholder': 'Nombre completo del residente'
         }),
         label='Nombre completo'
+    )
+    tipo_documento = forms.ChoiceField(
+        choices=Residente.TIPO_DOCUMENTO,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Tipo de documento'
     )
     numero_documento = forms.CharField(
         max_length=20,
@@ -27,6 +33,33 @@ class ResidenteForm(forms.Form):
         }),
         label='Fecha de nacimiento'
     )
+    nacionalidad = forms.CharField(
+        max_length=100,
+        initial='Colombiana',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nacionalidad'
+        }),
+        label='Nacionalidad'
+    )
+    eps = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'EPS del residente'
+        }),
+        label='EPS'
+    )
+    servicio_ambulancia = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Servicio de ambulancia'
+        }),
+        label='Servicio de ambulancia'
+    )
     contacto_emergencia = forms.CharField(
         max_length=200,
         widget=forms.TextInput(attrs={
@@ -39,14 +72,60 @@ class ResidenteForm(forms.Form):
         queryset=Cama.objects.none(),
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Cama a asignar',
-        empty_label='Seleccione una cama disponible'
+        required=False,
+        empty_label='Sin cambio de cama (mantener actual)'
     )
 
-    def __init__(self, *args, hogar=None, **kwargs):
+    def __init__(self, *args, hogar=None, cama_actual=None, **kwargs):
         super().__init__(*args, **kwargs)
         if hogar:
-            self.fields['cama'].queryset = Cama.objects.filter(
+            # Camas disponibles + la cama actual si existe
+            camas = Cama.objects.filter(
                 habitacion__departamento__hogar=hogar,
-                estado='disponible',
                 activo=True
+            ).filter(
+                models.Q(estado='disponible') |
+                models.Q(pk=cama_actual.pk if cama_actual else None)
             )
+            self.fields['cama'].queryset = camas
+
+
+class ExpedienteIngresoForm(forms.ModelForm):
+    class Meta:
+        model = ExpedienteIngreso
+        fields = [
+            'diagnosticos',
+            'examen_ingreso',
+            'alergias',
+            'observaciones',
+            'inventario_ingreso'
+        ]
+        widgets = {
+            'diagnosticos': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Diagnósticos del residente al ingreso'
+            }),
+            'examen_ingreso': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 5,
+                'placeholder': 'Resultados del examen físico de ingreso'
+            }),
+            'alergias': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 3,
+                'placeholder': 'Alergias conocidas (medicamentos, alimentos, etc.)'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 3,
+                'placeholder': 'Observaciones generales'
+            }),
+            'inventario_ingreso': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 5,
+                'placeholder': 'Liste las pertenencias del residente al momento del ingreso'
+            }),
+        }
+        labels = {
+            'diagnosticos': 'Diagnósticos',
+            'examen_ingreso': 'Examen de Ingreso',
+            'alergias': 'Alergias',
+            'observaciones': 'Observaciones',
+            'inventario_ingreso': 'Inventario de Ingreso',
+        }

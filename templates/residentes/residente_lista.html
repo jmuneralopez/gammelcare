@@ -63,12 +63,20 @@
                title="Editar">
               <i class="bi bi-pencil"></i>
             </a>
+            {% if item.obj.activo %}
             <a href="{% url 'residente_desactivar' item.obj.pk %}"
-               class="btn btn-sm {% if item.obj.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
-               onclick="return confirm('¿Confirma cambiar el estado de este residente?')"
-               title="{% if item.obj.activo %}Dar de alta{% else %}Reactivar{% endif %}">
-              <i class="bi bi-{% if item.obj.activo %}pause-circle{% else %}play-circle{% endif %}"></i>
+               class="btn btn-sm btn-outline-warning"
+               title="Dar de alta">
+              <i class="bi bi-person-dash"></i>
             </a>
+            {% else %}
+            <a href="{% url 'residente_reactivar' item.obj.pk %}"
+               class="btn btn-sm btn-outline-success"
+               onclick="return confirm('¿Confirma reactivar este residente?')"
+               title="Reactivar">
+              <i class="bi bi-person-check"></i>
+            </a>
+            {% endif %}
             {% endif %}
           </td>
         </tr>
