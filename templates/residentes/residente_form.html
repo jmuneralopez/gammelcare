@@ -1,6 +1,22 @@
 {% extends 'base.html' %}
 {% block title %}GammelCare — {{ titulo }}{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+  }
+  .select2-container { width: 100% !important; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
@@ -11,7 +27,7 @@
   </a>
 </div>
 
-<form method="post">
+<form method="post" id="residente-form">
   {% csrf_token %}
 
   <!-- DATOS PERSONALES -->
@@ -22,111 +38,138 @@
       </h6>
       <div class="row g-3">
         <div class="col-md-8">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.nombre_completo.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Nombre completo</label>
           {{ form.nombre_completo }}
-          {% if form.nombre_completo.errors %}
-            <div class="text-danger" style="font-size:0.83rem;">{{ form.nombre_completo.errors|join:", " }}</div>
-          {% endif %}
+          {% if form.nombre_completo.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.nombre_completo.errors|join:", " }}</div>{% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.nacionalidad.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Nacionalidad</label>
           {{ form.nacionalidad }}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.tipo_documento.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Tipo de documento</label>
           {{ form.tipo_documento }}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.numero_documento.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Número de documento</label>
           {{ form.numero_documento }}
-          {% if form.numero_documento.errors %}
-            <div class="text-danger" style="font-size:0.83rem;">{{ form.numero_documento.errors|join:", " }}</div>
-          {% endif %}
+          {% if form.numero_documento.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.numero_documento.errors|join:", " }}</div>{% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.fecha_nacimiento.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Fecha de nacimiento</label>
           {{ form.fecha_nacimiento }}
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.eps.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">EPS</label>
           {{ form.eps }}
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.servicio_ambulancia.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Servicio de ambulancia</label>
           {{ form.servicio_ambulancia }}
         </div>
         <div class="col-md-8">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.contacto_emergencia.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Contacto de emergencia</label>
           {{ form.contacto_emergencia }}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.cama.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Cama a asignar</label>
           {{ form.cama }}
         </div>
       </div>
     </div>
   </div>
 
-  <!-- EXPEDIENTE DE INGRESO -->
+  <!-- EXAMEN DE INGRESO -->
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+        <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Peso (kg)</label>
+          {{ examen_form.peso }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Talla (cm)</label>
+          {{ examen_form.talla }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">IMC</label>
+          <input type="text" id="imc_calc" class="form-control" readonly placeholder="Auto">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Presión arterial</label>
+          {{ examen_form.presion_arterial }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Frec. cardíaca (lpm)</label>
+          {{ examen_form.frecuencia_cardiaca }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Temperatura (°C)</label>
+          {{ examen_form.temperatura }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Saturación O2 (%)</label>
+          {{ examen_form.saturacion_oxigeno }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Procedencia</label>
+          {{ examen_form.procedencia }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Estado mental</label>
+          {{ examen_form.estado_mental }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Movilidad</label>
+          {{ examen_form.movilidad }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Condición nutricional</label>
+          {{ examen_form.condicion_nutricional }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Observaciones físicas</label>
+          {{ examen_form.observaciones_fisicas }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Antecedentes médicos</label>
+          {{ examen_form.antecedentes_medicos }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Antecedentes familiares</label>
+          {{ examen_form.antecedentes_familiares }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPEDIENTE -->
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">
         <i class="bi bi-clipboard2-pulse me-2"></i>Expediente de Ingreso
       </h6>
       <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ expediente_form.diagnosticos.label }}
-          </label>
-          {{ expediente_form.diagnosticos }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ expediente_form.alergias.label }}
-          </label>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Alergias</label>
           {{ expediente_form.alergias }}
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ expediente_form.examen_ingreso.label }}
-          </label>
-          {{ expediente_form.examen_ingreso }}
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ expediente_form.inventario_ingreso.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Inventario de ingreso</label>
           {{ expediente_form.inventario_ingreso }}
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ expediente_form.observaciones.label }}
-          </label>
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Observaciones generales</label>
           {{ expediente_form.observaciones }}
         </div>
       </div>
     </div>
   </div>
 
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 mb-5">
     <button type="submit" class="btn btn-gc">
       <i class="bi bi-check-circle me-1"></i>{{ accion }}
     </button>
@@ -135,4 +178,57 @@
     </a>
   </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+
+  // Select2 para EPS
+  $('#id_eps').select2({
+    placeholder: 'Buscar EPS...',
+    allowClear: true,
+    minimumInputLength: 1,
+    ajax: {
+      url: '/catalogos/buscar/eps/',
+      dataType: 'json',
+      delay: 300,
+      data: function(params) { return { term: params.term }; },
+      processResults: function(data) { return { results: data.results }; }
+    }
+  });
+
+  // Select2 para Ambulancia
+  $('#id_servicio_ambulancia').select2({
+    placeholder: 'Buscar servicio...',
+    allowClear: true,
+    minimumInputLength: 1,
+    ajax: {
+      url: '/catalogos/buscar/ambulancia/',
+      dataType: 'json',
+      delay: 300,
+      data: function(params) { return { term: params.term }; },
+      processResults: function(data) { return { results: data.results }; }
+    }
+  });
+
+  // IMC automático
+  function calcularIMC() {
+    const peso = parseFloat($('#id_peso').val());
+    const talla = parseFloat($('#id_talla').val());
+    if (peso && talla && talla > 0) {
+      const tallaM = talla / 100;
+      const imc = (peso / (tallaM * tallaM)).toFixed(2);
+      $('#imc_calc').val(imc);
+    } else {
+      $('#imc_calc').val('');
+    }
+  }
+
+  $('#id_peso').on('input', calcularIMC);
+  $('#id_talla').on('input', calcularIMC);
+
+});
+</script>
 {% endblock %}

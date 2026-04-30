@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Agregar Diagnóstico{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px; border: 1px solid #ced4da;
+    border-radius: 6px; padding: 4px 8px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+  .select2-container { width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-journal-plus me-2"></i>Agregar Diagnóstico
+  </h4>
+  <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver al expediente
+  </a>
+</div>
+
+<div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
+  <i class="bi bi-person me-2" style="color:#1F4E79;"></i>
+  <strong>Residente:</strong> {{ nombre }}
+</div>
+
+<div class="card card-gc" style="max-width:700px;">
+  <div class="card-body p-4">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Código CIE-10</label>
+        {{ form.codigo_cie10 }}
+        <small class="text-muted">Escriba el código (ej: A00) o parte de la descripción</small>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Observación</label>
+        {{ form.observacion }}
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-gc">
+          <i class="bi bi-check-circle me-1"></i>Agregar diagnóstico
+        </button>
+        <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$('.select2-cie10').select2({
+  placeholder: 'Buscar código o descripción CIE-10...',
+  minimumInputLength: 2,
+  ajax: {
+    url: '/catalogos/buscar/cie10/',
+    dataType: 'json',
+    delay: 300,
+    data: function(params) { return { term: params.term }; },
+    processResults: function(data) { return { results: data.results }; },
+    cache: true
+  }
+});
+</script>
+{% endblock %}

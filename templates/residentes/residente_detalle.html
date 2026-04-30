@@ -88,16 +88,8 @@
     </h6>
     <div class="row g-3">
       <div class="col-md-6">
-        <div class="text-muted" style="font-size:0.82rem;">Diagnósticos</div>
-        <div>{{ expediente.diagnosticos|default:"—"|linebreaksbr }}</div>
-      </div>
-      <div class="col-md-6">
         <div class="text-muted" style="font-size:0.82rem;">Alergias</div>
         <div>{{ expediente.alergias|default:"—"|linebreaksbr }}</div>
-      </div>
-      <div class="col-12">
-        <div class="text-muted" style="font-size:0.82rem;">Examen de Ingreso</div>
-        <div>{{ expediente.examen_ingreso|default:"—"|linebreaksbr }}</div>
       </div>
       <div class="col-12">
         <div class="text-muted" style="font-size:0.82rem;">Inventario de Ingreso</div>
@@ -107,6 +99,80 @@
         <div class="text-muted" style="font-size:0.82rem;">Observaciones</div>
         <div>{{ expediente.observaciones|default:"—"|linebreaksbr }}</div>
       </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<!-- EXAMEN DE INGRESO -->
+{% if examen %}
+<div class="card card-gc mb-4">
+  <div class="card-body">
+    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+      <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
+    </h6>
+    <div class="row g-3">
+      <div class="col-md-2">
+        <div class="text-muted" style="font-size:0.82rem;">Peso</div>
+        <div class="fw-semibold">{{ examen.peso|default:"—" }} kg</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted" style="font-size:0.82rem;">Talla</div>
+        <div class="fw-semibold">{{ examen.talla|default:"—" }} cm</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted" style="font-size:0.82rem;">IMC</div>
+        <div class="fw-semibold">{{ examen.imc|default:"—" }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted" style="font-size:0.82rem;">Presión arterial</div>
+        <div class="fw-semibold">{{ examen.presion_arterial|default:"—" }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted" style="font-size:0.82rem;">Frec. cardíaca</div>
+        <div class="fw-semibold">{{ examen.frecuencia_cardiaca|default:"—" }} lpm</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted" style="font-size:0.82rem;">Temperatura</div>
+        <div class="fw-semibold">{{ examen.temperatura|default:"—" }} °C</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted" style="font-size:0.82rem;">Sat. O2</div>
+        <div class="fw-semibold">{{ examen.saturacion_oxigeno|default:"—" }} %</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Procedencia</div>
+        <div class="fw-semibold">{{ examen.get_procedencia_display|default:"—" }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Estado mental</div>
+        <div class="fw-semibold">{{ examen.get_estado_mental_display|default:"—" }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Movilidad</div>
+        <div class="fw-semibold">{{ examen.get_movilidad_display|default:"—" }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Condición nutricional</div>
+        <div class="fw-semibold">{{ examen.get_condicion_nutricional_display|default:"—" }}</div>
+      </div>
+      {% if examen.observaciones_fisicas %}
+      <div class="col-12">
+        <div class="text-muted" style="font-size:0.82rem;">Observaciones físicas</div>
+        <div>{{ examen.observaciones_fisicas|linebreaksbr }}</div>
+      </div>
+      {% endif %}
+      {% if examen.antecedentes_medicos %}
+      <div class="col-md-6">
+        <div class="text-muted" style="font-size:0.82rem;">Antecedentes médicos</div>
+        <div>{{ examen.antecedentes_medicos|linebreaksbr }}</div>
+      </div>
+      {% endif %}
+      {% if examen.antecedentes_familiares %}
+      <div class="col-md-6">
+        <div class="text-muted" style="font-size:0.82rem;">Antecedentes familiares</div>
+        <div>{{ examen.antecedentes_familiares|linebreaksbr }}</div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -152,7 +218,54 @@
     </table>
   </div>
 </div>
-
+<!-- DIAGNÓSTICOS -->
+<div class="card card-gc mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-journal-medical me-2"></i>Diagnósticos
+      </h6>
+      <a href="{% url 'diagnostico_agregar' residente.pk %}" class="btn btn-sm btn-gc">
+        <i class="bi bi-plus-circle me-1"></i>Agregar
+      </a>
+    </div>
+    {% if diagnosticos %}
+    <table class="table table-sm mb-0">
+      <thead style="background-color:#D6E4F0;">
+        <tr>
+          <th style="color:#1F4E79;">Código</th>
+          <th style="color:#1F4E79;">Descripción</th>
+          <th style="color:#1F4E79;">Observación</th>
+          <th style="color:#1F4E79;">Fecha</th>
+          <th style="color:#1F4E79;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for diag in diagnosticos %}
+        <tr>
+          <td><span class="badge" style="background-color:#2E75B6;">{{ diag.codigo_cie10.codigo }}</span></td>
+          <td>{{ diag.codigo_cie10.descripcion }}</td>
+          <td class="text-muted">{{ diag.observacion|default:"—" }}</td>
+          <td>{{ diag.fecha_registro|date:"d/m/Y" }}</td>
+          <td>
+            <a href="{% url 'diagnostico_desactivar' residente.pk diag.pk %}"
+               class="btn btn-sm btn-outline-danger"
+               onclick="return confirm('¿Remover este diagnóstico?')">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-3">
+      <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
+      No hay diagnósticos registrados.
+    </div>
+    {% endif %}
+  </div>
+</div>
 <!-- NOTAS CLÍNICAS -->
 <div class="card card-gc">
   <div class="card-body">

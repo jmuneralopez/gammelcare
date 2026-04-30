@@ -1,6 +1,7 @@
-from django.db import models
 from django import forms
-from .models import Residente, ExpedienteIngreso
+from django.db import models
+from .models import Residente, ExpedienteIngreso, ExamenIngreso, DiagnosticoResidente
+from catalogos.models import CodigoCIE10, EPS, ServicioAmbulancia
 from infraestructura.models import Cama
 
 
@@ -30,7 +31,8 @@ class ResidenteForm(forms.Form):
         widget=forms.DateInput(attrs={
             'class': 'form-control',
             'type': 'date'
-        }),
+        }, format='%Y-%m-%d'),
+        input_formats=['%Y-%m-%d'],
         label='Fecha de nacimiento'
     )
     nacionalidad = forms.CharField(
@@ -42,23 +44,25 @@ class ResidenteForm(forms.Form):
         }),
         label='Nacionalidad'
     )
-    eps = forms.CharField(
-        max_length=150,
+    eps = forms.ModelChoiceField(
+        queryset=EPS.objects.filter(activo=True),
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'EPS del residente'
+        widget=forms.Select(attrs={
+            'class': 'form-select select2-eps',
+            'data-url': '/catalogos/buscar/eps/'
         }),
-        label='EPS'
+        label='EPS',
+        empty_label='Buscar EPS...'
     )
-    servicio_ambulancia = forms.CharField(
-        max_length=150,
+    servicio_ambulancia = forms.ModelChoiceField(
+        queryset=ServicioAmbulancia.objects.filter(activo=True),
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Servicio de ambulancia'
+        widget=forms.Select(attrs={
+            'class': 'form-select select2-ambulancia',
+            'data-url': '/catalogos/buscar/ambulancia/'
         }),
-        label='Servicio de ambulancia'
+        label='Servicio de ambulancia',
+        empty_label='Buscar servicio...'
     )
     contacto_emergencia = forms.CharField(
         max_length=200,
@@ -79,13 +83,13 @@ class ResidenteForm(forms.Form):
     def __init__(self, *args, hogar=None, cama_actual=None, **kwargs):
         super().__init__(*args, **kwargs)
         if hogar:
-            # Camas disponibles + la cama actual si existe
+            from django.db.models import Q
             camas = Cama.objects.filter(
                 habitacion__departamento__hogar=hogar,
                 activo=True
             ).filter(
-                models.Q(estado='disponible') |
-                models.Q(pk=cama_actual.pk if cama_actual else None)
+                Q(estado='disponible') |
+                Q(pk=cama_actual.pk if cama_actual else None)
             )
             self.fields['cama'].queryset = camas
 
@@ -93,39 +97,95 @@ class ResidenteForm(forms.Form):
 class ExpedienteIngresoForm(forms.ModelForm):
     class Meta:
         model = ExpedienteIngreso
-        fields = [
-            'diagnosticos',
-            'examen_ingreso',
-            'alergias',
-            'observaciones',
-            'inventario_ingreso'
-        ]
+        fields = ['alergias', 'inventario_ingreso', 'observaciones']
         widgets = {
-            'diagnosticos': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 4,
-                'placeholder': 'Diagnósticos del residente al ingreso'
-            }),
-            'examen_ingreso': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 5,
-                'placeholder': 'Resultados del examen físico de ingreso'
-            }),
             'alergias': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3,
-                'placeholder': 'Alergias conocidas (medicamentos, alimentos, etc.)'
+                'placeholder': 'Alergias conocidas'
+            }),
+            'inventario_ingreso': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 5,
+                'placeholder': 'Liste las pertenencias del residente'
             }),
             'observaciones': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3,
                 'placeholder': 'Observaciones generales'
             }),
-            'inventario_ingreso': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 5,
-                'placeholder': 'Liste las pertenencias del residente al momento del ingreso'
-            }),
         }
         labels = {
-            'diagnosticos': 'Diagnósticos',
-            'examen_ingreso': 'Examen de Ingreso',
             'alergias': 'Alergias',
-            'observaciones': 'Observaciones',
             'inventario_ingreso': 'Inventario de Ingreso',
+            'observaciones': 'Observaciones generales',
+        }
+
+
+class ExamenIngresoForm(forms.ModelForm):
+    class Meta:
+        model = ExamenIngreso
+        fields = [
+            'peso', 'talla', 'presion_arterial',
+            'frecuencia_cardiaca', 'temperatura', 'saturacion_oxigeno',
+            'procedencia', 'estado_mental', 'movilidad', 'condicion_nutricional',
+            'observaciones_fisicas', 'antecedentes_medicos', 'antecedentes_familiares',
+        ]
+        widgets = {
+            'peso': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'kg', 'step': '0.01'
+            }),
+            'talla': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'cm', 'step': '0.01'
+            }),
+            'presion_arterial': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'ej: 120/80'
+            }),
+            'frecuencia_cardiaca': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'lpm'
+            }),
+            'temperatura': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': '°C', 'step': '0.1'
+            }),
+            'saturacion_oxigeno': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': '%', 'step': '0.1'
+            }),
+            'procedencia': forms.Select(attrs={'class': 'form-select'}),
+            'estado_mental': forms.Select(attrs={'class': 'form-select'}),
+            'movilidad': forms.Select(attrs={'class': 'form-select'}),
+            'condicion_nutricional': forms.Select(attrs={'class': 'form-select'}),
+            'observaciones_fisicas': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Golpes, cortes, heridas, amputaciones...'
+            }),
+            'antecedentes_medicos': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Enfermedades previas, cirugías...'
+            }),
+            'antecedentes_familiares': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Enfermedades hereditarias...'
+            }),
+        }
+
+
+class DiagnosticoForm(forms.ModelForm):
+    codigo_cie10 = forms.ModelChoiceField(
+        queryset=CodigoCIE10.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-select select2-cie10',
+            'data-url': '/catalogos/buscar/cie10/'
+        }),
+        label='Código CIE-10',
+        empty_label='Buscar código o descripción...'
+    )
+
+    class Meta:
+        model = DiagnosticoResidente
+        fields = ['codigo_cie10', 'observacion']
+        widgets = {
+            'observacion': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 3,
+                'placeholder': 'Observación sobre este diagnóstico'
+            })
+        }
+        labels = {
+            'observacion': 'Observación'
         }

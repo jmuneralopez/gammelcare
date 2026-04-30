@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'residentes',
     'notas_clinicas',
     'auditoria',
+    'catalogos',
 ]
 
 MIDDLEWARE = [
