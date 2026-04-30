@@ -142,8 +142,8 @@
         {% if user.rol.nombre == 'clinico' or user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
         <li class="nav-item">
           <a class="nav-link {% if 'notas' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-journal-medical"></i>Notas Clínicas
+            href="{% url 'residente_lista' %}">
+            <i class="bi bi-journal-medical me-1"></i>Notas Clínicas
           </a>
         </li>
         {% endif %}

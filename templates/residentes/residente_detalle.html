@@ -269,9 +269,14 @@
 <!-- NOTAS CLÍNICAS -->
 <div class="card card-gc">
   <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-journal-medical me-2"></i>Notas Clínicas
-    </h6>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-journal-medical me-2"></i>Notas Clínicas
+      </h6>
+      <a href="{% url 'nota_crear' residente.pk %}" class="btn btn-sm btn-gc">
+        <i class="bi bi-plus-circle me-1"></i>Nueva nota
+      </a>
+    </div>
     {% for nota in notas %}
     <div class="border rounded p-3 mb-3" style="border-color:#D6E4F0 !important;">
       <div class="d-flex justify-content-between mb-2">
@@ -283,14 +288,24 @@
           — {{ nota.autor.get_full_name|default:nota.autor.username }}
         </small>
       </div>
-      <p class="mb-1">{{ nota.contenido }}</p>
+      <p class="mb-2">{{ nota.contenido|truncatewords:30 }}</p>
+      <div class="d-flex justify-content-between align-items-center">
+        <small style="color:#6c757d; font-size:0.75rem;">
+          <i class="bi bi-shield-check me-1"></i>
+          Hash: {{ nota.hash_integridad|truncatechars:20 }}...
+        </small>
+        <a href="{% url 'nota_detalle' nota.pk %}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-eye me-1"></i>Ver completa
+        </a>
+      </div>
       {% if nota.aclaraciones.exists %}
       <div class="mt-2 ps-3 border-start border-warning">
         {% for ac in nota.aclaraciones.all %}
         <small class="text-muted d-block">
           <i class="bi bi-chat-left-text me-1"></i>
           <strong>Aclaración</strong> — {{ ac.fecha_creacion|date:"d/m/Y H:i" }}:
-          {{ ac.contenido }}
+          {{ ac.contenido|truncatewords:15 }}
         </small>
         {% endfor %}
       </div>

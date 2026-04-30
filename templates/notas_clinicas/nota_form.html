@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Nueva Nota Clínica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-journal-plus me-2"></i>Nueva Nota Clínica
+  </h4>
+  <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver al expediente
+  </a>
+</div>
+
+<div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
+  <div class="row">
+    <div class="col-md-6">
+      <small class="text-muted">Residente</small>
+      <div class="fw-semibold">{{ nombre }}</div>
+    </div>
+    <div class="col-md-6">
+      <small class="text-muted">Registrado por</small>
+      <div class="fw-semibold">
+        {{ request.user.get_full_name|default:request.user.username }}
+        {% if request.user.rol %} — {{ request.user.rol }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-warning py-2">
+  <i class="bi bi-lock-fill me-2"></i>
+  <strong>Importante:</strong> Las notas clínicas son <strong>inmutables</strong>.
+  Una vez registradas no pueden editarse ni eliminarse.
+  Use notas aclaratorias para correcciones.
+</div>
+
+<div class="card card-gc" style="max-width:750px;">
+  <div class="card-body p-4">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">{{ form.contenido.label }}</label>
+        {{ form.contenido }}
+        <small class="text-muted">
+          El sistema generará automáticamente el hash de integridad al guardar.
+        </small>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-gc">
+          <i class="bi bi-check-circle me-1"></i>Registrar nota
+        </button>
+        <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
