@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}GammelCare — Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#1F4E79;">
+      <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+    </h4>
+    <span class="text-muted" style="font-size:0.9rem;">
+      Bienvenido, {{ user.get_full_name|default:user.username }}
+    </span>
+  </div>
+  <span class="badge-rol">
+    {% if user.rol %}{{ user.rol }}{% else %}Sin rol asignado{% endif %}
+  </span>
+</div>
+
+<!-- TARJETAS POR ROL -->
+{% if user.rol.nombre == 'superadmin' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-building fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Hogares</div>
+      <div class="text-muted" style="font-size:0.85rem;">Gestionar organizaciones</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-people fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Usuarios</div>
+      <div class="text-muted" style="font-size:0.85rem;">Administrar accesos</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-person-lines-fill fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Residentes</div>
+      <div class="text-muted" style="font-size:0.85rem;">Ver todos los registros</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-shield-check fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Auditoría</div>
+      <div class="text-muted" style="font-size:0.85rem;">Bitácora del sistema</div>
+    </div>
+  </div>
+</div>
+
+{% elif user.rol.nombre == 'administrador' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-grid fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Infraestructura</div>
+      <div class="text-muted" style="font-size:0.85rem;">Habitaciones y camas</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-person-lines-fill fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Residentes</div>
+      <div class="text-muted" style="font-size:0.85rem;">Registrar y gestionar</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-people fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Usuarios</div>
+      <div class="text-muted" style="font-size:0.85rem;">Personal del hogar</div>
+    </div>
+  </div>
+</div>
+
+{% elif user.rol.nombre == 'clinico' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-person-lines-fill fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Residentes</div>
+      <div class="text-muted" style="font-size:0.85rem;">Ver expedientes</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card card-gc p-3 text-center">
+      <i class="bi bi-journal-medical fs-2 mb-2" style="color:#2E75B6;"></i>
+      <div class="fw-bold">Notas Clínicas</div>
+      <div class="text-muted" style="font-size:0.85rem;">Registrar evoluciones</div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  Tu cuenta no tiene un rol asignado. Contacta al administrador del sistema.
+</div>
+{% endif %}
+
+<!-- INFORMACIÓN DEL HOGAR -->
+{% if user.hogar %}
+<div class="card card-gc mt-2">
+  <div class="card-body">
+    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+      <i class="bi bi-building me-2"></i>Hogar Asignado
+    </h6>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Nombre</div>
+        <div class="fw-semibold">{{ user.hogar.nombre }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">NIT</div>
+        <div class="fw-semibold">{{ user.hogar.nit }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted" style="font-size:0.82rem;">Dirección</div>
+        <div class="fw-semibold">{{ user.hogar.direccion }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

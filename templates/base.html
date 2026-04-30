@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}GammelCare{% endblock %}</title>
+  {% load static %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --gc-dark:  #1F4E79;
+      --gc-mid:   #2E75B6;
+      --gc-light: #D6E4F0;
+    }
+    body { background-color: #f4f7fb; font-family: Arial, sans-serif; }
+    .navbar-gc { background-color: var(--gc-dark); }
+    .navbar-gc .navbar-brand,
+    .navbar-gc .nav-link { color: #fff !important; }
+    .navbar-gc .nav-link:hover { color: var(--gc-light) !important; }
+    .sidebar {
+      min-height: calc(100vh - 56px);
+      background-color: var(--gc-dark);
+      padding-top: 1rem;
+    }
+    .sidebar .nav-link {
+      color: var(--gc-light);
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+      background-color: var(--gc-mid);
+      color: #fff;
+    }
+    .sidebar .nav-link i { margin-right: 8px; }
+    .main-content { padding: 2rem; }
+    .card-gc {
+      border: none;
+      border-top: 4px solid var(--gc-mid);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .btn-gc {
+      background-color: var(--gc-mid);
+      color: #fff;
+      border: none;
+    }
+    .btn-gc:hover { background-color: var(--gc-dark); color: #fff; }
+    .badge-rol {
+      background-color: var(--gc-light);
+      color: var(--gc-dark);
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-gc px-3">
+  <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+    <i class="bi bi-heart-pulse-fill me-2"></i>GammelCare
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navMenu">
+    <ul class="navbar-nav ms-auto align-items-center">
+      {% if user.is_authenticated %}
+      <li class="nav-item me-3">
+        <span class="badge-rol">
+          <i class="bi bi-person-badge me-1"></i>
+          {{ user.get_full_name|default:user.username }}
+          {% if user.rol %} — {{ user.rol }}{% endif %}
+        </span>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'logout' %}">
+          <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+{% if user.is_authenticated %}
+<div class="container-fluid">
+  <div class="row">
+
+    <!-- SIDEBAR -->
+    <nav class="col-md-2 d-none d-md-block sidebar py-3">
+      <ul class="nav flex-column px-2">
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+             href="{% url 'dashboard' %}">
+            <i class="bi bi-speedometer2"></i>Dashboard
+          </a>
+        </li>
+        {% if user.rol.nombre == 'superadmin' or user.rol.nombre == 'administrador' %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'hogares' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-building"></i>Hogares
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'usuarios' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-people"></i>Usuarios
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'infraestructura' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-grid"></i>Infraestructura
+          </a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-person-lines-fill"></i>Residentes
+          </a>
+        </li>
+        {% if user.rol.nombre == 'clinico' or user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'notas' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-journal-medical"></i>Notas Clínicas
+          </a>
+        </li>
+        {% endif %}
+        {% if user.rol.nombre == 'superadmin' %}
+        <li class="nav-item mt-3">
+          <a class="nav-link {% if 'auditoria' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-shield-check"></i>Auditoría
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="col-md-10 main-content">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+</div>
+{% else %}
+  {% block content_public %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
