@@ -94,27 +94,46 @@
   <div class="row">
 
     <!-- SIDEBAR -->
+    <!-- SIDEBAR -->
     <nav class="col-md-2 d-none d-md-block sidebar py-3">
       <ul class="nav flex-column px-2">
+
         <li class="nav-item">
           <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
              href="{% url 'dashboard' %}">
-            <i class="bi bi-speedometer2"></i>Dashboard
+            <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </li>
-        {% if user.rol.nombre == 'superadmin' or user.rol.nombre == 'administrador' %}
+
+        {% if user.rol.nombre == 'clinico' %}
+        <!-- MENÚ CLÍNICO -->
+        <li class="nav-item mt-2">
+          <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
+            Atención
+          </small>
+        </li>
         <li class="nav-item">
-          <a class="nav-link {% if 'hogares' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-building"></i>Hogares
+          <a class="nav-link {% if 'notas' in request.path %}active{% endif %}"
+             href="{% url 'atencion_lista' %}">
+            <i class="bi bi-heart-pulse-fill me-1"></i>Atención a Residentes
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
+        <!-- MENÚ ADMINISTRATIVO -->
+        <li class="nav-item mt-2">
+          <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
+            Gestión
+          </small>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
+             href="{% url 'residente_lista' %}">
+            <i class="bi bi-person-lines-fill me-1"></i>Residentes
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if 'usuarios' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-people"></i>Usuarios
-          </a>
-       <li class="nav-item">
           <a class="nav-link {% if 'departamentos' in request.path %}active{% endif %}"
              href="{% url 'departamento_lista' %}">
             <i class="bi bi-grid me-1"></i>Departamentos
@@ -133,31 +152,47 @@
           </a>
         </li>
         {% endif %}
+
+        {% if user.rol.nombre == 'superadmin' %}
+        <!-- MENÚ SUPERADMIN -->
+        <li class="nav-item mt-2">
+          <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
+            Sistema
+          </small>
+        </li>
         <li class="nav-item">
-          <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
-            href="{% url 'residente_lista' %}">
+          <a class="nav-link {% if 'auditoria' in request.path %}active{% endif %}"
+             href="#">
+            <i class="bi bi-shield-check me-1"></i>Auditoría
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'residente_lista' %}">
             <i class="bi bi-person-lines-fill me-1"></i>Residentes
           </a>
         </li>
-        {% if user.rol.nombre == 'clinico' or user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
         <li class="nav-item">
-          <a class="nav-link {% if 'notas' in request.path %}active{% endif %}"
-            href="{% url 'residente_lista' %}">
-            <i class="bi bi-journal-medical me-1"></i>Notas Clínicas
+          <a class="nav-link {% if 'departamentos' in request.path %}active{% endif %}"
+             href="{% url 'departamento_lista' %}">
+            <i class="bi bi-grid me-1"></i>Departamentos
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'habitaciones' in request.path %}active{% endif %}"
+             href="{% url 'habitacion_lista' %}">
+            <i class="bi bi-door-open me-1"></i>Habitaciones
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'camas' in request.path %}active{% endif %}"
+             href="{% url 'cama_lista' %}">
+            <i class="bi bi-hospital me-1"></i>Camas
           </a>
         </li>
         {% endif %}
-        {% if user.rol.nombre == 'superadmin' %}
-        <li class="nav-item mt-3">
-          <a class="nav-link {% if 'auditoria' in request.path %}active{% endif %}"
-             href="#">
-            <i class="bi bi-shield-check"></i>Auditoría
-          </a>
-        </li>
-        {% endif %}
+
       </ul>
     </nav>
-
     <!-- CONTENIDO PRINCIPAL -->
     <main class="col-md-10 main-content">
       {% if messages %}

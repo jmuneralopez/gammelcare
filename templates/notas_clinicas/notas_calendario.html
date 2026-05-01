@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Calendario de Notas{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<style>
+  .fc-toolbar-title { font-size: 1.1rem !important; color: #1F4E79; font-weight: 700; }
+  .fc-button-primary {
+    background-color: #2E75B6 !important;
+    border-color: #1F4E79 !important;
+  }
+  .fc-button-primary:hover {
+    background-color: #1F4E79 !important;
+  }
+  .fc-event { cursor: pointer; font-size: 0.78rem; }
+  .fc-day-today { background-color: #EBF3FA !important; }
+  #nota-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    min-width: 320px;
+    max-width: 480px;
+  }
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4);
+    z-index: 9998;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-calendar3 me-2"></i>Calendario de Notas Clínicas
+  </h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'nota_crear' residente.pk %}" class="btn btn-gc">
+      <i class="bi bi-plus-circle me-1"></i>Nueva nota
+    </a>
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver al expediente
+    </a>
+  </div>
+</div>
+
+<div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
+  <i class="bi bi-person me-2" style="color:#1F4E79;"></i>
+  <strong>Residente:</strong> {{ nombre }}
+</div>
+
+<!-- Leyenda -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <span class="badge" style="background-color:#2E75B6;">Enfermería</span>
+  <span class="badge" style="background-color:#1F4E79;">Evolución médica</span>
+  <span class="badge" style="background-color:#198754;">Fisioterapia</span>
+  <span class="badge" style="background-color:#fd7e14;">Nutrición</span>
+  <span class="badge" style="background-color:#6f42c1;">Psicología</span>
+  <span class="badge" style="background-color:#0dcaf0;">Trabajo social</span>
+  <span class="badge" style="background-color:#d63384;">Terapia ocupacional</span>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body p-3">
+    <div id="calendar"></div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="cerrarPopup()"></div>
+
+<!-- Popup de nota -->
+<div id="nota-popup" class="card card-gc shadow-lg">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-3" style="color:#1F4E79;" id="popup-tipo"></h6>
+    <div class="mb-2">
+      <small class="text-muted">Autor</small>
+      <div id="popup-autor" class="fw-semibold"></div>
+    </div>
+    <div class="mb-3">
+      <small class="text-muted">Fecha y hora</small>
+      <div id="popup-fecha" class="fw-semibold"></div>
+    </div>
+    <div class="d-flex gap-2">
+      <a id="popup-link" href="#" class="btn btn-gc btn-sm">
+        <i class="bi bi-eye me-1"></i>Ver nota completa
+      </a>
+      <button onclick="cerrarPopup()" class="btn btn-outline-secondary btn-sm">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/es.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('calendar');
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: 'es',
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,listMonth'
+    },
+    events: '{% url "notas_calendario_data" residente.pk %}',
+    eventClick: function(info) {
+      info.jsEvent.preventDefault();
+      const props = info.event.extendedProps;
+      const start = info.event.start;
+
+      document.getElementById('popup-tipo').textContent = info.event.title;
+      document.getElementById('popup-autor').textContent = props.autor;
+      document.getElementById('popup-fecha').textContent = start.toLocaleString('es-CO');
+      document.getElementById('popup-link').href = props.url;
+
+      document.getElementById('nota-popup').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    },
+    eventDidMount: function(info) {
+      info.el.title = info.event.title;
+    }
+  });
+
+  calendar.render();
+});
+
+function cerrarPopup() {
+  document.getElementById('nota-popup').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+}
+</script>
+{% endblock %}

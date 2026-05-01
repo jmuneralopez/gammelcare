@@ -7,10 +7,20 @@ from residentes.models import Residente
 class NotaClinica(models.Model):
     ENFERMERIA = 'enfermeria'
     EVOLUCION = 'evolucion'
+    FISIOTERAPIA = 'fisioterapia'
+    NUTRICION = 'nutricion'
+    PSICOLOGIA = 'psicologia'
+    TRABAJO_SOCIAL = 'trabajo_social'
+    TERAPIA_OCUPACIONAL = 'terapia_ocupacional'
 
     TIPOS = [
         (ENFERMERIA, 'Nota de Enfermería'),
         (EVOLUCION, 'Evolución Médica'),
+        (FISIOTERAPIA, 'Nota de Fisioterapia'),
+        (NUTRICION, 'Nota de Nutrición'),
+        (PSICOLOGIA, 'Nota de Psicología'),
+        (TRABAJO_SOCIAL, 'Nota de Trabajo Social'),
+        (TERAPIA_OCUPACIONAL, 'Nota de Terapia Ocupacional'),
     ]
 
     residente = models.ForeignKey(
@@ -23,8 +33,19 @@ class NotaClinica(models.Model):
         on_delete=models.PROTECT,
         related_name='notas_creadas'
     )
-    tipo = models.CharField(max_length=20, choices=TIPOS)
+    tipo = models.CharField(max_length=30, choices=TIPOS)
     contenido = models.TextField()
+
+    # Campos específicos de enfermería
+    diuresis = models.BooleanField(
+        default=False,
+        verbose_name='Diuresis positiva'
+    )
+    deposicion = models.BooleanField(
+        default=False,
+        verbose_name='Deposición positiva'
+    )
+
     hash_integridad = models.CharField(max_length=64, editable=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
@@ -35,10 +56,10 @@ class NotaClinica(models.Model):
         ordering = ['-fecha_creacion']
 
     def save(self, *args, **kwargs):
-        # Generar hash antes de guardar — inmutabilidad
         if not self.pk:
+            contenido_hash = f'{self.contenido}{self.tipo}{self.diuresis}{self.deposicion}'
             self.hash_integridad = hashlib.sha256(
-                self.contenido.encode('utf-8')
+                contenido_hash.encode('utf-8')
             ).hexdigest()
         else:
             raise ValueError(

@@ -38,10 +38,37 @@
   <div class="card-body p-4">
     <form method="post">
       {% csrf_token %}
+
       <div class="mb-3">
         <label class="form-label fw-semibold">{{ form.tipo.label }}</label>
         {{ form.tipo }}
       </div>
+
+      <!-- Campos de enfermería — visibles solo cuando tipo = enfermeria -->
+      <div id="enfermeria_fields" class="mb-3 p-3 rounded" style="background-color:#EBF3FA; display:none;">
+        <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+          <i class="bi bi-clipboard2-pulse me-2"></i>Registro de enfermería
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              {{ form.diuresis }}
+              <label class="form-check-label fw-semibold ms-2">
+                {{ form.diuresis.label }}
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              {{ form.deposicion }}
+              <label class="form-check-label fw-semibold ms-2">
+                {{ form.deposicion.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="mb-4">
         <label class="form-label fw-semibold">{{ form.contenido.label }}</label>
         {{ form.contenido }}
@@ -49,6 +76,7 @@
           El sistema generará automáticamente el hash de integridad al guardar.
         </small>
       </div>
+
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-gc">
           <i class="bi bi-check-circle me-1"></i>Registrar nota
@@ -60,4 +88,22 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleEnfermeria() {
+  const tipo = document.getElementById('id_tipo').value;
+  const campos = document.getElementById('enfermeria_fields');
+  if (tipo === 'enfermeria') {
+    campos.style.display = 'block';
+  } else {
+    campos.style.display = 'none';
+    document.getElementById('id_diuresis').checked = false;
+    document.getElementById('id_deposicion').checked = false;
+  }
+}
+// Ejecutar al cargar por si hay valor previo
+document.addEventListener('DOMContentLoaded', toggleEnfermeria);
+</script>
 {% endblock %}
