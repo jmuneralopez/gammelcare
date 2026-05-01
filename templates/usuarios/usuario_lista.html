@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Usuarios{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-people me-2"></i>Usuarios del Hogar
+  </h4>
+  <a href="{% url 'usuario_crear' %}" class="btn btn-gc">
+    <i class="bi bi-plus-circle me-1"></i>Nuevo Usuario
+  </a>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead style="background-color:#D6E4F0;">
+        <tr>
+          <th style="color:#1F4E79;">Nombre</th>
+          <th style="color:#1F4E79;">Usuario</th>
+          <th style="color:#1F4E79;">Correo</th>
+          <th style="color:#1F4E79;">Rol</th>
+          <th style="color:#1F4E79;">Estado</th>
+          <th style="color:#1F4E79;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td class="fw-semibold">{{ u.get_full_name|default:"Sin nombre" }}</td>
+          <td>{{ u.username }}</td>
+          <td class="text-muted">{{ u.email|default:"—" }}</td>
+          <td>
+            {% if u.rol %}
+              <span class="badge" style="background-color:#2E75B6;">{{ u.rol }}</span>
+            {% else %}
+              <span class="text-muted">Sin rol</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.activo %}
+              <span class="badge bg-success">Activo</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactivo</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'usuario_editar' u.pk %}"
+               class="btn btn-sm btn-outline-primary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% if u != request.user %}
+            <a href="{% url 'usuario_toggle' u.pk %}"
+               class="btn btn-sm {% if u.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+               onclick="return confirm('¿Confirma cambiar el estado de este usuario?')">
+              <i class="bi bi-{% if u.activo %}pause-circle{% else %}play-circle{% endif %}"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+            No hay usuarios registrados.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
