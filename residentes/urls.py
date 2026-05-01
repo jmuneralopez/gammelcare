@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:pk>/reactivar/', views.residente_reactivar, name='residente_reactivar'),
     path('<int:pk>/diagnostico/nuevo/', views.diagnostico_agregar, name='diagnostico_agregar'),
     path('<int:pk>/diagnostico/<int:dpk>/remover/', views.diagnostico_desactivar, name='diagnostico_desactivar'),
+    path('<int:pk>/pdf/', views.residente_exportar_pdf, name='residente_pdf'),
 ]

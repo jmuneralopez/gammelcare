@@ -151,6 +151,23 @@
             <i class="bi bi-hospital me-1"></i>Camas
           </a>
         </li>
+        <li class="nav-item mt-2">
+          <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
+            Catálogos
+          </small>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'eps' in request.path %}active{% endif %}"
+             href="{% url 'eps_lista' %}">
+            <i class="bi bi-hospital me-1"></i>EPS
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'ambulancia' in request.path %}active{% endif %}"
+             href="{% url 'ambulancia_lista' %}">
+            <i class="bi bi-truck me-1"></i>Ambulancias
+          </a>
+        </li>
          <li class="nav-item">
           <a class="nav-link {% if 'usuarios' in request.path and 'lista' in request.path %}active{% endif %}"
              href="{% url 'usuario_lista' %}">
@@ -193,6 +210,23 @@
           <a class="nav-link {% if 'camas' in request.path %}active{% endif %}"
              href="{% url 'cama_lista' %}">
             <i class="bi bi-hospital me-1"></i>Camas
+          </a>
+        </li>
+        <li class="nav-item mt-2">
+          <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
+            Catálogos
+          </small>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'eps' in request.path %}active{% endif %}"
+             href="{% url 'eps_lista' %}">
+            <i class="bi bi-hospital me-1"></i>EPS
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if 'ambulancia' in request.path %}active{% endif %}"
+             href="{% url 'ambulancia_lista' %}">
+            <i class="bi bi-truck me-1"></i>Ambulancias
           </a>
         </li>
          <li class="nav-item">
