@@ -15,6 +15,16 @@
   .fc-event { cursor: pointer; font-size: 0.72rem; }
   .fc-day-today { background-color: #EBF3FA !important; }
   .fc-daygrid-day-number { font-size: 0.78rem; }
+  .section-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-header:hover { opacity: 0.85; }
+  .collapse-icon { transition: transform 0.2s; }
+  .collapsed .collapse-icon { transform: rotate(-90deg); }
 </style>
 {% endblock %}
 
@@ -24,7 +34,7 @@
     <i class="bi bi-person-vcard me-2"></i>Expediente del Residente
   </h4>
   <div class="d-flex gap-2">
-    {% if user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
+    {% if user.es_administrativo %}
     <a href="{% url 'residente_editar' residente.pk %}" class="btn btn-gc">
       <i class="bi bi-pencil me-1"></i>Editar
     </a>
@@ -42,170 +52,193 @@
 </div>
 
 <!-- DATOS PERSONALES -->
-<div class="card card-gc mb-4">
+<div class="card card-gc mb-3">
   <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-person me-2"></i>Datos Personales
-    </h6>
-    <div class="row g-3">
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Nombre completo</div>
-        <div class="fw-semibold">{{ nombre }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Tipo y número de documento</div>
-        <div class="fw-semibold">{{ residente.get_tipo_documento_display }} — {{ documento }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Fecha de nacimiento</div>
-        <div class="fw-semibold">{{ residente.fecha_nacimiento }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Nacionalidad</div>
-        <div class="fw-semibold">{{ residente.nacionalidad|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">EPS</div>
-        <div class="fw-semibold">{{ residente.eps|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Servicio de ambulancia</div>
-        <div class="fw-semibold">{{ residente.servicio_ambulancia|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Contacto de emergencia</div>
-        <div class="fw-semibold">{{ contacto }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Cama actual</div>
-        <div class="fw-semibold">
-          {% if residente.cama_actual %}
-            {{ residente.cama_actual.codigo }} — Hab. {{ residente.cama_actual.habitacion.numero }}
-          {% else %}
-            <span class="text-muted">Sin asignación</span>
-          {% endif %}
+    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#datos-personales">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-person me-2"></i>Datos Personales
+      </h6>
+      <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
+    </div>
+    <div class="collapse show" id="datos-personales">
+      <div class="row g-3 mt-1">
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Nombre completo</div>
+          <div class="fw-semibold">{{ nombre }}</div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Estado</div>
-        <div>
-          {% if residente.activo %}
-            <span class="badge bg-success">Activo</span>
-          {% else %}
-            <span class="badge bg-secondary">
-              Alta — {{ residente.get_motivo_retiro_display|default:"" }}
-            </span>
-          {% endif %}
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Tipo y número de documento</div>
+          <div class="fw-semibold">{{ residente.get_tipo_documento_display }} — {{ documento }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Fecha de nacimiento</div>
+          <div class="fw-semibold">{{ residente.fecha_nacimiento }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Nacionalidad</div>
+          <div class="fw-semibold">{{ residente.nacionalidad|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">EPS</div>
+          <div class="fw-semibold">
+            {{ residente.eps|default:"—" }}
+            {% if residente.eps and residente.eps.telefono %}
+              <span class="text-muted ms-2" style="font-size:0.82rem;">
+                <i class="bi bi-telephone me-1"></i>{{ residente.eps.telefono }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Servicio de ambulancia</div>
+          <div class="fw-semibold">
+            {{ residente.servicio_ambulancia|default:"—" }}
+            {% if residente.servicio_ambulancia and residente.servicio_ambulancia.telefono %}
+              <span class="text-muted ms-2" style="font-size:0.82rem;">
+                <i class="bi bi-telephone me-1"></i>{{ residente.servicio_ambulancia.telefono }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Contacto de emergencia</div>
+          <div class="fw-semibold">{{ contacto }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Cama actual</div>
+          <div class="fw-semibold">
+            {% if residente.cama_actual %}
+              {{ residente.cama_actual.codigo }} — Hab. {{ residente.cama_actual.habitacion.numero }}
+            {% else %}
+              <span class="text-muted">Sin asignación</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Estado</div>
+          <div>
+            {% if residente.activo %}
+              <span class="badge bg-success">Activo</span>
+            {% else %}
+              <span class="badge bg-secondary">
+                Alta — {{ residente.get_motivo_retiro_display|default:"" }}
+              </span>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- NOTAS CLÍNICAS CON CALENDARIO INTEGRADO -->
-<div class="card card-gc mb-4">
+<!-- NOTAS CLÍNICAS CON CALENDARIO -->
+<div class="card card-gc mb-3">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
-        <i class="bi bi-journal-medical me-2"></i>Notas Clínicas
-      </h6>
-      <a href="{% url 'nota_crear' residente.pk %}" class="btn btn-sm btn-gc">
-        <i class="bi bi-plus-circle me-1"></i>Nueva nota
-      </a>
+      <div class="section-header flex-grow-1 me-2" data-bs-toggle="collapse" data-bs-target="#notas-section">
+        <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+          <i class="bi bi-journal-medical me-2"></i>Notas Clínicas
+          <span class="badge ms-2" style="background-color:#2E75B6; font-size:0.7rem;">{{ notas.count }}</span>
+        </h6>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'nota_crear' residente.pk %}" class="btn btn-sm btn-gc">
+          <i class="bi bi-plus-circle me-1"></i>Nueva nota
+        </a>
+        <i class="bi bi-chevron-down collapse-icon" data-bs-toggle="collapse"
+           data-bs-target="#notas-section" style="color:#2E75B6; cursor:pointer;"></i>
+      </div>
     </div>
-
-    <div class="row g-3">
-      <!-- Calendario compacto -->
-      <div class="col-md-4">
-        <div class="p-2 rounded" style="background-color:#f8f9fa; border:1px solid #D6E4F0;">
-          <div id="mini-calendar"></div>
-          <div class="mt-2 text-center">
-            <small class="text-muted" id="fecha-seleccionada">
-              Haz clic en un día para filtrar notas
-            </small>
-            <div class="mt-1">
-              <button onclick="limpiarFiltro()" id="btn-limpiar"
-                class="btn btn-sm btn-outline-secondary" style="display:none; font-size:0.75rem;">
-                <i class="bi bi-x-circle me-1"></i>Ver todas
-              </button>
+    <div class="collapse show" id="notas-section">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="p-2 rounded" style="background-color:#f8f9fa; border:1px solid #D6E4F0;">
+            <div id="mini-calendar"></div>
+            <div class="mt-2 text-center">
+              <small class="text-muted" id="fecha-seleccionada">
+                Haz clic en un día para filtrar notas
+              </small>
+              <div class="mt-1">
+                <button onclick="limpiarFiltro()" id="btn-limpiar"
+                  class="btn btn-sm btn-outline-secondary" style="display:none; font-size:0.75rem;">
+                  <i class="bi bi-x-circle me-1"></i>Ver todas
+                </button>
+              </div>
             </div>
-          </div>
-          <!-- Leyenda -->
-          <div class="mt-3 d-flex flex-wrap gap-1">
-            <span class="badge" style="background-color:#2E75B6; font-size:0.65rem;">Enfermería</span>
-            <span class="badge" style="background-color:#1F4E79; font-size:0.65rem;">Evolución</span>
-            <span class="badge" style="background-color:#198754; font-size:0.65rem;">Fisio</span>
-            <span class="badge" style="background-color:#fd7e14; font-size:0.65rem;">Nutrición</span>
-            <span class="badge" style="background-color:#6f42c1; font-size:0.65rem;">Psicología</span>
-            <span class="badge" style="background-color:#0dcaf0; font-size:0.65rem;">T. Social</span>
-            <span class="badge" style="background-color:#d63384; font-size:0.65rem;">T. Ocupacional</span>
+            <div class="mt-3 d-flex flex-wrap gap-1">
+              <span class="badge" style="background-color:#2E75B6; font-size:0.65rem;">Enfermería</span>
+              <span class="badge" style="background-color:#1F4E79; font-size:0.65rem;">Evolución</span>
+              <span class="badge" style="background-color:#198754; font-size:0.65rem;">Fisio</span>
+              <span class="badge" style="background-color:#fd7e14; font-size:0.65rem;">Nutrición</span>
+              <span class="badge" style="background-color:#6f42c1; font-size:0.65rem;">Psicología</span>
+              <span class="badge" style="background-color:#0dcaf0; font-size:0.65rem;">T. Social</span>
+              <span class="badge" style="background-color:#d63384; font-size:0.65rem;">T. Ocupacional</span>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Lista de notas -->
-      <div class="col-md-8">
-        <div id="notas-container">
-          {% for nota in notas %}
-          <div class="border rounded p-3 mb-2 nota-item" style="border-color:#D6E4F0 !important;">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <div class="d-flex gap-2 align-items-center flex-wrap">
-                <span class="badge" style="background-color:
-                  {% if nota.tipo == 'enfermeria' %}#2E75B6
-                  {% elif nota.tipo == 'evolucion' %}#1F4E79
-                  {% elif nota.tipo == 'fisioterapia' %}#198754
-                  {% elif nota.tipo == 'nutricion' %}#fd7e14
-                  {% elif nota.tipo == 'psicologia' %}#6f42c1
-                  {% elif nota.tipo == 'trabajo_social' %}#0dcaf0
-                  {% else %}#d63384{% endif %};">
-                  {{ nota.get_tipo_display }}
-                </span>
-                {% if nota.tipo == 'enfermeria' %}
-                  {% if nota.diuresis %}
-                    <span class="badge bg-info" style="font-size:0.7rem;">
-                      <i class="bi bi-droplet-fill me-1"></i>Diuresis ✓
-                    </span>
+        <div class="col-md-8">
+          <div id="notas-container">
+            {% for nota in notas %}
+            <div class="border rounded p-3 mb-2 nota-item" style="border-color:#D6E4F0 !important;">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                  <span class="badge" style="background-color:
+                    {% if nota.tipo == 'enfermeria' %}#2E75B6
+                    {% elif nota.tipo == 'evolucion' %}#1F4E79
+                    {% elif nota.tipo == 'fisioterapia' %}#198754
+                    {% elif nota.tipo == 'nutricion' %}#fd7e14
+                    {% elif nota.tipo == 'psicologia' %}#6f42c1
+                    {% elif nota.tipo == 'trabajo_social' %}#0dcaf0
+                    {% else %}#d63384{% endif %};">
+                    {{ nota.get_tipo_display }}
+                  </span>
+                  {% if nota.tipo == 'enfermeria' %}
+                    {% if nota.diuresis %}
+                      <span class="badge bg-info" style="font-size:0.7rem;">
+                        <i class="bi bi-droplet-fill me-1"></i>Diuresis ✓
+                      </span>
+                    {% endif %}
+                    {% if nota.deposicion %}
+                      <span class="badge bg-warning text-dark" style="font-size:0.7rem;">
+                        Deposición ✓
+                      </span>
+                    {% endif %}
                   {% endif %}
-                  {% if nota.deposicion %}
-                    <span class="badge bg-warning text-dark" style="font-size:0.7rem;">
-                      Deposición ✓
-                    </span>
-                  {% endif %}
-                {% endif %}
+                </div>
+                <small class="text-muted text-nowrap">
+                  {{ nota.fecha_creacion|date:"d/m/Y H:i" }}
+                </small>
               </div>
-              <small class="text-muted text-nowrap">
-                {{ nota.fecha_creacion|date:"d/m/Y H:i" }}
-              </small>
+              <div class="text-muted mb-1" style="font-size:0.82rem;">
+                <i class="bi bi-person me-1"></i>
+                {{ nota.autor.get_full_name|default:nota.autor.username }}
+              </div>
+              <p class="mb-2" style="font-size:0.9rem;">{{ nota.contenido|truncatewords:25 }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                {% if nota.aclaraciones.exists %}
+                <small class="text-warning">
+                  <i class="bi bi-chat-left-text me-1"></i>
+                  {{ nota.aclaraciones.count }} aclaración{% if nota.aclaraciones.count != 1 %}es{% endif %}
+                </small>
+                {% else %}
+                <span></span>
+                {% endif %}
+                <a href="{% url 'nota_detalle' nota.pk %}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye me-1"></i>Ver completa
+                </a>
+              </div>
             </div>
-            <div class="text-muted mb-1" style="font-size:0.82rem;">
-              <i class="bi bi-person me-1"></i>
-              {{ nota.autor.get_full_name|default:nota.autor.username }}
+            {% empty %}
+            <div class="text-center text-muted py-4" id="sin-notas">
+              <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
+              No hay notas clínicas registradas.
             </div>
-            <p class="mb-2" style="font-size:0.9rem;">{{ nota.contenido|truncatewords:25 }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              {% if nota.aclaraciones.exists %}
-              <small class="text-warning">
-                <i class="bi bi-chat-left-text me-1"></i>
-                {{ nota.aclaraciones.count }} aclaración{% if nota.aclaraciones.count != 1 %}es{% endif %}
-              </small>
-              {% else %}
-              <span></span>
-              {% endif %}
-              <a href="{% url 'nota_detalle' nota.pk %}"
-                 class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-eye me-1"></i>Ver completa
-              </a>
+            {% endfor %}
+            <div id="sin-notas-filtro" class="text-center text-muted py-4" style="display:none;">
+              <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+              No hay notas para el día seleccionado.
             </div>
-          </div>
-          {% empty %}
-          <div class="text-center text-muted py-4" id="sin-notas">
-            <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
-            No hay notas clínicas registradas.
-          </div>
-          {% endfor %}
-          <div id="sin-notas-filtro" class="text-center text-muted py-4" style="display:none;">
-            <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
-            No hay notas para el día seleccionado.
           </div>
         </div>
       </div>
@@ -214,124 +247,140 @@
 </div>
 
 <!-- DIAGNÓSTICOS -->
-<div class="card card-gc mb-4">
+<div class="card card-gc mb-3">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
-        <i class="bi bi-journal-medical me-2"></i>Diagnósticos
-      </h6>
-      <a href="{% url 'diagnostico_agregar' residente.pk %}" class="btn btn-sm btn-gc">
-        <i class="bi bi-plus-circle me-1"></i>Agregar
-      </a>
+      <div class="section-header flex-grow-1 me-2" data-bs-toggle="collapse" data-bs-target="#diagnosticos-section">
+        <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+          <i class="bi bi-journal-medical me-2"></i>Diagnósticos
+          <span class="badge ms-2" style="background-color:#2E75B6; font-size:0.7rem;">{{ diagnosticos.count }}</span>
+        </h6>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'diagnostico_agregar' residente.pk %}" class="btn btn-sm btn-gc">
+          <i class="bi bi-plus-circle me-1"></i>Agregar
+        </a>
+        <i class="bi bi-chevron-down collapse-icon" data-bs-toggle="collapse"
+           data-bs-target="#diagnosticos-section" style="color:#2E75B6; cursor:pointer;"></i>
+      </div>
     </div>
-    {% if diagnosticos %}
-    <table class="table table-sm mb-0">
-      <thead style="background-color:#D6E4F0;">
-        <tr>
-          <th style="color:#1F4E79;">Código</th>
-          <th style="color:#1F4E79;">Descripción</th>
-          <th style="color:#1F4E79;">Observación</th>
-          <th style="color:#1F4E79;">Fecha</th>
-          <th style="color:#1F4E79;"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for diag in diagnosticos %}
-        <tr>
-          <td><span class="badge" style="background-color:#2E75B6;">{{ diag.codigo_cie10.codigo }}</span></td>
-          <td>{{ diag.codigo_cie10.descripcion }}</td>
-          <td class="text-muted">{{ diag.observacion|default:"—" }}</td>
-          <td>{{ diag.fecha_registro|date:"d/m/Y" }}</td>
-          <td>
-            <a href="{% url 'diagnostico_desactivar' residente.pk diag.pk %}"
-               class="btn btn-sm btn-outline-danger"
-               onclick="return confirm('¿Remover este diagnóstico?')">
-              <i class="bi bi-trash"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="text-center text-muted py-3">
-      <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
-      No hay diagnósticos registrados.
+    <div class="collapse show" id="diagnosticos-section">
+      <div class="mt-2">
+        {% if diagnosticos %}
+        <table class="table table-sm mb-0">
+          <thead style="background-color:#D6E4F0;">
+            <tr>
+              <th style="color:#1F4E79;">Código</th>
+              <th style="color:#1F4E79;">Descripción</th>
+              <th style="color:#1F4E79;">Observación</th>
+              <th style="color:#1F4E79;">Fecha</th>
+              <th style="color:#1F4E79;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for diag in diagnosticos %}
+            <tr>
+              <td><span class="badge" style="background-color:#2E75B6;">{{ diag.codigo_cie10.codigo }}</span></td>
+              <td>{{ diag.codigo_cie10.descripcion }}</td>
+              <td class="text-muted">{{ diag.observacion|default:"—" }}</td>
+              <td>{{ diag.fecha_registro|date:"d/m/Y" }}</td>
+              <td>
+                <a href="{% url 'diagnostico_desactivar' residente.pk diag.pk %}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('¿Remover este diagnóstico?')">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-3">
+          <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
+          No hay diagnósticos registrados.
+        </div>
+        {% endif %}
+      </div>
     </div>
-    {% endif %}
   </div>
 </div>
 
 <!-- EXAMEN DE INGRESO -->
 {% if examen %}
-<div class="card card-gc mb-4">
+<div class="card card-gc mb-3">
   <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
-    </h6>
-    <div class="row g-3">
-      <div class="col-md-2">
-        <div class="text-muted" style="font-size:0.82rem;">Peso</div>
-        <div class="fw-semibold">{{ examen.peso|default:"—" }} kg</div>
+    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#examen-section">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
+      </h6>
+      <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
+    </div>
+    <div class="collapse" id="examen-section">
+      <div class="row g-3 mt-1">
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Peso</div>
+          <div class="fw-semibold">{{ examen.peso|default:"—" }} kg</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Talla</div>
+          <div class="fw-semibold">{{ examen.talla|default:"—" }} cm</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">IMC</div>
+          <div class="fw-semibold">{{ examen.imc|default:"—" }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted" style="font-size:0.82rem;">Presión arterial</div>
+          <div class="fw-semibold">{{ examen.presion_arterial|default:"—" }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted" style="font-size:0.82rem;">Frec. cardíaca</div>
+          <div class="fw-semibold">{{ examen.frecuencia_cardiaca|default:"—" }} lpm</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Temperatura</div>
+          <div class="fw-semibold">{{ examen.temperatura|default:"—" }} °C</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Sat. O2</div>
+          <div class="fw-semibold">{{ examen.saturacion_oxigeno|default:"—" }} %</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Procedencia</div>
+          <div class="fw-semibold">{{ examen.get_procedencia_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Estado mental</div>
+          <div class="fw-semibold">{{ examen.get_estado_mental_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Movilidad</div>
+          <div class="fw-semibold">{{ examen.get_movilidad_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Condición nutricional</div>
+          <div class="fw-semibold">{{ examen.get_condicion_nutricional_display|default:"—" }}</div>
+        </div>
+        {% if examen.observaciones_fisicas %}
+        <div class="col-12">
+          <div class="text-muted" style="font-size:0.82rem;">Observaciones físicas</div>
+          <div>{{ examen.observaciones_fisicas|linebreaksbr }}</div>
+        </div>
+        {% endif %}
+        {% if examen.antecedentes_medicos %}
+        <div class="col-md-6">
+          <div class="text-muted" style="font-size:0.82rem;">Antecedentes médicos</div>
+          <div>{{ examen.antecedentes_medicos|linebreaksbr }}</div>
+        </div>
+        {% endif %}
+        {% if examen.antecedentes_familiares %}
+        <div class="col-md-6">
+          <div class="text-muted" style="font-size:0.82rem;">Antecedentes familiares</div>
+          <div>{{ examen.antecedentes_familiares|linebreaksbr }}</div>
+        </div>
+        {% endif %}
       </div>
-      <div class="col-md-2">
-        <div class="text-muted" style="font-size:0.82rem;">Talla</div>
-        <div class="fw-semibold">{{ examen.talla|default:"—" }} cm</div>
-      </div>
-      <div class="col-md-2">
-        <div class="text-muted" style="font-size:0.82rem;">IMC</div>
-        <div class="fw-semibold">{{ examen.imc|default:"—" }}</div>
-      </div>
-      <div class="col-md-3">
-        <div class="text-muted" style="font-size:0.82rem;">Presión arterial</div>
-        <div class="fw-semibold">{{ examen.presion_arterial|default:"—" }}</div>
-      </div>
-      <div class="col-md-3">
-        <div class="text-muted" style="font-size:0.82rem;">Frec. cardíaca</div>
-        <div class="fw-semibold">{{ examen.frecuencia_cardiaca|default:"—" }} lpm</div>
-      </div>
-      <div class="col-md-2">
-        <div class="text-muted" style="font-size:0.82rem;">Temperatura</div>
-        <div class="fw-semibold">{{ examen.temperatura|default:"—" }} °C</div>
-      </div>
-      <div class="col-md-2">
-        <div class="text-muted" style="font-size:0.82rem;">Sat. O2</div>
-        <div class="fw-semibold">{{ examen.saturacion_oxigeno|default:"—" }} %</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Procedencia</div>
-        <div class="fw-semibold">{{ examen.get_procedencia_display|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Estado mental</div>
-        <div class="fw-semibold">{{ examen.get_estado_mental_display|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Movilidad</div>
-        <div class="fw-semibold">{{ examen.get_movilidad_display|default:"—" }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Condición nutricional</div>
-        <div class="fw-semibold">{{ examen.get_condicion_nutricional_display|default:"—" }}</div>
-      </div>
-      {% if examen.observaciones_fisicas %}
-      <div class="col-12">
-        <div class="text-muted" style="font-size:0.82rem;">Observaciones físicas</div>
-        <div>{{ examen.observaciones_fisicas|linebreaksbr }}</div>
-      </div>
-      {% endif %}
-      {% if examen.antecedentes_medicos %}
-      <div class="col-md-6">
-        <div class="text-muted" style="font-size:0.82rem;">Antecedentes médicos</div>
-        <div>{{ examen.antecedentes_medicos|linebreaksbr }}</div>
-      </div>
-      {% endif %}
-      {% if examen.antecedentes_familiares %}
-      <div class="col-md-6">
-        <div class="text-muted" style="font-size:0.82rem;">Antecedentes familiares</div>
-        <div>{{ examen.antecedentes_familiares|linebreaksbr }}</div>
-      </div>
-      {% endif %}
     </div>
   </div>
 </div>
@@ -339,23 +388,28 @@
 
 <!-- EXPEDIENTE DE INGRESO -->
 {% if expediente %}
-<div class="card card-gc mb-4">
+<div class="card card-gc mb-3">
   <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-clipboard2-pulse me-2"></i>Expediente de Ingreso
-    </h6>
-    <div class="row g-3">
-      <div class="col-12">
-        <div class="text-muted" style="font-size:0.82rem;">Alergias</div>
-        <div>{{ expediente.alergias|default:"—"|linebreaksbr }}</div>
-      </div>
-      <div class="col-12">
-        <div class="text-muted" style="font-size:0.82rem;">Inventario de Ingreso</div>
-        <div>{{ expediente.inventario_ingreso|default:"—"|linebreaksbr }}</div>
-      </div>
-      <div class="col-12">
-        <div class="text-muted" style="font-size:0.82rem;">Observaciones generales</div>
-        <div>{{ expediente.observaciones|default:"—"|linebreaksbr }}</div>
+    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#expediente-section">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-clipboard2-pulse me-2"></i>Expediente de Ingreso
+      </h6>
+      <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
+    </div>
+    <div class="collapse" id="expediente-section">
+      <div class="row g-3 mt-1">
+        <div class="col-12">
+          <div class="text-muted" style="font-size:0.82rem;">Alergias</div>
+          <div>{{ expediente.alergias|default:"—"|linebreaksbr }}</div>
+        </div>
+        <div class="col-12">
+          <div class="text-muted" style="font-size:0.82rem;">Inventario de Ingreso</div>
+          <div>{{ expediente.inventario_ingreso|default:"—"|linebreaksbr }}</div>
+        </div>
+        <div class="col-12">
+          <div class="text-muted" style="font-size:0.82rem;">Observaciones generales</div>
+          <div>{{ expediente.observaciones|default:"—"|linebreaksbr }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -363,43 +417,50 @@
 {% endif %}
 
 <!-- HISTORIAL DE CAMAS -->
-<div class="card card-gc mb-4">
+<div class="card card-gc mb-3">
   <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-hospital me-2"></i>Historial de Asignaciones
-    </h6>
-    <table class="table table-sm mb-0">
-      <thead style="background-color:#D6E4F0;">
-        <tr>
-          <th style="color:#1F4E79;">Cama</th>
-          <th style="color:#1F4E79;">Habitación</th>
-          <th style="color:#1F4E79;">Inicio</th>
-          <th style="color:#1F4E79;">Fin</th>
-          <th style="color:#1F4E79;">Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for asig in asignaciones %}
-        <tr>
-          <td>{{ asig.cama.codigo }}</td>
-          <td>{{ asig.cama.habitacion.numero }}</td>
-          <td>{{ asig.fecha_inicio|date:"d/m/Y H:i" }}</td>
-          <td>{{ asig.fecha_fin|date:"d/m/Y H:i"|default:"Activa" }}</td>
-          <td>
-            {% if asig.activo %}
-              <span class="badge bg-success">Activa</span>
-            {% else %}
-              <span class="badge bg-secondary">Finalizada</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="5" class="text-muted text-center py-3">Sin historial.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#historial-section">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-hospital me-2"></i>Historial de Asignaciones
+      </h6>
+      <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
+    </div>
+    <div class="collapse" id="historial-section">
+      <div class="mt-2">
+        <table class="table table-sm mb-0">
+          <thead style="background-color:#D6E4F0;">
+            <tr>
+              <th style="color:#1F4E79;">Cama</th>
+              <th style="color:#1F4E79;">Habitación</th>
+              <th style="color:#1F4E79;">Inicio</th>
+              <th style="color:#1F4E79;">Fin</th>
+              <th style="color:#1F4E79;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for asig in asignaciones %}
+            <tr>
+              <td>{{ asig.cama.codigo }}</td>
+              <td>{{ asig.cama.habitacion.numero }}</td>
+              <td>{{ asig.fecha_inicio|date:"d/m/Y H:i" }}</td>
+              <td>{{ asig.fecha_fin|date:"d/m/Y H:i"|default:"Activa" }}</td>
+              <td>
+                {% if asig.activo %}
+                  <span class="badge bg-success">Activa</span>
+                {% else %}
+                  <span class="badge bg-secondary">Finalizada</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted text-center py-3">Sin historial.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -411,38 +472,48 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+  // Icono collapsible
+  document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(el) {
+    const targetId = el.getAttribute('data-bs-target');
+    const target = document.querySelector(targetId);
+    const icon = el.querySelector('.collapse-icon');
+    if (!icon) return;
+    if (target) {
+      target.addEventListener('show.bs.collapse', function() {
+        icon.style.transform = 'rotate(0deg)';
+      });
+      target.addEventListener('hide.bs.collapse', function() {
+        icon.style.transform = 'rotate(-90deg)';
+      });
+    }
+  });
+
+  // Calendario
   const todasLasNotas = document.querySelectorAll('.nota-item');
   const sinNotasFiltro = document.getElementById('sin-notas-filtro');
   const btnLimpiar = document.getElementById('btn-limpiar');
   const fechaLabel = document.getElementById('fecha-seleccionada');
 
-  const calendar = new FullCalendar.Calendar(document.getElementById('mini-calendar'), {
+  const calEl = document.getElementById('mini-calendar');
+  if (!calEl) return;
+
+  const calendar = new FullCalendar.Calendar(calEl, {
     locale: 'es',
     initialView: 'dayGridMonth',
-    headerToolbar: {
-      left: 'prev,next',
-      center: 'title',
-      right: ''
-    },
+    headerToolbar: { left: 'prev,next', center: 'title', right: '' },
     height: 280,
     events: '{% url "notas_calendario_data" residente.pk %}',
-    dateClick: function(info) {
-      const fechaClick = info.dateStr; // YYYY-MM-DD
-      filtrarPorFecha(fechaClick);
-    },
+    dateClick: function(info) { filtrarPorFecha(info.dateStr); },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
-      const fecha = info.event.start.toISOString().split('T')[0];
-      filtrarPorFecha(fecha);
+      filtrarPorFecha(info.event.start.toISOString().split('T')[0]);
     }
   });
-
   calendar.render();
 
   function filtrarPorFecha(fecha) {
     const [anio, mes, dia] = fecha.split('-');
     const fechaFormato = `${dia}/${mes}/${anio}`;
-
     let visibles = 0;
     todasLasNotas.forEach(function(nota) {
       const fechaNota = nota.querySelector('small.text-muted.text-nowrap');
@@ -453,26 +524,17 @@ document.addEventListener('DOMContentLoaded', function() {
         nota.style.display = 'none';
       }
     });
-
     fechaLabel.textContent = `Notas del ${fechaFormato}`;
     btnLimpiar.style.display = 'inline-block';
-
-    if (visibles === 0) {
-      sinNotasFiltro.style.display = 'block';
-    } else {
-      sinNotasFiltro.style.display = 'none';
-    }
+    sinNotasFiltro.style.display = visibles === 0 ? 'block' : 'none';
   }
 
   window.limpiarFiltro = function() {
-    todasLasNotas.forEach(function(nota) {
-      nota.style.display = 'block';
-    });
+    todasLasNotas.forEach(function(nota) { nota.style.display = 'block'; });
     sinNotasFiltro.style.display = 'none';
     btnLimpiar.style.display = 'none';
     fechaLabel.textContent = 'Haz clic en un día para filtrar notas';
   };
-
 });
 </script>
 {% endblock %}

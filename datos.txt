@@ -19,3 +19,9 @@ usuario prueba
 
 usuario maribelly
 A52065800
+
+usuario medico
+M3d1c026
+
+usuario usuario26
+usu4r10s
