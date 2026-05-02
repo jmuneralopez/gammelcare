@@ -38,6 +38,9 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            if user.hogar and not user.hogar.activo:
+                messages.error(request, 'El hogar al que perteneces está desactivado. Contacta al administrador del sistema.')
+                return render(request, 'usuarios/login.html', {'error': True})
             login(request, user)
             registrar_auditoria(
                 usuario=user,
@@ -135,11 +138,26 @@ def dashboard_view(request):
 @login_required
 @administrador_requerido
 def usuario_lista(request):
-    hogar = request.user.hogar
-    usuarios = Usuario.objects.filter(hogar=hogar).order_by('last_name', 'first_name')
-    return render(request, 'usuarios/usuario_lista.html', {
-        'usuarios': usuarios
-    })
+    if request.user.es_superadmin():
+        # Superadmin ve todos los usuarios agrupados por hogar
+        hogar_id = request.GET.get('hogar', '')
+        from hogares.models import Hogar
+        hogares = Hogar.objects.all().order_by('nombre')
+        usuarios = Usuario.objects.all().order_by('hogar__nombre', 'last_name')
+        if hogar_id:
+            usuarios = usuarios.filter(hogar_id=hogar_id)
+        return render(request, 'usuarios/usuario_lista_superadmin.html', {
+            'usuarios': usuarios,
+            'hogares': hogares,
+            'hogar_seleccionado': hogar_id,
+        })
+    else:
+        # Administrador ve solo usuarios de su hogar
+        hogar = request.user.hogar
+        usuarios = Usuario.objects.filter(hogar=hogar).order_by('last_name', 'first_name')
+        return render(request, 'usuarios/usuario_lista.html', {
+            'usuarios': usuarios
+        })
 
 
 @login_required
@@ -148,7 +166,10 @@ def usuario_crear(request):
     form = UsuarioCrearForm(request.POST or None, user=request.user)
     if request.method == 'POST' and form.is_valid():
         usuario = form.save(commit=False)
-        usuario.hogar = request.user.hogar
+        if request.user.es_superadmin():
+            usuario.hogar = form.cleaned_data.get('hogar')
+        else:
+            usuario.hogar = request.user.hogar
         usuario.set_password(form.cleaned_data['password1'])
         usuario.save()
         form.save_m2m()

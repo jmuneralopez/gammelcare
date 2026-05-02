@@ -24,6 +24,13 @@ class UsuarioCrearForm(forms.ModelForm):
         label='Roles',
         required=True
     )
+    hogar = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Hogar',
+        empty_label='Sin hogar asignado'
+    )
 
     class Meta:
         model = Usuario
@@ -43,12 +50,16 @@ class UsuarioCrearForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user and user.tiene_rol(Rol.ADMINISTRADOR):
+        from hogares.models import Hogar
+        if user and user.es_superadmin():
+            self.fields['hogar'].queryset = Hogar.objects.filter(activo=True)
+            self.fields['roles'].queryset = Rol.objects.all()
+        elif user and user.tiene_rol(Rol.ADMINISTRADOR):
+            self.fields['hogar'].queryset = Hogar.objects.none()
+            self.fields['hogar'].widget = forms.HiddenInput()
             self.fields['roles'].queryset = Rol.objects.filter(
                 nombre__in=[Rol.ADMINISTRADOR] + Rol.ROLES_CLINICOS
             )
-        else:
-            self.fields['roles'].queryset = Rol.objects.all()
 
     def clean(self):
         cleaned_data = super().clean()

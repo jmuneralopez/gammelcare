@@ -58,6 +58,14 @@
           </label>
           {{ form.email }}
         </div>
+        {% if form.hogar.field.widget.input_type != 'hidden' and form.hogar %}
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">
+            {{ form.hogar.label }}
+          </label>
+          {{ form.hogar }}
+        </div>
+        {% endif %}
         <div class="col-12">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">
             Roles

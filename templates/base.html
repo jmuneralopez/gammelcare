@@ -210,9 +210,20 @@
           </small>
         </li>
         <li class="nav-item">
+          <a class="nav-link {% if 'hogares' in request.path %}active{% endif %}"
+             href="{% url 'hogar_lista' %}">
+            <i class="bi bi-building me-1"></i>Hogares
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if 'auditoria' in request.path %}active{% endif %}"
              href="/admin/auditoria/registroauditoria/">
             <i class="bi bi-shield-check me-1"></i>Auditoría
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/" target="_blank">
+            <i class="bi bi-gear me-1"></i>Administrador del Sistema
           </a>
         </li>
         {% endif %}
