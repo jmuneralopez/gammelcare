@@ -81,25 +81,75 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    hogar = request.user.hogar
+    from django.utils import timezone
+    from datetime import timedelta
+    from residentes.models import Residente
+    from infraestructura.models import Cama
+    from notas_clinicas.models import NotaClinica
+    from hogares.models import Hogar
+
+    hoy = timezone.now().date()
     contexto = {}
 
-    if hogar:
-        from residentes.models import Residente
-        from infraestructura.models import Cama
-        from notas_clinicas.models import NotaClinica
-        from django.utils import timezone
-        from datetime import timedelta
+    if request.user.es_superadmin():
+        # ── Estadísticas globales ──────────────────────
+        total_hogares = Hogar.objects.filter(activo=True).count()
+        total_residentes = Residente.objects.filter(activo=True).count()
+        total_camas_ocupadas = Cama.objects.filter(estado='ocupada', activo=True).count()
+        total_notas_hoy = NotaClinica.objects.filter(
+            fecha_creacion__date=hoy
+        ).count()
 
-        hoy = timezone.now().date()
+        # ── Por hogar ──────────────────────────────────
+        hogares_data = []
+        for hogar in Hogar.objects.filter(activo=True).order_by('nombre'):
+            residentes = Residente.objects.filter(hogar=hogar, activo=True).count()
+            camas_total = Cama.objects.filter(
+                habitacion__departamento__hogar=hogar, activo=True
+            ).count()
+            camas_ocupadas = Cama.objects.filter(
+                habitacion__departamento__hogar=hogar,
+                activo=True, estado='ocupada'
+            ).count()
+            notas_hoy = NotaClinica.objects.filter(
+                residente__hogar=hogar,
+                fecha_creacion__date=hoy
+            ).count()
+            notas_semana = NotaClinica.objects.filter(
+                residente__hogar=hogar,
+                fecha_creacion__date__gte=hoy - timedelta(days=7)
+            ).count()
+            pct = round((camas_ocupadas / camas_total * 100)) if camas_total > 0 else 0
+            color = 'danger' if pct >= 80 else 'warning' if pct >= 50 else 'success'
 
+            hogares_data.append({
+                'hogar': hogar,
+                'residentes': residentes,
+                'camas_total': camas_total,
+                'camas_ocupadas': camas_ocupadas,
+                'notas_hoy': notas_hoy,
+                'notas_semana': notas_semana,
+                'pct': pct,
+                'color': color,
+            })
+
+        contexto = {
+            'es_superadmin': True,
+            'total_hogares': total_hogares,
+            'total_residentes': total_residentes,
+            'total_camas_ocupadas': total_camas_ocupadas,
+            'total_notas_hoy': total_notas_hoy,
+            'hogares_data': hogares_data,
+        }
+
+    elif request.user.hogar:
+        hogar = request.user.hogar
         total_residentes = Residente.objects.filter(hogar=hogar, activo=True).count()
         ingresos_mes = Residente.objects.filter(
             hogar=hogar,
             fecha_ingreso__month=hoy.month,
             fecha_ingreso__year=hoy.year
         ).count()
-
         total_camas = Cama.objects.filter(
             habitacion__departamento__hogar=hogar, activo=True
         ).count()
@@ -112,7 +162,6 @@ def dashboard_view(request):
             activo=True, estado='ocupada'
         ).count()
         ocupacion_pct = round((camas_ocupadas / total_camas * 100), 1) if total_camas > 0 else 0
-
         notas_hoy = NotaClinica.objects.filter(
             residente__hogar=hogar,
             fecha_creacion__date=hoy
@@ -123,6 +172,7 @@ def dashboard_view(request):
         ).count()
 
         contexto = {
+            'es_superadmin': False,
             'total_residentes': total_residentes,
             'ingresos_mes': ingresos_mes,
             'total_camas': total_camas,

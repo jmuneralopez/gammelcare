@@ -17,83 +17,220 @@
   </span>
 </div>
 
-{% if user.hogar %}
+{% if es_superadmin %}
+<!-- ══════════════════════════════════════════════ -->
+<!-- DASHBOARD SUPERADMIN                          -->
+<!-- ══════════════════════════════════════════════ -->
 
-<!-- ESTADÍSTICAS PRINCIPALES -->
+<!-- Estadísticas globales -->
 <div class="row g-3 mb-4">
-
-  <!-- Residentes activos -->
+  <div class="col-md-3">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Hogares activos</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_hogares }}</div>
+        </div>
+        <i class="bi bi-building fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
   <div class="col-md-3">
     <div class="card card-gc p-3">
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <div class="text-muted" style="font-size:0.82rem;">Residentes activos</div>
           <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_residentes }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">
-            +{{ ingresos_mes }} este mes
-          </div>
         </div>
         <i class="bi bi-person-lines-fill fs-2" style="color:#D6E4F0;"></i>
       </div>
     </div>
   </div>
+  <div class="col-md-3">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Camas ocupadas</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_camas_ocupadas }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">en toda la plataforma</div>
+        </div>
+        <i class="bi bi-hospital fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Notas hoy</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_notas_hoy }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">en toda la plataforma</div>
+        </div>
+        <i class="bi bi-journal-medical fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <!-- Ocupación -->
+<!-- Tabla por hogar -->
+<div class="card card-gc mb-4">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center"
+         style="background-color:#EBF3FA; border-radius:8px 8px 0 0; cursor:pointer;"
+         data-bs-toggle="collapse" data-bs-target="#resumen-hogares">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-grid me-2"></i>Resumen por Hogar
+        <span class="badge ms-2" style="background-color:#2E75B6; font-size:0.72rem;">
+          {{ hogares_data|length }} hogar{% if hogares_data|length != 1 %}es{% endif %}
+        </span>
+      </h6>
+      <i class="bi bi-chevron-down" style="color:#2E75B6; transition: transform 0.2s;" id="chevron-hogares"></i>
+    </div>
+    <div class="collapse" id="resumen-hogares">
+      <table class="table table-hover mb-0">
+        <thead style="background-color:#D6E4F0;">
+          <tr>
+            <th style="color:#1F4E79;">Hogar</th>
+            <th style="color:#1F4E79; text-align:center;">Residentes</th>
+            <th style="color:#1F4E79;">Ocupación</th>
+            <th style="color:#1F4E79; text-align:center;">Notas hoy</th>
+            <th style="color:#1F4E79; text-align:center;">Notas 7 días</th>
+            <th style="color:#1F4E79;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in hogares_data %}
+          <tr>
+            <td class="fw-semibold">{{ h.hogar.nombre }}</td>
+            <td class="text-center">{{ h.residentes }}</td>
+            <td style="min-width:180px;">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height:8px; border-radius:4px;">
+                  <div class="progress-bar bg-{{ h.color }}"
+                      style="width:{{ h.pct }}%;"></div>
+                </div>
+                <span style="font-size:0.82rem; min-width:40px;">{{ h.pct }}%</span>
+              </div>
+              <div style="font-size:0.75rem; color:#888;">
+                {{ h.camas_ocupadas }}/{{ h.camas_total }} camas
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="badge" style="background-color:#2E75B6;">{{ h.notas_hoy }}</span>
+            </td>
+            <td class="text-center text-muted">{{ h.notas_semana }}</td>
+            <td>
+              <a href="{% url 'hogar_editar' h.hogar.pk %}"
+                class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-3">No hay hogares registrados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- Accesos rápidos superadmin -->
+<div class="row g-3">
+  <div class="col-12">
+    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+      <i class="bi bi-lightning-charge me-2"></i>Accesos rápidos
+    </h6>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'hogar_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
+      <i class="bi bi-building fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
+      <div class="fw-semibold" style="color:#1F4E79;">Gestionar Hogares</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'usuario_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
+      <i class="bi bi-people fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
+      <div class="fw-semibold" style="color:#1F4E79;">Todos los Usuarios</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="/admin/auditoria/registroauditoria/" class="card card-gc p-3 text-decoration-none d-block text-center">
+      <i class="bi bi-shield-check fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
+      <div class="fw-semibold" style="color:#1F4E79;">Auditoría</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="/admin/" class="card card-gc p-3 text-decoration-none d-block text-center">
+      <i class="bi bi-gear fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
+      <div class="fw-semibold" style="color:#1F4E79;">Administrador del Sistema</div>
+    </a>
+  </div>
+</div>
+
+{% else %}
+<!-- ══════════════════════════════════════════════ -->
+<!-- DASHBOARD ADMINISTRADOR / CLÍNICO             -->
+<!-- ══════════════════════════════════════════════ -->
+
+{% if user.hogar %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Residentes activos</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_residentes }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">+{{ ingresos_mes }} este mes</div>
+        </div>
+        <i class="bi bi-person-lines-fill fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
   <div class="col-md-3">
     <div class="card card-gc p-3">
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <div class="text-muted" style="font-size:0.82rem;">Ocupación</div>
           <div class="fw-bold fs-3" style="color:#1F4E79;">{{ ocupacion_pct }}%</div>
-          <div class="text-muted" style="font-size:0.78rem;">
-            {{ camas_ocupadas }} / {{ total_camas }} camas
-          </div>
+          <div class="text-muted" style="font-size:0.78rem;">{{ camas_ocupadas }} / {{ total_camas }} camas</div>
         </div>
         <i class="bi bi-hospital fs-2" style="color:#D6E4F0;"></i>
       </div>
       <div class="progress mt-2" style="height:6px;">
-        <div class="progress-bar" role="progressbar"
-             style="width:{{ ocupacion_pct }}%; background-color:#2E75B6;">
-        </div>
+        <div class="progress-bar" style="width:{{ ocupacion_pct }}%; background-color:#2E75B6;"></div>
       </div>
     </div>
   </div>
-
-  <!-- Camas disponibles -->
   <div class="col-md-3">
     <div class="card card-gc p-3">
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <div class="text-muted" style="font-size:0.82rem;">Camas disponibles</div>
           <div class="fw-bold fs-3" style="color:#198754;">{{ camas_disponibles }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">
-            de {{ total_camas }} en total
-          </div>
+          <div class="text-muted" style="font-size:0.78rem;">de {{ total_camas }} en total</div>
         </div>
         <i class="bi bi-check-circle fs-2" style="color:#D6E4F0;"></i>
       </div>
     </div>
   </div>
-
-  <!-- Notas hoy -->
   <div class="col-md-3">
     <div class="card card-gc p-3">
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <div class="text-muted" style="font-size:0.82rem;">Notas hoy</div>
           <div class="fw-bold fs-3" style="color:#1F4E79;">{{ notas_hoy }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">
-            {{ notas_semana }} en los últimos 7 días
-          </div>
+          <div class="text-muted" style="font-size:0.78rem;">{{ notas_semana }} últimos 7 días</div>
         </div>
         <i class="bi bi-journal-medical fs-2" style="color:#D6E4F0;"></i>
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- ACCESOS RÁPIDOS POR ROL -->
 {% if user.es_administrativo %}
 <div class="row g-3 mb-4">
   <div class="col-12">
@@ -144,7 +281,7 @@
 </div>
 {% endif %}
 
-<!-- INFORMACIÓN DEL HOGAR -->
+<!-- INFO HOGAR -->
 <div class="card card-gc">
   <div class="card-body">
     <h6 class="fw-bold mb-3" style="color:#1F4E79;">
@@ -173,5 +310,24 @@
   Tu cuenta no tiene un hogar asignado. Contacta al administrador del sistema.
 </div>
 {% endif %}
+
+{% endif %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const target = document.getElementById('resumen-hogares');
+  const chevron = document.getElementById('chevron-hogares');
+  if (target && chevron) {
+    target.addEventListener('show.bs.collapse', function() {
+      chevron.style.transform = 'rotate(0deg)';
+    });
+    target.addEventListener('hide.bs.collapse', function() {
+      chevron.style.transform = 'rotate(-90deg)';
+    });
+    chevron.style.transform = 'rotate(-90deg)';
+  }
+});
+</script>
+{% endblock %}
 
 {% endblock %}
