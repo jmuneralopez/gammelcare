@@ -122,11 +122,72 @@ def habitacion_desactivar(request, pk):
 @administrador_requerido
 def cama_lista(request):
     hogar = request.user.hogar
-    camas = Cama.objects.filter(
-        habitacion__departamento__hogar=hogar
-    ).order_by('habitacion__numero', 'codigo')
+    from .models import Departamento, Habitacion, Cama
+
+    departamentos = Departamento.objects.filter(
+        hogar=hogar, activo=True
+    ).order_by('nombre')
+
+    data = []
+    total_camas = 0
+    total_ocupadas = 0
+
+    for dep in departamentos:
+        habitaciones_data = []
+        dep_camas = 0
+        dep_ocupadas = 0
+
+        habitaciones = Habitacion.objects.filter(
+            departamento=dep, activo=True
+        ).order_by('numero')
+
+        for hab in habitaciones:
+            camas = Cama.objects.filter(
+                habitacion=hab, activo=True
+            ).order_by('codigo')
+
+            ocupadas = camas.filter(estado='ocupada').count()
+            disponibles = camas.filter(estado='disponible').count()
+            mantenimiento = camas.filter(estado='mantenimiento').count()
+            total = camas.count()
+            pct = round((ocupadas / total * 100)) if total > 0 else 0
+            color = 'danger' if pct >= 80 else 'warning' if pct >= 50 else 'success'
+
+            dep_camas += total
+            dep_ocupadas += ocupadas
+
+            habitaciones_data.append({
+                'hab': hab,
+                'camas': camas,
+                'ocupadas': ocupadas,
+                'disponibles': disponibles,
+                'mantenimiento': mantenimiento,
+                'total': total,
+                'pct': pct,
+                'color': color,
+            })
+
+        total_camas += dep_camas
+        total_ocupadas += dep_ocupadas
+        dep_pct = round((dep_ocupadas / dep_camas * 100)) if dep_camas > 0 else 0
+
+        data.append({
+            'dep': dep,
+            'habitaciones': habitaciones_data,
+            'total_camas': dep_camas,
+            'ocupadas': dep_ocupadas,
+            'pct': dep_pct,
+        })
+
+    ocupacion_general = round((total_ocupadas / total_camas * 100)) if total_camas > 0 else 0
+    color_general = 'danger' if ocupacion_general >= 80 else 'warning' if ocupacion_general >= 50 else 'success'
+
     return render(request, 'infraestructura/cama_lista.html', {
-        'camas': camas
+        'data': data,
+        'total_camas': total_camas,
+        'total_ocupadas': total_ocupadas,
+        'ocupacion_general': ocupacion_general,
+        'color_general': color_general,
     })
 
 
