@@ -57,7 +57,12 @@ class NotaClinica(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            contenido_hash = f'{self.contenido}{self.tipo}{self.diuresis}{self.deposicion}'
+            contenido_hash = (
+                f'{self.contenido}'
+                f'{self.tipo}'
+                f'{"true" if self.diuresis else "false"}'
+                f'{"true" if self.deposicion else "false"}'
+        )
             self.hash_integridad = hashlib.sha256(
                 contenido_hash.encode('utf-8')
             ).hexdigest()

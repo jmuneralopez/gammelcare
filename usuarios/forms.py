@@ -6,39 +6,49 @@ from hogares.models import Hogar
 class UsuarioCrearForm(forms.ModelForm):
     password1 = forms.CharField(
         label='Contraseña',
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Contraseña'})
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Contraseña'
+        })
     )
     password2 = forms.CharField(
         label='Confirmar contraseña',
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Repita la contraseña'})
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Repita la contraseña'
+        })
+    )
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Rol.objects.all(),
+        widget=forms.CheckboxSelectMultiple(),
+        label='Roles',
+        required=True
     )
 
     class Meta:
         model = Usuario
-        fields = ['first_name', 'last_name', 'username', 'email', 'rol']
+        fields = ['first_name', 'last_name', 'username', 'email', 'roles']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombres'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellidos'}),
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Usuario para login'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Correo electrónico'}),
-            'rol': forms.Select(attrs={'class': 'form-select'}),
         }
         labels = {
             'first_name': 'Nombres',
             'last_name': 'Apellidos',
             'username': 'Usuario',
             'email': 'Correo electrónico',
-            'rol': 'Rol',
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user and user.rol and user.rol.nombre == 'administrador':
-            self.fields['rol'].queryset = Rol.objects.filter(
-                nombre__in=['administrador', 'clinico']
+        if user and user.tiene_rol(Rol.ADMINISTRADOR):
+            self.fields['roles'].queryset = Rol.objects.filter(
+                nombre__in=[Rol.ADMINISTRADOR] + Rol.ROLES_CLINICOS
             )
-        elif user and user.rol and user.rol.nombre == 'superadmin':
-            self.fields['rol'].queryset = Rol.objects.all()
+        else:
+            self.fields['roles'].queryset = Rol.objects.all()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -50,27 +60,32 @@ class UsuarioCrearForm(forms.ModelForm):
 
 
 class UsuarioEditarForm(forms.ModelForm):
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Rol.objects.all(),
+        widget=forms.CheckboxSelectMultiple(),
+        label='Roles',
+        required=True
+    )
+
     class Meta:
         model = Usuario
-        fields = ['first_name', 'last_name', 'email', 'rol', 'activo']
+        fields = ['first_name', 'last_name', 'email', 'roles', 'activo']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'rol': forms.Select(attrs={'class': 'form-select'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
             'first_name': 'Nombres',
             'last_name': 'Apellidos',
             'email': 'Correo electrónico',
-            'rol': 'Rol',
             'activo': 'Usuario activo',
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user and user.rol and user.rol.nombre == 'administrador':
-            self.fields['rol'].queryset = Rol.objects.filter(
-                nombre__in=['administrador', 'clinico']
+        if user and user.tiene_rol(Rol.ADMINISTRADOR):
+            self.fields['roles'].queryset = Rol.objects.filter(
+                nombre__in=[Rol.ADMINISTRADOR] + Rol.ROLES_CLINICOS
             )

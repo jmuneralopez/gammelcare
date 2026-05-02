@@ -71,7 +71,8 @@ def atencion_lista(request):
 @clinico_requerido
 def nota_crear(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    form = NotaClinicaForm(request.POST or None)
+    tipos_permitidos = request.user.tipos_nota_permitidos()
+    form = NotaClinicaForm(request.POST or None, tipos_permitidos=tipos_permitidos)
 
     if request.method == 'POST' and form.is_valid():
         nota = form.save(commit=False)

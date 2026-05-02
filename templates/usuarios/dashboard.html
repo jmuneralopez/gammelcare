@@ -13,7 +13,7 @@
     </span>
   </div>
   <span class="badge-rol">
-    {% if user.rol %}{{ user.rol }}{% else %}Sin rol asignado{% endif %}
+    {% for rol in user.roles.all %}{{ rol }}{% if not forloop.last %}, {% endif %}{% empty %}Sin rol asignado{% endfor %}
   </span>
 </div>
 
@@ -94,7 +94,7 @@
 </div>
 
 <!-- ACCESOS RÁPIDOS POR ROL -->
-{% if user.rol.nombre == 'superadmin' or user.rol.nombre == 'administrador' %}
+{% if user.es_administrativo %}
 <div class="row g-3 mb-4">
   <div class="col-12">
     <h6 class="fw-bold mb-3" style="color:#1F4E79;">
@@ -128,7 +128,7 @@
 </div>
 {% endif %}
 
-{% if user.rol.nombre == 'clinico' %}
+{% if user.es_clinico %}
 <div class="row g-3 mb-4">
   <div class="col-12">
     <h6 class="fw-bold mb-3" style="color:#1F4E79;">

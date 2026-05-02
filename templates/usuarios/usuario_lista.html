@@ -31,13 +31,13 @@
           <td>{{ u.username }}</td>
           <td class="text-muted">{{ u.email|default:"—" }}</td>
           <td>
-            {% if u.rol %}
-              <span class="badge" style="background-color:#2E75B6;">{{ u.rol }}</span>
-            {% else %}
+            {% for rol in u.roles.all %}
+              <span class="badge me-1" style="background-color:#2E75B6;">{{ rol }}</span>
+            {% empty %}
               <span class="text-muted">Sin rol</span>
-            {% endif %}
+            {% endfor %}
           </td>
-          <td>
+          <td
             {% if u.activo %}
               <span class="badge bg-success">Activo</span>
             {% else %}

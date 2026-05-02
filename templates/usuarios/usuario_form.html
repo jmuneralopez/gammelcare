@@ -13,6 +13,24 @@
 
 <div class="card card-gc" style="max-width:650px;">
   <div class="card-body p-4">
+
+    {% if form.errors %}
+    <div class="alert alert-danger mb-4">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>Por favor corrige los siguientes errores:</strong>
+      <ul class="mb-0 mt-2">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     <form method="post">
       {% csrf_token %}
       <div class="row g-3">
@@ -33,11 +51,6 @@
             {{ form.username.label }}
           </label>
           {{ form.username }}
-          {% if form.username.errors %}
-            <div class="text-danger" style="font-size:0.83rem;">
-              {{ form.username.errors|join:", " }}
-            </div>
-          {% endif %}
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">
@@ -45,13 +58,27 @@
           </label>
           {{ form.email }}
         </div>
-        <div class="col-md-6">
+        <div class="col-12">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">
-            {{ form.rol.label }}
+            Roles
           </label>
-          {{ form.rol }}
+          <div class="p-3 rounded" style="background-color:#EBF3FA; border:1px solid #D6E4F0;">
+            {{ form.roles }}
+          </div>
         </div>
         {% if form.password1 %}
+        <div class="col-12">
+          <div class="alert alert-info py-2 mb-0" style="font-size:0.83rem;">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Políticas de contraseña:</strong>
+            <ul class="mb-0 mt-1">
+              <li>Mínimo 8 caracteres</li>
+              <li>No puede ser completamente numérica</li>
+              <li>No puede ser similar al nombre de usuario</li>
+              <li>No puede ser una contraseña común</li>
+            </ul>
+          </div>
+        </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">
             {{ form.password1.label }}
@@ -63,11 +90,6 @@
             {{ form.password2.label }}
           </label>
           {{ form.password2 }}
-          {% if form.non_field_errors %}
-            <div class="text-danger" style="font-size:0.83rem;">
-              {{ form.non_field_errors|join:", " }}
-            </div>
-          {% endif %}
         </div>
         {% endif %}
         {% if form.activo %}

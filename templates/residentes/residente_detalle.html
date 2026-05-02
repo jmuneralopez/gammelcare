@@ -29,10 +29,12 @@
       <i class="bi bi-pencil me-1"></i>Editar
     </a>
     {% endif %}
+    {% if user.puede_exportar %}
     <a href="{% url 'residente_pdf' residente.pk %}" class="btn btn-outline-success"
        title="Exportar expediente en PDF">
       <i class="bi bi-file-earmark-pdf me-1"></i>PDF
     </a>
+    {% endif %}
     <a href="javascript:history.back()" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Volver
     </a>

@@ -1,9 +1,9 @@
 postgres
-USER postgres WITH PASSWORD 'postgres2026*';
+USER postgres 
+PASSWORD 'postgres2026*';
 
 
 postgres pgadmin
-
 nombre: gammelcare_user
 contraseña: gammelcare2026*
 
@@ -12,3 +12,10 @@ contraseña: gammelcare2026*
 Nombre de usuario (leave blank to use 'lenovo'): admin
 Dirección de correo electrónico: jmuneralopez@gmail.com
 Password:Ju4nc4rl0s
+
+usuarios del sistema
+usuario prueba
+12345
+
+usuario maribelly
+A52065800

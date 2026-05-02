@@ -6,7 +6,7 @@
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
     <i class="bi bi-person-lines-fill me-2"></i>Residentes
   </h4>
-  {% if user.rol.nombre == 'administrador' or user.rol.nombre == 'superadmin' %}
+ {% if user.es_administrativo %}
   <a href="{% url 'residente_crear' %}" class="btn btn-gc">
     <i class="bi bi-plus-circle me-1"></i>Nuevo Residente
   </a>

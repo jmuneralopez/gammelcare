@@ -3,6 +3,17 @@ from .models import NotaClinica, NotaAclaratoria
 
 
 class NotaClinicaForm(forms.ModelForm):
+
+    def __init__(self, *args, tipos_permitidos=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if tipos_permitidos is not None:
+            self.fields['tipo'].choices = [
+                (k, v) for k, v in NotaClinica.TIPOS
+                if k in tipos_permitidos
+            ]
+            if len(tipos_permitidos) == 1:
+                self.fields['tipo'].initial = tipos_permitidos[0]
+
     class Meta:
         model = NotaClinica
         fields = ['tipo', 'contenido', 'diuresis', 'deposicion']

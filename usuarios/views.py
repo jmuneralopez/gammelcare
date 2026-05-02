@@ -90,7 +90,6 @@ def dashboard_view(request):
 
         hoy = timezone.now().date()
 
-        # Residentes
         total_residentes = Residente.objects.filter(hogar=hogar, activo=True).count()
         ingresos_mes = Residente.objects.filter(
             hogar=hogar,
@@ -98,7 +97,6 @@ def dashboard_view(request):
             fecha_ingreso__year=hoy.year
         ).count()
 
-        # Camas
         total_camas = Cama.objects.filter(
             habitacion__departamento__hogar=hogar, activo=True
         ).count()
@@ -112,13 +110,10 @@ def dashboard_view(request):
         ).count()
         ocupacion_pct = round((camas_ocupadas / total_camas * 100), 1) if total_camas > 0 else 0
 
-        # Notas hoy
         notas_hoy = NotaClinica.objects.filter(
             residente__hogar=hogar,
             fecha_creacion__date=hoy
         ).count()
-
-        # Notas últimos 7 días
         notas_semana = NotaClinica.objects.filter(
             residente__hogar=hogar,
             fecha_creacion__date__gte=hoy - timedelta(days=7)
@@ -156,6 +151,7 @@ def usuario_crear(request):
         usuario.hogar = request.user.hogar
         usuario.set_password(form.cleaned_data['password1'])
         usuario.save()
+        form.save_m2m()
         messages.success(request, f'Usuario {usuario.username} creado correctamente.')
         return redirect('usuario_lista')
     return render(request, 'usuarios/usuario_form.html', {
@@ -194,3 +190,24 @@ def usuario_toggle(request, pk):
     estado = 'activado' if usuario.activo else 'desactivado'
     messages.success(request, f'Usuario {estado} correctamente.')
     return redirect('usuario_lista')
+
+@login_required
+def cambiar_password(request):
+    if request.method == 'POST':
+        password_actual = request.POST.get('password_actual')
+        password_nueva = request.POST.get('password_nueva')
+        password_confirmar = request.POST.get('password_confirmar')
+
+        if not request.user.check_password(password_actual):
+            messages.error(request, 'La contraseña actual es incorrecta.')
+        elif password_nueva != password_confirmar:
+            messages.error(request, 'Las contraseñas nuevas no coinciden.')
+        elif len(password_nueva) < 8:
+            messages.error(request, 'La contraseña debe tener al menos 8 caracteres.')
+        else:
+            request.user.set_password(password_nueva)
+            request.user.save()
+            messages.success(request, 'Contraseña cambiada correctamente. Por favor inicia sesión nuevamente.')
+            return redirect('login')
+
+    return render(request, 'usuarios/cambiar_password.html')
