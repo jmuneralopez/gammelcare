@@ -13,11 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from decouple import config
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1',
+    cast=lambda v: [h.strip() for h in v.split(',') if h.strip()]
+)
 
 
 # Application definition
@@ -49,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'usuarios.middleware.ForzarCambioPasswordMiddleware',
 ]
 
 ROOT_URLCONF = 'gammelcare.urls'
@@ -127,3 +131,7 @@ LOGIN_URL = '/usuarios/login/'
 LOGIN_REDIRECT_URL = '/usuarios/dashboard/'
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
 FERNET_KEY = config('FERNET_KEY')
+
+# Bloqueo de cuenta por intentos fallidos de inicio de sesión
+LOGIN_MAX_INTENTOS = config('LOGIN_MAX_INTENTOS', default=5, cast=int)
+LOGIN_BLOQUEO_MINUTOS = config('LOGIN_BLOQUEO_MINUTOS', default=15, cast=int)

@@ -34,7 +34,7 @@
     <i class="bi bi-person-vcard me-2"></i>Expediente del Residente
   </h4>
   <div class="d-flex gap-2">
-    {% if user.es_administrativo %}
+    {% if user.es_administrador_hogar %}
     <a href="{% url 'residente_editar' residente.pk %}" class="btn btn-gc">
       <i class="bi bi-pencil me-1"></i>Editar
     </a>
@@ -151,35 +151,48 @@
     </div>
     <div class="collapse show" id="notas-section">
       <div class="row g-3">
+
+        <!-- CALENDARIO -->
         <div class="col-md-4">
           <div class="p-2 rounded" style="background-color:#f8f9fa; border:1px solid #D6E4F0;">
             <div id="mini-calendar"></div>
-            <div class="mt-2 text-center">
-              <small class="text-muted" id="fecha-seleccionada">
-                Haz clic en un día para filtrar notas
-              </small>
-              <div class="mt-1">
-                <button onclick="limpiarFiltro()" id="btn-limpiar"
-                  class="btn btn-sm btn-outline-secondary" style="display:none; font-size:0.75rem;">
-                  <i class="bi bi-x-circle me-1"></i>Ver todas
-                </button>
-              </div>
-            </div>
-            <div class="mt-3 d-flex flex-wrap gap-1">
-              <span class="badge" style="background-color:#2E75B6; font-size:0.65rem;">Enfermería</span>
-              <span class="badge" style="background-color:#1F4E79; font-size:0.65rem;">Evolución</span>
-              <span class="badge" style="background-color:#198754; font-size:0.65rem;">Fisio</span>
-              <span class="badge" style="background-color:#fd7e14; font-size:0.65rem;">Nutrición</span>
-              <span class="badge" style="background-color:#6f42c1; font-size:0.65rem;">Psicología</span>
-              <span class="badge" style="background-color:#0dcaf0; font-size:0.65rem;">T. Social</span>
-              <span class="badge" style="background-color:#d63384; font-size:0.65rem;">T. Ocupacional</span>
-            </div>
           </div>
         </div>
+
+        <!-- NOTAS -->
         <div class="col-md-8">
+          <!-- Filtros por tipo -->
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            <small class="text-muted me-1 align-self-center" style="font-size:0.78rem;">Filtrar:</small>
+            <span class="filtro-tipo badge" data-tipo="enfermeria"
+                  style="background-color:#2E75B6; cursor:pointer; font-size:0.72rem;">Enfermería</span>
+            <span class="filtro-tipo badge" data-tipo="evolucion"
+                  style="background-color:#1F4E79; cursor:pointer; font-size:0.72rem;">Evolución</span>
+            <span class="filtro-tipo badge" data-tipo="fisioterapia"
+                  style="background-color:#198754; cursor:pointer; font-size:0.72rem;">Fisioterapia</span>
+            <span class="filtro-tipo badge" data-tipo="nutricion"
+                  style="background-color:#fd7e14; cursor:pointer; font-size:0.72rem;">Nutrición</span>
+            <span class="filtro-tipo badge" data-tipo="psicologia"
+                  style="background-color:#6f42c1; cursor:pointer; font-size:0.72rem;">Psicología</span>
+            <span class="filtro-tipo badge" data-tipo="trabajo_social"
+                  style="background-color:#0dcaf0; cursor:pointer; font-size:0.72rem;">T. Social</span>
+            <span class="filtro-tipo badge" data-tipo="terapia_ocupacional"
+                  style="background-color:#d63384; cursor:pointer; font-size:0.72rem;">T. Ocupacional</span>
+          </div>
+
+          <!-- Fecha activa -->
+          <div class="mb-2">
+            <small class="text-muted" id="fecha-label" style="font-size:0.82rem;">
+              Cargando...
+            </small>
+          </div>
+
+          <!-- Lista de notas -->
           <div id="notas-container">
             {% for nota in notas %}
-            <div class="border rounded p-3 mb-2 nota-item" style="border-color:#D6E4F0 !important;">
+            <div class="border rounded p-3 mb-2 nota-item"
+                 data-tipo="{{ nota.tipo }}"
+                 style="border-color:#D6E4F0 !important;">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                   <span class="badge" style="background-color:
@@ -220,87 +233,31 @@
                   <i class="bi bi-chat-left-text me-1"></i>
                   {{ nota.aclaraciones.count }} aclaración{% if nota.aclaraciones.count != 1 %}es{% endif %}
                 </small>
-                {% else %}
-                <span></span>
-                {% endif %}
+                {% else %}<span></span>{% endif %}
                 <a href="{% url 'nota_detalle' nota.pk %}"
-                   class="btn btn-sm btn-outline-primary">
+                   class="btn btn-sm btn-outline-primary nota-link"
+                   data-nota-url="{% url 'nota_detalle' nota.pk %}">
                   <i class="bi bi-eye me-1"></i>Ver completa
                 </a>
               </div>
             </div>
             {% empty %}
-            <div class="text-center text-muted py-4" id="sin-notas">
+            <div class="text-center text-muted py-4">
               <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
               No hay notas clínicas registradas.
             </div>
             {% endfor %}
-            <div id="sin-notas-filtro" class="text-center text-muted py-4" style="display:none;">
-              <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
-              No hay notas para el día seleccionado.
+            <div id="sin-notas-hoy" class="text-center text-muted py-3" style="display:none;">
+              <i class="bi bi-calendar-check fs-3 d-block mb-2"></i>
+              Sin notas registradas hoy.
+            </div>
+            <div id="sin-notas-filtro" class="text-center text-muted py-3" style="display:none;">
+              <i class="bi bi-funnel fs-3 d-block mb-2"></i>
+              Sin notas para este filtro.
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- DIAGNÓSTICOS -->
-<div class="card card-gc mb-3">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div class="section-header flex-grow-1 me-2" data-bs-toggle="collapse" data-bs-target="#diagnosticos-section">
-        <h6 class="fw-bold mb-0" style="color:#1F4E79;">
-          <i class="bi bi-journal-medical me-2"></i>Diagnósticos
-          <span class="badge ms-2" style="background-color:#2E75B6; font-size:0.7rem;">{{ diagnosticos.count }}</span>
-        </h6>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <a href="{% url 'diagnostico_agregar' residente.pk %}" class="btn btn-sm btn-gc">
-          <i class="bi bi-plus-circle me-1"></i>Agregar
-        </a>
-        <i class="bi bi-chevron-down collapse-icon" data-bs-toggle="collapse"
-           data-bs-target="#diagnosticos-section" style="color:#2E75B6; cursor:pointer;"></i>
-      </div>
-    </div>
-    <div class="collapse show" id="diagnosticos-section">
-      <div class="mt-2">
-        {% if diagnosticos %}
-        <table class="table table-sm mb-0">
-          <thead style="background-color:#D6E4F0;">
-            <tr>
-              <th style="color:#1F4E79;">Código</th>
-              <th style="color:#1F4E79;">Descripción</th>
-              <th style="color:#1F4E79;">Observación</th>
-              <th style="color:#1F4E79;">Fecha</th>
-              <th style="color:#1F4E79;"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for diag in diagnosticos %}
-            <tr>
-              <td><span class="badge" style="background-color:#2E75B6;">{{ diag.codigo_cie10.codigo }}</span></td>
-              <td>{{ diag.codigo_cie10.descripcion }}</td>
-              <td class="text-muted">{{ diag.observacion|default:"—" }}</td>
-              <td>{{ diag.fecha_registro|date:"d/m/Y" }}</td>
-              <td>
-                <a href="{% url 'diagnostico_desactivar' residente.pk diag.pk %}"
-                   class="btn btn-sm btn-outline-danger"
-                   onclick="return confirm('¿Remover este diagnóstico?')">
-                  <i class="bi bi-trash"></i>
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div class="text-center text-muted py-3">
-          <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
-          No hay diagnósticos registrados.
-        </div>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -385,6 +342,72 @@
   </div>
 </div>
 {% endif %}
+
+<!-- DIAGNÓSTICOS CIE-10 -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="section-header flex-grow-1 me-2" data-bs-toggle="collapse" data-bs-target="#diagnosticos-section">
+        <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+          <i class="bi bi-clipboard2-pulse me-2"></i>Diagnósticos (CIE-10)
+          <span class="badge ms-2" style="background-color:#2E75B6; font-size:0.7rem;">{{ diagnosticos.count }}</span>
+        </h6>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if user.puede_gestionar_diagnosticos %}
+        <a href="{% url 'diagnostico_agregar' residente.pk %}" class="btn btn-sm btn-gc">
+          <i class="bi bi-plus-circle me-1"></i>Agregar diagnóstico
+        </a>
+        {% endif %}
+        <i class="bi bi-chevron-down collapse-icon" data-bs-toggle="collapse"
+           data-bs-target="#diagnosticos-section" style="color:#2E75B6; cursor:pointer;"></i>
+      </div>
+    </div>
+    <div class="collapse show" id="diagnosticos-section">
+      {% if diagnosticos %}
+      <div class="table-responsive mt-2">
+        <table class="table table-sm align-middle mb-0">
+          <thead style="background-color:#D6E4F0;">
+            <tr>
+              <th style="color:#1F4E79;">Código</th>
+              <th style="color:#1F4E79;">Descripción</th>
+              <th style="color:#1F4E79;">Observación</th>
+              <th style="color:#1F4E79;">Fecha</th>
+              <th style="color:#1F4E79;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for diag in diagnosticos %}
+            <tr>
+              <td class="fw-semibold">{{ diag.codigo_cie10.codigo }}</td>
+              <td>{{ diag.codigo_cie10.descripcion }}</td>
+              <td>{{ diag.observacion|default:"—" }}</td>
+              <td class="text-nowrap">{{ diag.fecha_registro|date:"d/m/Y" }}</td>
+              <td class="text-end">
+                {% if user.puede_gestionar_diagnosticos %}
+                <form method="post" action="{% url 'diagnostico_desactivar' residente.pk diag.pk %}"
+                      onsubmit="return confirm('¿Quitar este diagnóstico del expediente?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar diagnóstico">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-3">
+        <i class="bi bi-clipboard2-x fs-3 d-block mb-2"></i>
+        Sin diagnósticos registrados.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
 <!-- EXPEDIENTE DE INGRESO -->
 {% if expediente %}
@@ -472,28 +495,120 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-  // Icono collapsible
+  // ── Collapsible icons ──────────────────────────
   document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(el) {
     const targetId = el.getAttribute('data-bs-target');
     const target = document.querySelector(targetId);
     const icon = el.querySelector('.collapse-icon');
-    if (!icon) return;
-    if (target) {
-      target.addEventListener('show.bs.collapse', function() {
-        icon.style.transform = 'rotate(0deg)';
-      });
-      target.addEventListener('hide.bs.collapse', function() {
-        icon.style.transform = 'rotate(-90deg)';
-      });
-    }
+    if (!icon || !target) return;
+    // Estado inicial: el icono debe reflejar si la sección arranca
+    // abierta (clase "show") o cerrada, no solo actualizarse tras el
+    // primer clic.
+    icon.style.transform = target.classList.contains('show') ? 'rotate(0deg)' : 'rotate(-90deg)';
+    target.addEventListener('show.bs.collapse', function() {
+      icon.style.transform = 'rotate(0deg)';
+    });
+    target.addEventListener('hide.bs.collapse', function() {
+      icon.style.transform = 'rotate(-90deg)';
+    });
   });
 
-  // Calendario
-  const todasLasNotas = document.querySelectorAll('.nota-item');
+  // ── Datos ─────────────────────────────────────
+  const todasLasNotas = Array.from(document.querySelectorAll('.nota-item'));
+  const sinNotasHoy   = document.getElementById('sin-notas-hoy');
   const sinNotasFiltro = document.getElementById('sin-notas-filtro');
-  const btnLimpiar = document.getElementById('btn-limpiar');
-  const fechaLabel = document.getElementById('fecha-seleccionada');
+  const fechaLabel    = document.getElementById('fecha-label');
+  const btnLimpiar    = document.getElementById('btn-limpiar');
 
+  // tiposActivos vacío = sin filtro = se ve todo. Cada clic SUMA un tipo a mostrar.
+  let tiposActivos = new Set();
+  let fechaActiva = null;
+
+  function formatearFechaLocal(date) {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const a = date.getFullYear();
+    return `${d}/${m}/${a}`;
+  }
+
+  function actualizarBadgesTipo() {
+    const sinFiltro = tiposActivos.size === 0;
+    document.querySelectorAll('.filtro-tipo').forEach(function(btn) {
+      btn.style.opacity = (sinFiltro || tiposActivos.has(btn.dataset.tipo)) ? '1' : '0.35';
+    });
+  }
+
+  // ── Propagar el filtro de tipo al entrar al detalle de una nota ──
+  function actualizarEnlacesNotas() {
+    document.querySelectorAll('.nota-link').forEach(function(link) {
+      const base = link.dataset.notaUrl;
+      link.href = tiposActivos.size === 0
+        ? base
+        : base + '?tipos=' + encodeURIComponent(Array.from(tiposActivos).join(','));
+    });
+  }
+
+  // ── Fecha de hoy ──────────────────────────────
+  const hoy = new Date();
+  const dd  = String(hoy.getDate()).padStart(2,'0');
+  const mm  = String(hoy.getMonth()+1).padStart(2,'0');
+  const aaaa = hoy.getFullYear();
+  const fechaHoyFormato = `${dd}/${mm}/${aaaa}`;
+  const fechaHoyISO     = `${aaaa}-${mm}-${dd}`;
+
+  // ── Aplicar filtros ───────────────────────────
+  function aplicarFiltros() {
+    let visibles = 0;
+    todasLasNotas.forEach(function(nota) {
+      const smallFecha = nota.querySelector('small.text-muted.text-nowrap');
+      const tipo = nota.dataset.tipo;
+      const fechaOk = fechaActiva
+        ? (smallFecha && smallFecha.textContent.trim().startsWith(fechaActiva))
+        : true;
+      const tipoOk = tiposActivos.size === 0 || tiposActivos.has(tipo);
+      if (fechaOk && tipoOk) {
+        nota.style.display = 'block';
+        visibles++;
+      } else {
+        nota.style.display = 'none';
+      }
+    });
+    if (sinNotasFiltro) sinNotasFiltro.style.display = visibles === 0 && todasLasNotas.length > 0 ? 'block' : 'none';
+    if (sinNotasHoy)   sinNotasHoy.style.display   = visibles === 0 && fechaActiva === fechaHoyFormato ? 'block' : 'none';
+    actualizarEnlacesNotas();
+    return visibles;
+  }
+
+  // ── Mostrar hoy al cargar ─────────────────────
+  fechaActiva = fechaHoyFormato;
+  if (fechaLabel) fechaLabel.textContent = `Notas del ${fechaHoyFormato}`;
+  if (btnLimpiar) btnLimpiar.style.display = 'inline-block';
+  actualizarBadgesTipo();
+  aplicarFiltros();
+
+  // ── Filtros por tipo ──────────────────────────
+  document.querySelectorAll('.filtro-tipo').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const tipo = this.dataset.tipo;
+      if (tiposActivos.has(tipo)) {
+        tiposActivos.delete(tipo);
+      } else {
+        tiposActivos.add(tipo);
+      }
+      actualizarBadgesTipo();
+      aplicarFiltros();
+    });
+  });
+
+  // ── Limpiar filtro de fecha ───────────────────
+  window.limpiarFiltro = function() {
+    fechaActiva = null;
+    if (fechaLabel) fechaLabel.textContent = 'Mostrando todas las notas';
+    if (btnLimpiar) btnLimpiar.style.display = 'none';
+    aplicarFiltros();
+  };
+
+  // ── Calendario ────────────────────────────────
   const calEl = document.getElementById('mini-calendar');
   if (!calEl) return;
 
@@ -501,40 +616,37 @@ document.addEventListener('DOMContentLoaded', function() {
     locale: 'es',
     initialView: 'dayGridMonth',
     headerToolbar: { left: 'prev,next', center: 'title', right: '' },
-    height: 280,
+    height: 260,
     events: '{% url "notas_calendario_data" residente.pk %}',
-    dateClick: function(info) { filtrarPorFecha(info.dateStr); },
+    eventDisplay: 'list-item',
     eventClick: function(info) {
       info.jsEvent.preventDefault();
-      filtrarPorFecha(info.event.start.toISOString().split('T')[0]);
+      fechaActiva = formatearFechaLocal(info.event.start);
+      if (fechaLabel) fechaLabel.textContent = `Notas del ${fechaActiva}`;
+      if (btnLimpiar) btnLimpiar.style.display = 'inline-block';
+      aplicarFiltros();
+    },
+    dateClick: function(info) {
+      fechaActiva = formatearFechaLocal(info.date);
+      if (fechaLabel) fechaLabel.textContent = `Notas del ${fechaActiva}`;
+      if (btnLimpiar) btnLimpiar.style.display = 'inline-block';
+      aplicarFiltros();
+    },
+    dayCellDidMount: function(info) {
+      if (info.date.toISOString().split('T')[0] === fechaHoyISO) {
+        info.el.style.backgroundColor = '#EBF3FA';
+      }
     }
   });
+
   calendar.render();
 
-  function filtrarPorFecha(fecha) {
-    const [anio, mes, dia] = fecha.split('-');
-    const fechaFormato = `${dia}/${mes}/${anio}`;
-    let visibles = 0;
-    todasLasNotas.forEach(function(nota) {
-      const fechaNota = nota.querySelector('small.text-muted.text-nowrap');
-      if (fechaNota && fechaNota.textContent.trim().startsWith(fechaFormato)) {
-        nota.style.display = 'block';
-        visibles++;
-      } else {
-        nota.style.display = 'none';
-      }
-    });
-    fechaLabel.textContent = `Notas del ${fechaFormato}`;
-    btnLimpiar.style.display = 'inline-block';
-    sinNotasFiltro.style.display = visibles === 0 ? 'block' : 'none';
-  }
+  // Marcar hoy en el calendario
+  setTimeout(function() {
+    const celdaHoy = calEl.querySelector('.fc-day-today');
+    if (celdaHoy) celdaHoy.style.backgroundColor = '#EBF3FA';
+  }, 300);
 
-  window.limpiarFiltro = function() {
-    todasLasNotas.forEach(function(nota) { nota.style.display = 'block'; });
-    sinNotasFiltro.style.display = 'none';
-    btnLimpiar.style.display = 'none';
-    fechaLabel.textContent = 'Haz clic en un día para filtrar notas';
-  };
 });
 </script>
 {% endblock %}

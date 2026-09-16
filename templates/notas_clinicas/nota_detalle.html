@@ -53,6 +53,35 @@
   </div>
 </div>
 
+<!-- NAVEGACIÓN ENTRE NOTAS -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  {% if nota_anterior %}
+  <a href="{% url 'nota_detalle' nota_anterior.pk %}{% if filtro_querystring %}?{{ filtro_querystring }}{% endif %}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-chevron-left me-1"></i>Nota anterior
+  </a>
+  {% else %}
+  <button class="btn btn-outline-secondary btn-sm" disabled>
+    <i class="bi bi-chevron-left me-1"></i>Nota anterior
+  </button>
+  {% endif %}
+
+  {% if filtro_activo %}
+  <small class="text-muted"><i class="bi bi-funnel me-1"></i>Navegando dentro del filtro activo</small>
+  {% endif %}
+
+  {% if nota_siguiente %}
+  <a href="{% url 'nota_detalle' nota_siguiente.pk %}{% if filtro_querystring %}?{{ filtro_querystring }}{% endif %}"
+     class="btn btn-outline-secondary btn-sm">
+    Nota siguiente<i class="bi bi-chevron-right ms-1"></i>
+  </a>
+  {% else %}
+  <button class="btn btn-outline-secondary btn-sm" disabled>
+    Nota siguiente<i class="bi bi-chevron-right ms-1"></i>
+  </button>
+  {% endif %}
+</div>
+
 <!-- NOTAS ACLARATORIAS -->
 <div class="card card-gc">
   <div class="card-body">

@@ -72,6 +72,46 @@
   </div>
 </div>
 
+<!-- Estadísticas de hogares y usuarios -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Hogares registrados</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_hogares_registrados }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">en toda la plataforma</div>
+        </div>
+        <i class="bi bi-building-fill-check fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Hogares pausados</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_hogares_pausados }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">desactivados temporalmente</div>
+        </div>
+        <i class="bi bi-pause-circle fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-gc p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted" style="font-size:0.82rem;">Usuarios activos</div>
+          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_usuarios_activos }}</div>
+          <div class="text-muted" style="font-size:0.78rem;">en toda la plataforma</div>
+        </div>
+        <i class="bi bi-person-check fs-2" style="color:#D6E4F0;"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Tabla por hogar -->
 <div class="card card-gc mb-4">
   <div class="card-body p-0">
@@ -158,7 +198,7 @@
     </a>
   </div>
   <div class="col-md-3">
-    <a href="/admin/auditoria/registroauditoria/" class="card card-gc p-3 text-decoration-none d-block text-center">
+    <a href="{% url 'auditoria_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
       <i class="bi bi-shield-check fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
       <div class="fw-semibold" style="color:#1F4E79;">Auditoría</div>
     </a>
@@ -260,6 +300,12 @@
     <a href="{% url 'usuario_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
       <i class="bi bi-people fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
       <div class="fw-semibold" style="color:#1F4E79;">Ver Usuarios</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'auditoria_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
+      <i class="bi bi-shield-check fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
+      <div class="fw-semibold" style="color:#1F4E79;">Auditoría</div>
     </a>
   </div>
 </div>

@@ -13,5 +13,5 @@ class UsuarioAdmin(UserAdmin):
     list_display = ['username', 'get_full_name', 'roles_display', 'hogar', 'activo']
     list_filter = ['hogar', 'activo']
     fieldsets = UserAdmin.fieldsets + (
-        ('GammelCare', {'fields': ('roles', 'hogar', 'activo')}),
+        ('GammelCare', {'fields': ('roles', 'hogar', 'activo', 'debe_cambiar_password')}),
     )

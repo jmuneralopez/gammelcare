@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from usuarios.decorators import administrador_requerido
+from usuarios.decorators import administrador_hogar_requerido
+from residentes.models import Residente
 from .models import Departamento, Habitacion, Cama
 from .forms import DepartamentoForm, HabitacionForm, CamaForm
 
@@ -9,7 +10,7 @@ from .forms import DepartamentoForm, HabitacionForm, CamaForm
 # ── DEPARTAMENTOS ──────────────────────────────────────────────
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def departamento_lista(request):
     hogar = request.user.hogar
     departamentos = Departamento.objects.filter(hogar=hogar).order_by('nombre')
@@ -19,7 +20,7 @@ def departamento_lista(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def departamento_crear(request):
     form = DepartamentoForm(request.POST or None)
     if form.is_valid():
@@ -34,7 +35,7 @@ def departamento_crear(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def departamento_editar(request, pk):
     departamento = get_object_or_404(Departamento, pk=pk, hogar=request.user.hogar)
     form = DepartamentoForm(request.POST or None, instance=departamento)
@@ -48,9 +49,20 @@ def departamento_editar(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def departamento_desactivar(request, pk):
     departamento = get_object_or_404(Departamento, pk=pk, hogar=request.user.hogar)
+    if departamento.activo:
+        ocupado = Residente.objects.filter(
+            cama_actual__habitacion__departamento=departamento, activo=True
+        ).exists()
+        if ocupado:
+            messages.error(
+                request,
+                f'No se puede desactivar "{departamento.nombre}": tiene camas '
+                'ocupadas por residentes activos.'
+            )
+            return redirect('departamento_lista')
     departamento.activo = not departamento.activo
     departamento.save()
     estado = 'activado' if departamento.activo else 'desactivado'
@@ -61,11 +73,14 @@ def departamento_desactivar(request, pk):
 # ── HABITACIONES ───────────────────────────────────────────────
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def habitacion_lista(request):
     hogar = request.user.hogar
+    # Mismo criterio que cama_lista: solo habitaciones activas de
+    # departamentos activos, para que ambas pantallas coincidan en qué
+    # cuenta como inventario disponible.
     habitaciones = Habitacion.objects.filter(
-        departamento__hogar=hogar
+        departamento__hogar=hogar, departamento__activo=True, activo=True
     ).order_by('departamento__nombre', 'numero')
     return render(request, 'infraestructura/habitacion_lista.html', {
         'habitaciones': habitaciones
@@ -73,7 +88,7 @@ def habitacion_lista(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def habitacion_crear(request):
     form = HabitacionForm(request.POST or None)
     form.fields['departamento'].queryset = Departamento.objects.filter(
@@ -89,7 +104,7 @@ def habitacion_crear(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def habitacion_editar(request, pk):
     habitacion = get_object_or_404(Habitacion, pk=pk, departamento__hogar=request.user.hogar)
     form = HabitacionForm(request.POST or None, instance=habitacion)
@@ -106,9 +121,20 @@ def habitacion_editar(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def habitacion_desactivar(request, pk):
     habitacion = get_object_or_404(Habitacion, pk=pk, departamento__hogar=request.user.hogar)
+    if habitacion.activo:
+        ocupada = Residente.objects.filter(
+            cama_actual__habitacion=habitacion, activo=True
+        ).exists()
+        if ocupada:
+            messages.error(
+                request,
+                f'No se puede desactivar la Habitación {habitacion.numero}: tiene '
+                'camas ocupadas por residentes activos.'
+            )
+            return redirect('habitacion_lista')
     habitacion.activo = not habitacion.activo
     habitacion.save()
     estado = 'activada' if habitacion.activo else 'desactivada'
@@ -119,7 +145,7 @@ def habitacion_desactivar(request, pk):
 # ── CAMAS ──────────────────────────────────────────────────────
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def cama_lista(request):
     hogar = request.user.hogar
     from .models import Departamento, Habitacion, Cama
@@ -192,7 +218,7 @@ def cama_lista(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def cama_crear(request):
     form = CamaForm(request.POST or None)
     form.fields['habitacion'].queryset = Habitacion.objects.filter(
@@ -208,7 +234,7 @@ def cama_crear(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def cama_editar(request, pk):
     cama = get_object_or_404(Cama, pk=pk, habitacion__departamento__hogar=request.user.hogar)
     form = CamaForm(request.POST or None, instance=cama)
@@ -225,9 +251,18 @@ def cama_editar(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def cama_desactivar(request, pk):
     cama = get_object_or_404(Cama, pk=pk, habitacion__departamento__hogar=request.user.hogar)
+    if cama.activo:
+        residente = Residente.objects.filter(cama_actual=cama, activo=True).first()
+        if residente:
+            messages.error(
+                request,
+                f'No se puede desactivar la cama {cama.codigo}: está ocupada por '
+                f'{residente.get_nombre()}.'
+            )
+            return redirect('cama_lista')
     cama.activo = not cama.activo
     cama.save()
     estado = 'activada' if cama.activo else 'desactivada'

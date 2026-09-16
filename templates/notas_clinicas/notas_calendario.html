@@ -55,15 +55,44 @@
   <strong>Residente:</strong> {{ nombre }}
 </div>
 
-<!-- Leyenda -->
-<div class="d-flex flex-wrap gap-2 mb-3">
-  <span class="badge" style="background-color:#2E75B6;">Enfermería</span>
-  <span class="badge" style="background-color:#1F4E79;">Evolución médica</span>
-  <span class="badge" style="background-color:#198754;">Fisioterapia</span>
-  <span class="badge" style="background-color:#fd7e14;">Nutrición</span>
-  <span class="badge" style="background-color:#6f42c1;">Psicología</span>
-  <span class="badge" style="background-color:#0dcaf0;">Trabajo social</span>
-  <span class="badge" style="background-color:#d63384;">Terapia ocupacional</span>
+<!-- Filtros -->
+<div class="card card-gc mb-3">
+  <div class="card-body p-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-12">
+        <small class="text-muted d-block mb-1">Filtrar por tipo de nota (clic para activar/desactivar)</small>
+        <div class="d-flex flex-wrap gap-1">
+          <span class="filtro-tipo badge" data-tipo="enfermeria" style="background-color:#2E75B6; cursor:pointer;">Enfermería</span>
+          <span class="filtro-tipo badge" data-tipo="evolucion" style="background-color:#1F4E79; cursor:pointer;">Evolución médica</span>
+          <span class="filtro-tipo badge" data-tipo="fisioterapia" style="background-color:#198754; cursor:pointer;">Fisioterapia</span>
+          <span class="filtro-tipo badge" data-tipo="nutricion" style="background-color:#fd7e14; cursor:pointer;">Nutrición</span>
+          <span class="filtro-tipo badge" data-tipo="psicologia" style="background-color:#6f42c1; cursor:pointer;">Psicología</span>
+          <span class="filtro-tipo badge" data-tipo="trabajo_social" style="background-color:#0dcaf0; cursor:pointer;">Trabajo social</span>
+          <span class="filtro-tipo badge" data-tipo="terapia_ocupacional" style="background-color:#d63384; cursor:pointer;">Terapia ocupacional</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;">Profesional</label>
+        <select id="filtro-autor" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          {% for a in autores %}
+          <option value="{{ a.autor_id }}">{{ a.autor__first_name }} {{ a.autor__last_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;">Buscar en el contenido</label>
+        <input type="text" id="filtro-texto" class="form-control form-control-sm" placeholder="Escriba para buscar...">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;">Ir a fecha</label>
+        <div class="input-group input-group-sm">
+          <input type="date" id="filtro-fecha" class="form-control">
+          <button type="button" id="btn-ir-fecha" class="btn btn-outline-secondary">Ir</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="card card-gc">
@@ -106,6 +135,18 @@
 document.addEventListener('DOMContentLoaded', function() {
   const calendarEl = document.getElementById('calendar');
 
+  // tiposActivos vacío = sin filtro = se ve todo. Cada clic SUMA un tipo a mostrar.
+  let tiposActivos = new Set();
+  let autorActivo = '';
+  let textoBusqueda = '';
+
+  function actualizarBadges() {
+    const sinFiltro = tiposActivos.size === 0;
+    document.querySelectorAll('.filtro-tipo').forEach(function(btn) {
+      btn.style.opacity = (sinFiltro || tiposActivos.has(btn.dataset.tipo)) ? '1' : '0.35';
+    });
+  }
+
   const calendar = new FullCalendar.Calendar(calendarEl, {
     locale: 'es',
     initialView: 'dayGridMonth',
@@ -114,7 +155,19 @@ document.addEventListener('DOMContentLoaded', function() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,listMonth'
     },
-    events: '{% url "notas_calendario_data" residente.pk %}',
+    events: function(fetchInfo, successCallback, failureCallback) {
+      const params = new URLSearchParams();
+      if (tiposActivos.size > 0) {
+        params.set('tipos', Array.from(tiposActivos).join(','));
+      }
+      if (autorActivo) params.set('autor', autorActivo);
+      if (textoBusqueda) params.set('q', textoBusqueda);
+      const url = '{% url "notas_calendario_data" residente.pk %}?' + params.toString();
+      fetch(url)
+        .then(function(resp) { return resp.json(); })
+        .then(successCallback)
+        .catch(failureCallback);
+    },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
       const props = info.event.extendedProps;
@@ -134,6 +187,55 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   calendar.render();
+  actualizarBadges();
+
+  // ── Filtro por tipo ──────────────────────────
+  document.querySelectorAll('.filtro-tipo').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const tipo = this.dataset.tipo;
+      if (tiposActivos.has(tipo)) {
+        tiposActivos.delete(tipo);
+      } else {
+        tiposActivos.add(tipo);
+      }
+      actualizarBadges();
+      calendar.refetchEvents();
+    });
+  });
+
+  // ── Filtro por profesional ────────────────────
+  const selectAutor = document.getElementById('filtro-autor');
+  if (selectAutor) {
+    selectAutor.addEventListener('change', function() {
+      autorActivo = this.value;
+      calendar.refetchEvents();
+    });
+  }
+
+  // ── Buscador de texto (con debounce) ──────────
+  const inputTexto = document.getElementById('filtro-texto');
+  let debounceTimer = null;
+  if (inputTexto) {
+    inputTexto.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      const valor = this.value;
+      debounceTimer = setTimeout(function() {
+        textoBusqueda = valor.trim();
+        calendar.refetchEvents();
+      }, 400);
+    });
+  }
+
+  // ── Ir a fecha ─────────────────────────────────
+  const btnIrFecha = document.getElementById('btn-ir-fecha');
+  const inputFecha = document.getElementById('filtro-fecha');
+  if (btnIrFecha && inputFecha) {
+    btnIrFecha.addEventListener('click', function() {
+      if (inputFecha.value) {
+        calendar.gotoDate(inputFecha.value);
+      }
+    });
+  }
 });
 
 function cerrarPopup() {

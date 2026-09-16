@@ -7,6 +7,8 @@ from residentes.models import Residente
 from .models import NotaClinica, NotaAclaratoria
 from .forms import NotaClinicaForm, NotaAclaratoriaForm
 from django.http import JsonResponse
+from django.utils import timezone as dj_timezone
+from urllib.parse import urlencode
 
 def registrar_auditoria(usuario, accion, descripcion, request):
     from usuarios.views import get_client_ip
@@ -16,6 +18,32 @@ def registrar_auditoria(usuario, accion, descripcion, request):
         descripcion=descripcion,
         ip_address=get_client_ip(request)
     )
+
+
+def _filtrar_notas_por_querystring(queryset, request):
+    """Aplica sobre `queryset` los filtros de tipo/autor/texto que lleguen por la
+    URL (?tipos=a,b&autor=<id>&q=texto) y devuelve (queryset_filtrado, filtro_qs),
+    donde filtro_qs es un dict listo para reconstruir esa misma querystring —
+    así el mismo filtro se puede propagar de una nota a la siguiente."""
+    filtro_qs = {}
+
+    tipos_raw = request.GET.get('tipos')
+    if tipos_raw is not None:
+        tipos_lista = [t for t in tipos_raw.split(',') if t]
+        queryset = queryset.filter(tipo__in=tipos_lista)
+        filtro_qs['tipos'] = tipos_raw
+
+    autor_id = request.GET.get('autor', '').strip()
+    if autor_id:
+        queryset = queryset.filter(autor_id=autor_id)
+        filtro_qs['autor'] = autor_id
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        queryset = queryset.filter(contenido__icontains=q)
+        filtro_qs['q'] = q
+
+    return queryset, filtro_qs
 
 @login_required
 @clinico_requerido
@@ -107,10 +135,25 @@ def nota_detalle(request, pk):
     )
     aclaraciones = nota.aclaraciones.all().order_by('fecha_creacion')
 
+    base_qs, filtro_qs = _filtrar_notas_por_querystring(
+        NotaClinica.objects.filter(residente=nota.residente),
+        request
+    )
+    nota_anterior = base_qs.filter(
+        fecha_creacion__lt=nota.fecha_creacion
+    ).order_by('-fecha_creacion').first()
+    nota_siguiente = base_qs.filter(
+        fecha_creacion__gt=nota.fecha_creacion
+    ).order_by('fecha_creacion').first()
+
     return render(request, 'notas_clinicas/nota_detalle.html', {
         'nota': nota,
         'aclaraciones': aclaraciones,
         'nombre': nota.residente.get_nombre(),
+        'nota_anterior': nota_anterior,
+        'nota_siguiente': nota_siguiente,
+        'filtro_querystring': urlencode(filtro_qs),
+        'filtro_activo': bool(filtro_qs),
     })
 
 
@@ -139,14 +182,18 @@ def aclaratoria_crear(request, pk):
         'nombre': nota.residente.get_nombre(),
     })
 
-from django.http import JsonResponse
-
-
 @login_required
 @clinico_requerido
 def notas_calendario_data(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    notas = NotaClinica.objects.filter(residente=residente).values(
+
+    notas_qs, filtro_qs = _filtrar_notas_por_querystring(
+        NotaClinica.objects.filter(residente=residente),
+        request
+    )
+    sufijo = f'?{urlencode(filtro_qs)}' if filtro_qs else ''
+
+    notas = notas_qs.values(
         'pk', 'tipo', 'fecha_creacion', 'autor__first_name', 'autor__last_name'
     )
 
@@ -168,47 +215,11 @@ def notas_calendario_data(request, pk):
         eventos.append({
             'id': nota['pk'],
             'title': tipos_display.get(nota['tipo'], nota['tipo']),
-            'start': nota['fecha_creacion'].isoformat(),
+            'start': dj_timezone.localtime(nota['fecha_creacion']).isoformat(),
             'color': colores.get(nota['tipo'], '#2E75B6'),
             'extendedProps': {
                 'autor': autor or 'Sin nombre',
-                'url': f'/notas/{nota["pk"]}/'
-            }
-        })
-
-    return JsonResponse(eventos, safe=False)
-
-@login_required
-@clinico_requerido
-def notas_calendario_data(request, pk):
-    residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    notas = NotaClinica.objects.filter(residente=residente).values(
-        'pk', 'tipo', 'fecha_creacion', 'autor__first_name', 'autor__last_name'
-    )
-
-    eventos = []
-    colores = {
-        'enfermeria':        '#2E75B6',
-        'evolucion':         '#1F4E79',
-        'fisioterapia':      '#198754',
-        'nutricion':         '#fd7e14',
-        'psicologia':        '#6f42c1',
-        'trabajo_social':    '#0dcaf0',
-        'terapia_ocupacional': '#d63384',
-    }
-
-    tipos_display = dict(NotaClinica.TIPOS)
-
-    for nota in notas:
-        autor = f"{nota['autor__first_name']} {nota['autor__last_name']}".strip()
-        eventos.append({
-            'id': nota['pk'],
-            'title': tipos_display.get(nota['tipo'], nota['tipo']),
-            'start': nota['fecha_creacion'].isoformat(),
-            'color': colores.get(nota['tipo'], '#2E75B6'),
-            'extendedProps': {
-                'autor': autor or 'Sin nombre',
-                'url': f'/notas/{nota["pk"]}/'
+                'url': f'/notas/{nota["pk"]}/{sufijo}'
             }
         })
 
@@ -219,7 +230,15 @@ def notas_calendario_data(request, pk):
 @clinico_requerido
 def notas_calendario(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
+    autores = (
+        NotaClinica.objects
+        .filter(residente=residente)
+        .values('autor_id', 'autor__first_name', 'autor__last_name')
+        .distinct()
+        .order_by('autor__first_name', 'autor__last_name')
+    )
     return render(request, 'notas_clinicas/notas_calendario.html', {
         'residente': residente,
         'nombre': residente.get_nombre(),
+        'autores': autores,
     })

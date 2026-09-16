@@ -1,3 +1,5 @@
+import secrets
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -8,7 +10,18 @@ from .models import Usuario, Rol
 from .forms import UsuarioCrearForm, UsuarioEditarForm
 
 
-
+def _usuario_gestionable_or_404(request, pk):
+    """Usuario objetivo de una acción de gestión (editar, activar/desactivar,
+    restablecer contraseña): el superadmin puede gestionar usuarios de
+    cualquier hogar, el administrador del hogar solo los de su propio
+    hogar. Misma regla para las tres acciones, para que compartan
+    consistentemente el mismo alcance."""
+    if request.user.es_superadmin():
+        return get_object_or_404(Usuario, pk=pk)
+    return get_object_or_404(
+        Usuario.objects.exclude(roles__nombre=Rol.SUPERADMIN),
+        pk=pk, hogar=request.user.hogar
+    )
 
 def get_client_ip(request):
     x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -31,16 +44,38 @@ def login_view(request):
         return redirect('dashboard')
 
     error = False
+    mensaje_error = None
 
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+
+        usuario_existente = Usuario.objects.filter(username=username).first()
+
+        # Cuenta ya bloqueada por intentos previos: ni siquiera se valida la contraseña
+        if usuario_existente and usuario_existente.esta_bloqueado():
+            from django.utils import timezone
+            minutos = max(1, int((usuario_existente.bloqueado_hasta - timezone.now()).total_seconds() // 60) + 1)
+            error = True
+            mensaje_error = (
+                f'Esta cuenta está bloqueada temporalmente por múltiples intentos fallidos. '
+                f'Intenta de nuevo en {minutos} minuto(s) o contacta al administrador.'
+            )
+            registrar_auditoria(
+                usuario=None,
+                accion=RegistroAuditoria.INICIO_SESION,
+                descripcion=f'Intento de login rechazado por bloqueo temporal: {username}',
+                request=request
+            )
+            return render(request, 'usuarios/login.html', {'error': error, 'mensaje_error': mensaje_error})
+
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             if user.hogar and not user.hogar.activo:
-                messages.error(request, 'El hogar al que perteneces está desactivado. Contacta al administrador del sistema.')
-                return render(request, 'usuarios/login.html', {'error': True})
+                mensaje_error = 'El hogar al que perteneces está desactivado. Contacta al administrador del sistema.'
+                return render(request, 'usuarios/login.html', {'error': True, 'mensaje_error': mensaje_error})
+            user.resetear_intentos()
             login(request, user)
             registrar_auditoria(
                 usuario=user,
@@ -51,19 +86,24 @@ def login_view(request):
             return redirect('dashboard')
         else:
             error = True
-            try:
-                from usuarios.models import Usuario
-                Usuario.objects.get(username=username)
+            if usuario_existente:
+                usuario_existente.registrar_intento_fallido()
+                if usuario_existente.esta_bloqueado():
+                    mensaje_error = (
+                        'Cuenta bloqueada temporalmente por múltiples intentos fallidos. '
+                        'Intenta de nuevo más tarde o contacta al administrador.'
+                    )
+                    descripcion = f'Cuenta bloqueada tras intentos fallidos repetidos: {username}'
+                else:
+                    descripcion = f'Intento de login fallido para usuario: {username}'
                 registrar_auditoria(
                     usuario=None,
                     accion=RegistroAuditoria.INICIO_SESION,
-                    descripcion=f'Intento de login fallido para usuario: {username}',
+                    descripcion=descripcion,
                     request=request
                 )
-            except Exception:
-                pass
 
-    return render(request, 'usuarios/login.html', {'error': error})
+    return render(request, 'usuarios/login.html', {'error': error, 'mensaje_error': mensaje_error})
 
 
 @login_required
@@ -94,6 +134,9 @@ def dashboard_view(request):
     if request.user.es_superadmin():
         # ── Estadísticas globales ──────────────────────
         total_hogares = Hogar.objects.filter(activo=True).count()
+        total_hogares_registrados = Hogar.objects.count()
+        total_hogares_pausados = total_hogares_registrados - total_hogares
+        total_usuarios_activos = Usuario.objects.filter(activo=True).count()
         total_residentes = Residente.objects.filter(activo=True).count()
         total_camas_ocupadas = Cama.objects.filter(estado='ocupada', activo=True).count()
         total_notas_hoy = NotaClinica.objects.filter(
@@ -136,6 +179,9 @@ def dashboard_view(request):
         contexto = {
             'es_superadmin': True,
             'total_hogares': total_hogares,
+            'total_hogares_registrados': total_hogares_registrados,
+            'total_hogares_pausados': total_hogares_pausados,
+            'total_usuarios_activos': total_usuarios_activos,
             'total_residentes': total_residentes,
             'total_camas_ocupadas': total_camas_ocupadas,
             'total_notas_hoy': total_notas_hoy,
@@ -202,9 +248,12 @@ def usuario_lista(request):
             'hogar_seleccionado': hogar_id,
         })
     else:
-        # Administrador ve solo usuarios de su hogar
+        # Administrador ve solo usuarios de su hogar (nunca a un superadmin,
+        # aunque por algún motivo tenga ese hogar asignado)
         hogar = request.user.hogar
-        usuarios = Usuario.objects.filter(hogar=hogar).order_by('last_name', 'first_name')
+        usuarios = Usuario.objects.filter(hogar=hogar).exclude(
+            roles__nombre=Rol.SUPERADMIN
+        ).order_by('last_name', 'first_name')
         return render(request, 'usuarios/usuario_lista.html', {
             'usuarios': usuarios
         })
@@ -223,6 +272,12 @@ def usuario_crear(request):
         usuario.set_password(form.cleaned_data['password1'])
         usuario.save()
         form.save_m2m()
+        if getattr(form, 'hogar_auto_corregido', False):
+            messages.info(
+                request,
+                'El rol "Superadministrador" no puede tener un hogar asignado, '
+                'así que el usuario se creó sin hogar.'
+            )
         messages.success(request, f'Usuario {usuario.username} creado correctamente.')
         return redirect('usuario_lista')
     return render(request, 'usuarios/usuario_form.html', {
@@ -232,13 +287,61 @@ def usuario_crear(request):
     })
 
 
+def _hogar_se_quedaria_sin_administrador(hogar_id, excluyendo_pk):
+    """True si, excluyendo al usuario `excluyendo_pk`, el hogar `hogar_id`
+    no tiene ningún OTRO usuario activo con el rol administrador. Se usa
+    para bloquear ediciones/desactivaciones que dejarían un hogar sin
+    ningún administrador activo. No aplica a un hogar que nunca tuvo
+    administrador (ese es un estado inicial normal, no una regresión)."""
+    return not Usuario.objects.filter(
+        hogar_id=hogar_id, roles__nombre=Rol.ADMINISTRADOR, activo=True
+    ).exclude(pk=excluyendo_pk).exists()
+
+
 @login_required
 @administrador_requerido
 def usuario_editar(request, pk):
-    usuario = get_object_or_404(Usuario, pk=pk, hogar=request.user.hogar)
+    usuario = _usuario_gestionable_or_404(request, pk)
+    # Estado ANTES de tocar el formulario: is_valid() mutará atributos del
+    # propio `usuario` (es la misma instancia que form.instance) para los
+    # campos que sí están en Meta.fields, así que hay que capturar esto
+    # antes de esa llamada.
+    era_administrador_activo_del_hogar = bool(
+        usuario.hogar_id and usuario.activo and usuario.tiene_rol(Rol.ADMINISTRADOR)
+    )
+    hogar_id_original = usuario.hogar_id
+
     form = UsuarioEditarForm(request.POST or None, instance=usuario, user=request.user)
     if request.method == 'POST' and form.is_valid():
+        nuevos_roles = form.cleaned_data.get('roles') or []
+        nuevo_activo = form.cleaned_data.get('activo')
+        seguira_siendo_administrador_activo = bool(
+            nuevo_activo and any(r.nombre == Rol.ADMINISTRADOR for r in nuevos_roles)
+        )
+
+        if (era_administrador_activo_del_hogar
+                and not seguira_siendo_administrador_activo
+                and _hogar_se_quedaria_sin_administrador(hogar_id_original, usuario.pk)):
+            messages.error(
+                request,
+                'No puedes quitar el rol de Administrador (ni desactivar la cuenta) '
+                'a este usuario: es el último administrador activo de su hogar. '
+                'Asigna otro administrador antes de hacer este cambio.'
+            )
+            return render(request, 'usuarios/usuario_form.html', {
+                'form': form,
+                'titulo': 'Editar Usuario',
+                'accion': 'Guardar cambios',
+                'usuario': usuario
+            })
+
         form.save()
+        if getattr(form, 'hogar_auto_corregido', False):
+            messages.info(
+                request,
+                'El rol "Superadministrador" no puede tener un hogar asignado, '
+                'así que se quitó el hogar de este usuario.'
+            )
         messages.success(request, 'Usuario actualizado correctamente.')
         return redirect('usuario_lista')
     return render(request, 'usuarios/usuario_form.html', {
@@ -251,16 +354,71 @@ def usuario_editar(request, pk):
 @login_required
 @administrador_requerido
 def usuario_toggle(request, pk):
-    usuario = get_object_or_404(Usuario, pk=pk, hogar=request.user.hogar)
+    usuario = _usuario_gestionable_or_404(request, pk)
     if usuario == request.user:
         messages.error(request, 'No puedes desactivar tu propia cuenta.')
         return redirect('usuario_lista')
+
+    va_a_desactivarse = usuario.activo
+    if (va_a_desactivarse
+            and usuario.hogar_id
+            and usuario.tiene_rol(Rol.ADMINISTRADOR)
+            and _hogar_se_quedaria_sin_administrador(usuario.hogar_id, usuario.pk)):
+        messages.error(
+            request,
+            'No puedes desactivar a este usuario: es el último administrador '
+            'activo de su hogar. Asigna otro administrador antes de desactivarlo.'
+        )
+        return redirect('usuario_lista')
+
     usuario.activo = not usuario.activo
     usuario.is_active = usuario.activo
     usuario.save()
     estado = 'activado' if usuario.activo else 'desactivado'
     messages.success(request, f'Usuario {estado} correctamente.')
     return redirect('usuario_lista')
+
+
+@login_required
+@administrador_requerido
+def usuario_resetear_password(request, pk):
+    """Genera una contraseña temporal para `pk`, la fuerza a cambiarla en
+    su próximo inicio de sesión y la muestra UNA sola vez en pantalla.
+    Reutiliza exactamente el mismo alcance de gestión que usuario_editar
+    y usuario_toggle (_usuario_gestionable_or_404)."""
+    usuario = _usuario_gestionable_or_404(request, pk)
+    if usuario == request.user:
+        messages.error(
+            request,
+            'No puedes restablecer la contraseña de tu propia cuenta desde aquí. '
+            'Usa la opción "Cambiar contraseña" del menú de tu perfil.'
+        )
+        return redirect('usuario_lista')
+
+    # Alfabeto legible: sin caracteres fácilmente confundibles (0/O, 1/l/I).
+    alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+    password_temporal = ''.join(secrets.choice(alfabeto) for _ in range(12))
+
+    usuario.set_password(password_temporal)
+    usuario.debe_cambiar_password = True
+    usuario.save(update_fields=['password', 'debe_cambiar_password'])
+
+    # La contraseña en texto plano NUNCA se registra en la auditoría.
+    registrar_auditoria(
+        usuario=request.user,
+        accion=RegistroAuditoria.RESETEO_PASSWORD,
+        descripcion=(
+            f'{request.user.username} restableció la contraseña del usuario '
+            f'{usuario.username} y le asignó una contraseña temporal.'
+        ),
+        request=request
+    )
+
+    return render(request, 'usuarios/usuario_password_temporal.html', {
+        'usuario': usuario,
+        'password_temporal': password_temporal,
+    })
+
 
 @login_required
 def cambiar_password(request):
@@ -277,6 +435,7 @@ def cambiar_password(request):
             messages.error(request, 'La contraseña debe tener al menos 8 caracteres.')
         else:
             request.user.set_password(password_nueva)
+            request.user.debe_cambiar_password = False
             request.user.save()
             messages.success(request, 'Contraseña cambiada correctamente. Por favor inicia sesión nuevamente.')
             return redirect('login')

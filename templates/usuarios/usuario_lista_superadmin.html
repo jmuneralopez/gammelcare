@@ -43,6 +43,7 @@
           <th style="color:#1F4E79;">Hogar</th>
           <th style="color:#1F4E79;">Roles</th>
           <th style="color:#1F4E79;">Estado</th>
+          <th style="color:#1F4E79;">Último acceso</th>
           <th style="color:#1F4E79;">Acciones</th>
         </tr>
       </thead>
@@ -74,6 +75,7 @@
               <span class="badge bg-secondary">Inactivo</span>
             {% endif %}
           </td>
+          <td class="text-muted">{{ u.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
           <td>
             <a href="{% url 'usuario_editar' u.pk %}"
                class="btn btn-sm btn-outline-primary me-1">
@@ -81,16 +83,22 @@
             </a>
             {% if u != request.user %}
             <a href="{% url 'usuario_toggle' u.pk %}"
-               class="btn btn-sm {% if u.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+               class="btn btn-sm {% if u.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %} me-1"
                onclick="return confirm('¿Confirma cambiar el estado de este usuario?')">
               <i class="bi bi-{% if u.activo %}pause-circle{% else %}play-circle{% endif %}"></i>
+            </a>
+            <a href="{% url 'usuario_resetear_password' u.pk %}"
+               class="btn btn-sm btn-outline-secondary"
+               title="Restablecer contraseña"
+               onclick="return confirm('¿Confirma generar una nueva contraseña temporal para este usuario? La contraseña actual dejará de funcionar.')">
+              <i class="bi bi-key"></i>
             </a>
             {% endif %}
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="text-center text-muted py-4">
+          <td colspan="7" class="text-center text-muted py-4">
             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
             No hay usuarios registrados.
           </td>

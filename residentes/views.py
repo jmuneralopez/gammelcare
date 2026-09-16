@@ -2,11 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from usuarios.decorators import administrador_requerido, clinico_requerido
+from usuarios.decorators import (
+    administrador_hogar_requerido, clinico_requerido,
+    puede_exportar_requerido, gestion_diagnostico_requerido,
+)
 from auditoria.models import RegistroAuditoria
 from infraestructura.models import Cama
 from .models import Residente, AsignacionCama, ExpedienteIngreso, ExamenIngreso, DiagnosticoResidente
-from .forms import ResidenteForm, ExpedienteIngresoForm, ExamenIngresoForm, DiagnosticoForm
+from .forms import ResidenteForm, ExpedienteIngresoForm, ExamenIngresoForm, DiagnosticoForm, DiagnosticoFormSet
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -43,15 +46,17 @@ def residente_lista(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def residente_crear(request):
     hogar = request.user.hogar
     form = ResidenteForm(request.POST or None, hogar=hogar)
     expediente_form = ExpedienteIngresoForm(request.POST or None)
     examen_form = ExamenIngresoForm(request.POST or None)
+    diagnostico_formset = DiagnosticoFormSet(request.POST or None, prefix='diagnosticos')
 
     if request.method == 'POST':
-        if form.is_valid() and expediente_form.is_valid() and examen_form.is_valid():
+        if (form.is_valid() and expediente_form.is_valid()
+                and examen_form.is_valid() and diagnostico_formset.is_valid()):
             cama = form.cleaned_data.get('cama')
 
             residente = Residente(
@@ -87,10 +92,23 @@ def residente_crear(request):
             examen.residente = residente
             examen.save()
 
+            diagnosticos_creados = 0
+            for fila in diagnostico_formset.cleaned_data:
+                codigo = fila.get('codigo_cie10')
+                if not codigo:
+                    continue
+                DiagnosticoResidente.objects.create(
+                    residente=residente,
+                    codigo_cie10=codigo,
+                    observacion=fila.get('observacion', '')
+                )
+                diagnosticos_creados += 1
+
             registrar_auditoria(
                 usuario=request.user,
                 accion=RegistroAuditoria.CREACION_RESIDENTE,
-                descripcion=f'Registro de residente #{residente.pk} en hogar {hogar.nombre}',
+                descripcion=f'Registro de residente #{residente.pk} en hogar {hogar.nombre}'
+                            f' ({diagnosticos_creados} diagnóstico(s) inicial(es))',
                 request=request
             )
 
@@ -101,6 +119,7 @@ def residente_crear(request):
         'form': form,
         'expediente_form': expediente_form,
         'examen_form': examen_form,
+        'diagnostico_formset': diagnostico_formset,
         'titulo': 'Nuevo Residente',
         'accion': 'Registrar'
     })
@@ -135,7 +154,7 @@ def residente_detalle(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def residente_editar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     hogar = request.user.hogar
@@ -209,7 +228,7 @@ def residente_editar(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def residente_desactivar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
 
@@ -238,7 +257,7 @@ def residente_desactivar(request, pk):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def residente_reactivar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     residente.activo = True
@@ -249,7 +268,7 @@ def residente_reactivar(request, pk):
 
 
 @login_required
-@clinico_requerido
+@gestion_diagnostico_requerido
 def diagnostico_agregar(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     form = DiagnosticoForm(request.POST or None)
@@ -269,17 +288,18 @@ def diagnostico_agregar(request, pk):
 
 
 @login_required
-@clinico_requerido
+@gestion_diagnostico_requerido
 def diagnostico_desactivar(request, pk, dpk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     diagnostico = get_object_or_404(DiagnosticoResidente, pk=dpk, residente=residente)
-    diagnostico.activo = False
-    diagnostico.save()
-    messages.success(request, 'Diagnóstico removido correctamente.')
+    if request.method == 'POST':
+        diagnostico.activo = False
+        diagnostico.save()
+        messages.success(request, 'Diagnóstico removido correctamente.')
     return redirect('residente_detalle', pk=residente.pk)
 
 @login_required
-@clinico_requerido
+@puede_exportar_requerido
 def residente_exportar_pdf(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     expediente = getattr(residente, 'expediente', None)

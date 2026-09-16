@@ -10,6 +10,7 @@ class RegistroAuditoria(models.Model):
     EXPORTACION = 'exportacion'
     CREACION_RESIDENTE = 'creacion_residente'
     ASIGNACION_CAMA = 'asignacion_cama'
+    RESETEO_PASSWORD = 'reseteo_password'
 
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
@@ -19,6 +20,7 @@ class RegistroAuditoria(models.Model):
         (EXPORTACION, 'Exportación de expediente'),
         (CREACION_RESIDENTE, 'Registro de residente'),
         (ASIGNACION_CAMA, 'Asignación de cama'),
+        (RESETEO_PASSWORD, 'Restablecimiento de contraseña'),
     ]
 
     usuario = models.ForeignKey(

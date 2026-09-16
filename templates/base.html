@@ -155,15 +155,24 @@
           </small>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
-             href="{% url 'residente_lista' %}">
-            <i class="bi bi-person-lines-fill me-1"></i>Residentes
-          </a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link {% if 'usuarios' in request.path and 'lista' in request.path %}active{% endif %}"
              href="{% url 'usuario_lista' %}">
             <i class="bi bi-people me-1"></i>Usuarios
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'auditoria_lista' %}active{% endif %}"
+             href="{% url 'auditoria_lista' %}">
+            <i class="bi bi-shield-check me-1"></i>Auditoría
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user.es_administrador_hogar %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'residentes' in request.path %}active{% endif %}"
+             href="{% url 'residente_lista' %}">
+            <i class="bi bi-person-lines-fill me-1"></i>Residentes
           </a>
         </li>
         <li class="nav-item">
@@ -213,12 +222,6 @@
           <a class="nav-link {% if 'hogares' in request.path %}active{% endif %}"
              href="{% url 'hogar_lista' %}">
             <i class="bi bi-building me-1"></i>Hogares
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if 'auditoria' in request.path %}active{% endif %}"
-             href="/admin/auditoria/registroauditoria/">
-            <i class="bi bi-shield-check me-1"></i>Auditoría
           </a>
         </li>
         <li class="nav-item">

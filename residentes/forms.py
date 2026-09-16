@@ -1,5 +1,6 @@
 from django import forms
 from django.db import models
+from django.forms import formset_factory
 from .models import Residente, ExpedienteIngreso, ExamenIngreso, DiagnosticoResidente
 from catalogos.models import CodigoCIE10, EPS, ServicioAmbulancia
 from infraestructura.models import Cama
@@ -189,3 +190,30 @@ class DiagnosticoForm(forms.ModelForm):
         labels = {
             'observacion': 'Observación'
         }
+
+
+class DiagnosticoInlineForm(forms.Form):
+    """Fila de diagnóstico usada dentro del formulario de ingreso del residente.
+    codigo_cie10 es opcional a nivel de formulario para permitir filas vacías
+    en el formset (se descartan al guardar si no tienen código)."""
+    codigo_cie10 = forms.ModelChoiceField(
+        queryset=CodigoCIE10.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select select2-cie10-inline',
+            'data-url': '/catalogos/buscar/cie10/'
+        }),
+        label='Código CIE-10',
+        empty_label='Buscar código o descripción...'
+    )
+    observacion = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 'rows': 2,
+            'placeholder': 'Observación (opcional)'
+        }),
+        label='Observación'
+    )
+
+
+DiagnosticoFormSet = formset_factory(DiagnosticoInlineForm, extra=1)

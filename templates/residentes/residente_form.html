@@ -146,6 +146,53 @@
     </div>
   </div>
 
+  {% if diagnostico_formset %}
+  <!-- DIAGNÓSTICOS CIE-10 -->
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">
+        <i class="bi bi-clipboard2-pulse me-2"></i>Diagnósticos (CIE-10)
+      </h6>
+      <small class="text-muted d-block mb-3">
+        Opcional — busque por código o por descripción y agregue los diagnósticos que apliquen al ingreso.
+      </small>
+
+      {{ diagnostico_formset.management_form }}
+
+      <div id="diagnosticos-rows">
+        {% for dform in diagnostico_formset %}
+        <div class="row g-3 align-items-start diagnostico-row mb-2">
+          <div class="col-md-5">{{ dform.codigo_cie10 }}</div>
+          <div class="col-md-6">{{ dform.observacion }}</div>
+          <div class="col-md-1 d-flex align-items-center pt-1">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-diagnostico" title="Quitar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="button" id="btn-agregar-diagnostico" class="btn btn-outline-primary btn-sm mt-1">
+        <i class="bi bi-plus-circle me-1"></i>Agregar otro diagnóstico
+      </button>
+
+      <!-- Plantilla oculta para nuevas filas -->
+      <div id="diagnostico-empty-row" style="display:none;">
+        <div class="row g-3 align-items-start diagnostico-row mb-2">
+          <div class="col-md-5">{{ diagnostico_formset.empty_form.codigo_cie10 }}</div>
+          <div class="col-md-6">{{ diagnostico_formset.empty_form.observacion }}</div>
+          <div class="col-md-1 d-flex align-items-center pt-1">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-diagnostico" title="Quitar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- EXPEDIENTE -->
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
@@ -228,6 +275,46 @@ $(document).ready(function() {
 
   $('#id_peso').on('input', calcularIMC);
   $('#id_talla').on('input', calcularIMC);
+
+  // ── Diagnósticos CIE-10 (filas dinámicas) ─────
+  function initSelect2CIE10(scope) {
+    $(scope).find('.select2-cie10-inline').select2({
+      placeholder: 'Buscar código o descripción CIE-10...',
+      minimumInputLength: 2,
+      width: '100%',
+      ajax: {
+        url: '/catalogos/buscar/cie10/',
+        dataType: 'json',
+        delay: 300,
+        data: function(params) { return { term: params.term }; },
+        processResults: function(data) { return { results: data.results }; },
+        cache: true
+      }
+    });
+  }
+  initSelect2CIE10(document);
+
+  const $totalForms = $('#id_diagnosticos-TOTAL_FORMS');
+  if ($totalForms.length) {
+    $('#btn-agregar-diagnostico').on('click', function() {
+      let indice = parseInt($totalForms.val(), 10);
+      const plantilla = $('#diagnostico-empty-row').html().replace(/__prefix__/g, indice);
+      const $nuevaFila = $(plantilla);
+      $('#diagnosticos-rows').append($nuevaFila);
+      initSelect2CIE10($nuevaFila);
+      $totalForms.val(indice + 1);
+    });
+
+    $(document).on('click', '.btn-quitar-diagnostico', function() {
+      const $fila = $(this).closest('.diagnostico-row');
+      const totalVisibles = $('#diagnosticos-rows .diagnostico-row:visible').length;
+      $fila.find('.select2-cie10-inline').val(null).trigger('change');
+      $fila.find('textarea').val('');
+      if (totalVisibles > 1) {
+        $fila.hide();
+      }
+    });
+  }
 
 });
 </script>

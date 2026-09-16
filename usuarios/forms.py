@@ -67,6 +67,16 @@ class UsuarioCrearForm(forms.ModelForm):
         p2 = cleaned_data.get('password2')
         if p1 and p2 and p1 != p2:
             raise forms.ValidationError('Las contraseñas no coinciden.')
+
+        roles = cleaned_data.get('roles')
+        if roles and any(r.nombre == Rol.SUPERADMIN for r in roles) and cleaned_data.get('hogar'):
+            # Un superadmin no debe quedar asignado a un hogar: eso le
+            # daría visibilidad/gestión cruzada con el administrador de
+            # ese hogar. Se corrige automáticamente (no se bloquea el
+            # formulario) y se marca `hogar_auto_corregido` para que la
+            # vista pueda avisarle al usuario con un mensaje claro.
+            cleaned_data['hogar'] = None
+            self.hogar_auto_corregido = True
         return cleaned_data
 
 
@@ -100,3 +110,16 @@ class UsuarioEditarForm(forms.ModelForm):
             self.fields['roles'].queryset = Rol.objects.filter(
                 nombre__in=[Rol.ADMINISTRADOR] + Rol.ROLES_CLINICOS
             )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        roles = cleaned_data.get('roles')
+        # Este formulario no expone el campo `hogar` (no está en Meta.fields),
+        # así que la corrección se aplica directamente sobre self.instance:
+        # _post_clean() solo reconstruye desde cleaned_data los campos que sí
+        # están en Meta.fields, por lo que este cambio de instancia persiste
+        # hasta el save().
+        if roles and any(r.nombre == Rol.SUPERADMIN for r in roles) and self.instance.hogar_id:
+            self.instance.hogar = None
+            self.hogar_auto_corregido = True
+        return cleaned_data

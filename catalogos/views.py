@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from usuarios.decorators import administrador_requerido
+from usuarios.decorators import administrador_hogar_requerido
 from .models import CodigoCIE10, EPS, ServicioAmbulancia
 
 
@@ -50,14 +50,14 @@ def buscar_ambulancia(request):
 # ── CRUD EPS ───────────────────────────────────────────────────
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def eps_lista(request):
     eps_list = EPS.objects.all().order_by('nombre')
     return render(request, 'catalogos/eps_lista.html', {'eps_list': eps_list})
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def eps_crear(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
@@ -74,7 +74,7 @@ def eps_crear(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def eps_editar(request, pk):
     eps = get_object_or_404(EPS, pk=pk)
     if request.method == 'POST':
@@ -93,14 +93,14 @@ def eps_editar(request, pk):
 # ── CRUD Ambulancia ────────────────────────────────────────────
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def ambulancia_lista(request):
     ambulancias = ServicioAmbulancia.objects.all().order_by('nombre')
     return render(request, 'catalogos/ambulancia_lista.html', {'ambulancias': ambulancias})
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def ambulancia_crear(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
@@ -116,7 +116,7 @@ def ambulancia_crear(request):
 
 
 @login_required
-@administrador_requerido
+@administrador_hogar_requerido
 def ambulancia_editar(request, pk):
     ambulancia = get_object_or_404(ServicioAmbulancia, pk=pk)
     if request.method == 'POST':

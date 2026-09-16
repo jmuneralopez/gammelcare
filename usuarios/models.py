@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
 from hogares.models import Hogar
 
 
@@ -8,6 +10,7 @@ class Rol(models.Model):
     ADMINISTRADOR = 'administrador'
     MEDICO = 'medico'
     ENFERMERO = 'enfermero'
+    JEFE_ENFERMERIA = 'jefe_enfermeria'
     FISIOTERAPEUTA = 'fisioterapeuta'
     NUTRICIONISTA = 'nutricionista'
     PSICOLOGO = 'psicologo'
@@ -19,6 +22,7 @@ class Rol(models.Model):
         (ADMINISTRADOR, 'Administrador del Hogar'),
         (MEDICO, 'Médico'),
         (ENFERMERO, 'Enfermero/a'),
+        (JEFE_ENFERMERIA, 'Jefe de Enfermería'),
         (FISIOTERAPEUTA, 'Fisioterapeuta'),
         (NUTRICIONISTA, 'Nutricionista'),
         (PSICOLOGO, 'Psicólogo/a'),
@@ -26,17 +30,28 @@ class Rol(models.Model):
         (TERAPEUTA_OCUPACIONAL, 'Terapeuta Ocupacional'),
     ]
 
+    # Roles clínicos: acceso a residentes/notas del propio hogar, pero no
+    # a gestión administrativa del hogar (infraestructura, catálogos, etc.)
     ROLES_CLINICOS = [
-        MEDICO, ENFERMERO, FISIOTERAPEUTA,
+        MEDICO, ENFERMERO, JEFE_ENFERMERIA, FISIOTERAPEUTA,
         NUTRICIONISTA, PSICOLOGO, TRABAJO_SOCIAL,
         TERAPEUTA_OCUPACIONAL
     ]
 
-    ROLES_EXPORTACION = [SUPERADMIN, ADMINISTRADOR, MEDICO]
+    # Quién puede exportar el expediente en PDF. El superadmin ya no hace
+    # trabajo clínico/operativo del hogar, así que no exporta expedientes.
+    ROLES_EXPORTACION = [ADMINISTRADOR, MEDICO, JEFE_ENFERMERIA]
+
+    # Quién puede agregar/quitar diagnósticos de un residente YA existente.
+    # Deliberadamente más estrecho que ROLES_CLINICOS: ni siquiera el
+    # administrador del hogar gestiona diagnósticos, solo perfil médico/
+    # enfermería jefe.
+    ROLES_GESTION_DIAGNOSTICOS = [MEDICO, JEFE_ENFERMERIA]
 
     NOTA_POR_ROL = {
         MEDICO: 'evolucion',
         ENFERMERO: 'enfermeria',
+        JEFE_ENFERMERIA: 'enfermeria',
         FISIOTERAPEUTA: 'fisioterapia',
         NUTRICIONISTA: 'nutricion',
         PSICOLOGO: 'psicologia',
@@ -82,6 +97,25 @@ class Usuario(AbstractUser):
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
+    # Bloqueo por intentos fallidos de inicio de sesión
+    intentos_fallidos = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Intentos fallidos de inicio de sesión'
+    )
+    bloqueado_hasta = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name='Bloqueado hasta'
+    )
+
+    # Contraseña temporal asignada por un administrador (ver
+    # usuarios.views.usuario_resetear_password): fuerza al usuario a
+    # cambiarla en su próximo inicio de sesión antes de usar el resto
+    # de la aplicación.
+    debe_cambiar_password = models.BooleanField(
+        default=False,
+        verbose_name='Debe cambiar la contraseña en el próximo inicio de sesión'
+    )
+
     class Meta:
         db_table = 'usuarios'
         verbose_name = 'Usuario'
@@ -89,6 +123,28 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return f'{self.get_full_name()} ({self.username})'
+
+    def esta_bloqueado(self):
+        from django.utils import timezone
+        return bool(self.bloqueado_hasta and self.bloqueado_hasta > timezone.now())
+
+    def registrar_intento_fallido(self):
+        from django.conf import settings as dj_settings
+        from django.utils import timezone
+        from datetime import timedelta
+
+        self.intentos_fallidos += 1
+        maximo = getattr(dj_settings, 'LOGIN_MAX_INTENTOS', 5)
+        if self.intentos_fallidos >= maximo:
+            minutos = getattr(dj_settings, 'LOGIN_BLOQUEO_MINUTOS', 15)
+            self.bloqueado_hasta = timezone.now() + timedelta(minutes=minutos)
+        self.save(update_fields=['intentos_fallidos', 'bloqueado_hasta'])
+
+    def resetear_intentos(self):
+        if self.intentos_fallidos or self.bloqueado_hasta:
+            self.intentos_fallidos = 0
+            self.bloqueado_hasta = None
+            self.save(update_fields=['intentos_fallidos', 'bloqueado_hasta'])
 
     def tiene_rol(self, *nombres):
         return self.roles.filter(nombre__in=nombres).exists()
@@ -102,8 +158,18 @@ class Usuario(AbstractUser):
     def es_superadmin(self):
         return self.tiene_rol(Rol.SUPERADMIN)
 
+    def es_administrador_hogar(self):
+        """Administrador del hogar (no superadmin). Es quien gestiona
+        residentes, infraestructura y catálogos de SU hogar."""
+        return self.tiene_rol(Rol.ADMINISTRADOR)
+
     def puede_exportar(self):
         return self.roles.filter(nombre__in=Rol.ROLES_EXPORTACION).exists()
+
+    def puede_gestionar_diagnosticos(self):
+        """Puede agregar/quitar diagnósticos de un residente existente:
+        solo médico y jefe de enfermería."""
+        return self.roles.filter(nombre__in=Rol.ROLES_GESTION_DIAGNOSTICOS).exists()
 
     def tipos_nota_permitidos(self):
         """Retorna lista de tipos de nota que puede crear según sus roles."""
@@ -119,3 +185,34 @@ class Usuario(AbstractUser):
 
     def roles_display(self):
         return ", ".join([r.get_nombre_display() for r in self.roles.all()])
+
+
+@receiver(m2m_changed, sender=Usuario.roles.through)
+def sincronizar_acceso_admin_django(sender, instance, action, **kwargs):
+    """Django controla el acceso a /admin/ (el 'Administrador del Sistema')
+    con is_staff/is_superuser, no con el sistema de Roles de la app. Un
+    usuario creado desde /usuarios/nuevo/ con rol 'superadmin' debe poder
+    entrar a /admin/ sin que alguien tenga que marcarlo manualmente ahí,
+    así que cada vez que cambian sus roles (alta, edición, admin de Django,
+    shell) se revisa si tiene el rol superadmin y se sincronizan ambos
+    flags para que coincidan exactamente con esa condición.
+
+    Nota de diseño: esta sincronización es de DOS sentidos — OTORGA
+    is_staff/is_superuser cuando el usuario tiene el rol superadmin y los
+    QUITA cuando deja de tenerlo (decisión explícita del equipo del
+    producto: perder el rol superadmin debe retirar también el acceso a
+    /admin/). Esto solo se dispara cuando alguien edita el M2M `roles` de
+    un usuario a través de la app, del admin de Django o del shell — nunca
+    para una cuenta que nadie ha tocado desde ese ángulo, por ejemplo una
+    cuenta de superusuario "pura" creada con `createsuperuser` a la que
+    jamás se le asignaron roles: como su M2M `roles` nunca cambia, esta
+    señal simplemente no se dispara sobre ella y sus flags no se ven
+    afectados. Se considera un límite natural y aceptable de esta señal.
+    """
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    es_superadmin = instance.roles.filter(nombre=Rol.SUPERADMIN).exists()
+    if instance.is_staff != es_superadmin or instance.is_superuser != es_superadmin:
+        instance.is_staff = es_superadmin
+        instance.is_superuser = es_superadmin
+        instance.save(update_fields=['is_staff', 'is_superuser'])
