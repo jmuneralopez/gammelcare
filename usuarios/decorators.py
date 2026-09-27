@@ -16,6 +16,21 @@ def rol_requerido(*nombres_roles):
             if not request.user.tiene_rol(*nombres_roles):
                 messages.error(request, 'No tienes permisos para acceder a esta sección.')
                 return redirect('dashboard')
+            # Todo lo que no sea superadmin debe pertenecer a un hogar. Sin
+            # este chequeo, una cuenta que quedó sin hogar (por un bug, una
+            # migración incompleta, etc.) llega hasta el cuerpo de la vista
+            # y revienta con un error de base de datos en cualquier pantalla
+            # que guarde algo con `hogar=request.user.hogar` (p. ej. crear un
+            # departamento) — aquí se corta de raíz, para TODAS las vistas
+            # que usan rol_requerido, con un mensaje claro en vez de un 500.
+            if not request.user.es_superadmin() and not request.user.hogar_id:
+                messages.error(
+                    request,
+                    'Tu cuenta no tiene un hogar asignado. Contacta al '
+                    'administrador del sistema para que te asigne uno antes '
+                    'de continuar.'
+                )
+                return redirect('dashboard')
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
@@ -52,6 +67,33 @@ def puede_exportar_requerido(view_func):
 
 def gestion_diagnostico_requerido(view_func):
     """Quién puede agregar/quitar diagnósticos de un residente existente:
-    solo médico y jefe de enfermería (ni siquiera administrador o
-    superadmin)."""
+    administrador, médico y jefe de enfermería."""
     return rol_requerido(*Rol.ROLES_GESTION_DIAGNOSTICOS)(view_func)
+
+
+# ── Módulo de medicamentos ──────────────────────────────────────
+
+def registro_tratamiento_requerido(view_func):
+    """Transcribir, suspender y reemplazar tratamientos formulados:
+    administrador, médico y jefe de enfermería."""
+    return rol_requerido(*Rol.ROLES_REGISTRO_TRATAMIENTO)(view_func)
+
+
+def ingreso_medicamento_requerido(view_func):
+    """Registrar la entrada de medicamentos que trae la familia:
+    administrador, jefe de enfermería y enfermero/auxiliar."""
+    return rol_requerido(*Rol.ROLES_INGRESO_MEDICAMENTO)(view_func)
+
+
+def administracion_requerido(view_func):
+    """Registrar suministro y no administración: médico, jefe de
+    enfermería y enfermero/auxiliar — el administrador nunca toca al
+    residente."""
+    return rol_requerido(*Rol.ROLES_ADMINISTRACION)(view_func)
+
+
+def ajuste_inventario_requerido(view_func):
+    """Ajustar saldos, descartar lotes vencidos y devolver a la familia:
+    el acto más restringido del módulo — solo administrador y jefe de
+    enfermería (ver plan-modulo-medicamentos.md, sección 4.3-a)."""
+    return rol_requerido(*Rol.ROLES_AJUSTE_INVENTARIO)(view_func)
