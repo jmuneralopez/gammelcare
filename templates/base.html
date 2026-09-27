@@ -7,49 +7,97 @@
   {% load static %}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --gc-dark:  #1F4E79;
-      --gc-mid:   #2E75B6;
-      --gc-light: #D6E4F0;
+      /* Azul clínico (historia clínica, carné de salud) + verde salvia de
+         uniforme/quirófano: la dupla de color que de verdad se asocia con
+         medicina, en vez de un azul genérico de SaaS. */
+      --gc-navy:        #0B3D62;
+      --gc-navy-2:      #124A76;
+      --gc-blue:        #1768AC;
+      --gc-sage:        #4F9E86;
+      --gc-sage-dark:   #3E8571;
+      --gc-sage-light:  #E3F2EC;
+      --gc-bg:          #F6FAF9;
+      --gc-border:      #D8E8E3;
+      --gc-text:        #16262E;
+      --gc-muted:       #5B7069;
     }
-    body { background-color: #f4f7fb; font-family: Arial, sans-serif; }
-    .navbar-gc { background-color: var(--gc-dark); }
+    body {
+      background-color: var(--gc-bg);
+      font-family: 'Inter', Arial, sans-serif;
+      color: var(--gc-text);
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, h5, h6,
+    .navbar-brand, .login-logo {
+      font-family: 'Manrope', 'Inter', Arial, sans-serif;
+      letter-spacing: -0.01em;
+    }
+    a { color: var(--gc-blue); }
+
+    /* Textura de fondo: un trazo de electrocardiograma, muy sutil, como
+       guiño directo a "salud" sin caer en un ícono genérico de plantilla. */
+    .navbar-gc {
+      background: linear-gradient(95deg, var(--gc-navy) 0%, var(--gc-navy-2) 100%),
+                  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='56' viewBox='0 0 140 56'%3E%3Cpath d='M0 30 H46 L54 10 L64 46 L72 22 L78 30 H140' stroke='%23ffffff' stroke-opacity='0.09' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+      background-position: left center;
+      box-shadow: 0 2px 10px rgba(11,61,98,0.18);
+    }
     .navbar-gc .navbar-brand,
     .navbar-gc .nav-link { color: #fff !important; }
-    .navbar-gc .nav-link:hover { color: var(--gc-light) !important; }
+    .navbar-gc .nav-link:hover { color: var(--gc-sage-light) !important; }
     .sidebar {
       min-height: calc(100vh - 56px);
-      background-color: var(--gc-dark);
+      background: linear-gradient(180deg, var(--gc-navy) 0%, var(--gc-navy-2) 100%);
       padding-top: 1rem;
     }
     .sidebar .nav-link {
-      color: var(--gc-light);
-      border-radius: 6px;
-      margin-bottom: 4px;
+      color: #BFD9E8;
+      border-radius: 8px;
+      margin-bottom: 2px;
+      border-left: 3px solid transparent;
+      font-size: 0.92rem;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
-    .sidebar .nav-link:hover,
-    .sidebar .nav-link.active {
-      background-color: var(--gc-mid);
+    .sidebar .nav-link:hover {
+      background-color: rgba(255,255,255,0.08);
       color: #fff;
+    }
+    .sidebar .nav-link.active {
+      background-color: rgba(79,158,134,0.28);
+      border-left-color: var(--gc-sage);
+      color: #fff;
+      font-weight: 600;
     }
     .sidebar .nav-link i { margin-right: 8px; }
     .main-content { padding: 2rem; }
     .card-gc {
-      border: none;
-      border-top: 4px solid var(--gc-mid);
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      background-color: #fff;
+      border: 1px solid var(--gc-border);
+      border-left: 4px solid var(--gc-sage);
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(11,61,98,0.05), 0 8px 20px rgba(11,61,98,0.06);
     }
     .btn-gc {
-      background-color: var(--gc-mid);
+      background-color: var(--gc-navy);
       color: #fff;
       border: none;
+      border-radius: 8px;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .btn-gc:hover { background-color: var(--gc-dark); color: #fff; }
+    .btn-gc:hover {
+      background-color: var(--gc-blue);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(11,61,98,0.25);
+    }
     .badge-rol {
-      background-color: var(--gc-light);
-      color: var(--gc-dark);
+      background-color: var(--gc-sage-light);
+      color: var(--gc-sage-dark);
       font-weight: 600;
       font-size: 0.75rem;
       padding: 4px 10px;
@@ -62,8 +110,16 @@
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-gc px-3">
-  <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-    <i class="bi bi-heart-pulse-fill me-2"></i>GammelCare
+  <a class="navbar-brand fw-bold d-flex align-items-center" href="{% url 'dashboard' %}">
+    <i class="bi bi-heart-pulse me-2"></i>
+    {% if user.is_authenticated and user.hogar %}
+      <span class="d-flex flex-column lh-sm">
+        <span>{{ user.hogar.nombre }}</span>
+        <small class="fw-normal" style="font-size:0.65rem; opacity:0.85;">GammelCare</small>
+      </span>
+    {% else %}
+      <span>GammelCare</span>
+    {% endif %}
   </a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
     <span class="navbar-toggler-icon"></span>

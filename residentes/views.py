@@ -298,24 +298,87 @@ def diagnostico_desactivar(request, pk, dpk):
         messages.success(request, 'Diagnóstico removido correctamente.')
     return redirect('residente_detalle', pk=residente.pk)
 
+SECCIONES_PDF_DISPONIBLES = {'diagnosticos', 'examen', 'expediente', 'notas'}
+
+
 @login_required
 @puede_exportar_requerido
 def residente_exportar_pdf(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    expediente = getattr(residente, 'expediente', None)
-    examen = getattr(residente, 'examen_ingreso', None)
-    diagnosticos = residente.diagnosticos.filter(activo=True).select_related('codigo_cie10')
-    notas = residente.notas.all().order_by('-fecha_creacion')[:20]
 
+    # Datos personales siempre se incluyen. Las demás secciones son opcionales:
+    # si no llega el parámetro `secciones` (ej. un enlace directo/antiguo), se
+    # exporta el expediente completo, igual que antes de este filtro.
+    if 'secciones' in request.GET:
+        secciones = set(request.GET.getlist('secciones')) & SECCIONES_PDF_DISPONIBLES
+    else:
+        secciones = set(SECCIONES_PDF_DISPONIBLES)
+
+    expediente = getattr(residente, 'expediente', None) if 'expediente' in secciones else None
+    examen = getattr(residente, 'examen_ingreso', None) if 'examen' in secciones else None
+    diagnosticos = (
+        residente.diagnosticos.filter(activo=True).select_related('codigo_cie10')
+        if 'diagnosticos' in secciones else residente.diagnosticos.none()
+    )
+    # Notas clínicas: últimas 20 (por defecto, igual que antes), todas, o
+    # acotadas a un periodo (desde/hasta, ambos opcionales e inclusivos).
+    from django.utils.dateparse import parse_date
+
+    notas_modo = request.GET.get('notas_modo', 'ultimas20')
+    notas_desde_str = request.GET.get('notas_desde', '').strip()
+    notas_hasta_str = request.GET.get('notas_hasta', '').strip()
+    notas_desde = parse_date(notas_desde_str) if notas_desde_str else None
+    notas_hasta = parse_date(notas_hasta_str) if notas_hasta_str else None
+
+    titulo_notas = " Notas Clínicas (últimas 20)"
+    if 'notas' not in secciones:
+        notas = residente.notas.none()
+    else:
+        notas_qs = residente.notas.all().order_by('-fecha_creacion')
+        if notas_modo == 'periodo' and (notas_desde or notas_hasta):
+            if notas_desde:
+                notas_qs = notas_qs.filter(fecha_creacion__date__gte=notas_desde)
+            if notas_hasta:
+                notas_qs = notas_qs.filter(fecha_creacion__date__lte=notas_hasta)
+            notas = notas_qs
+            rango = f"{notas_desde.strftime('%d/%m/%Y') if notas_desde else '...'} al {notas_hasta.strftime('%d/%m/%Y') if notas_hasta else '...'}"
+            titulo_notas = f" Notas Clínicas ({rango})"
+        elif notas_modo == 'todas':
+            notas = notas_qs
+            titulo_notas = " Notas Clínicas (todas)"
+        else:
+            notas = notas_qs[:20]
+            titulo_notas = " Notas Clínicas (últimas 20)"
+
+    es_completo = secciones == SECCIONES_PDF_DISPONIBLES
+    detalle_secciones = 'completo' if es_completo else (
+        f"parcial (datos personales + {', '.join(sorted(secciones))})" if secciones
+        else 'parcial (solo datos personales)'
+    )
+    if 'notas' in secciones and titulo_notas != " Notas Clínicas (últimas 20)":
+        detalle_secciones += f" — notas: {titulo_notas.strip()}"
     registrar_auditoria(
         usuario=request.user,
         accion=RegistroAuditoria.EXPORTACION,
-        descripcion=f'Exportación PDF del expediente del residente #{residente.pk}',
+        descripcion=f'Exportación PDF del expediente del residente #{residente.pk} — {detalle_secciones}',
         request=request
     )
 
+    # Nombre del archivo: nombre del residente + fecha de descarga, sin tildes
+    # ni caracteres que puedan romper el encabezado de descarga del navegador.
+    import re
+    import unicodedata
+
+    def _slug_archivo(texto):
+        texto = unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode('ascii')
+        texto = re.sub(r'[^A-Za-z0-9]+', '_', texto).strip('_')
+        return texto or 'residente'
+
+    nombre_archivo = _slug_archivo(residente.get_nombre())
+    fecha_archivo = timezone.localtime(timezone.now()).strftime('%Y-%m-%d')
+
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="expediente_{residente.pk}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}_{fecha_archivo}.pdf"'
 
     doc = SimpleDocTemplate(response, pagesize=letter,
                             topMargin=0.5*inch, bottomMargin=0.5*inch,
@@ -353,9 +416,8 @@ def residente_exportar_pdf(request, pk):
     story = []
 
     # ENCABEZADO
-    story.append(Paragraph("GammelCare", style_titulo))
-    story.append(Paragraph("Sistema Web para Hogares Geriátricos", style_subtitulo))
-    story.append(Paragraph(f"Hogar: {residente.hogar.nombre}", style_subtitulo))
+    story.append(Paragraph(residente.hogar.nombre, style_titulo))
+    story.append(Paragraph("GammelCare — Sistema Web para Hogares Geriátricos", style_subtitulo))
     story.append(HRFlowable(width="100%", thickness=2, color=BLUE_MID, spaceAfter=8))
     story.append(Paragraph("EXPEDIENTE DEL RESIDENTE", ParagraphStyle(
         'exp', parent=styles['Normal'], fontSize=13, textColor=BLUE_DARK,
@@ -472,7 +534,7 @@ def residente_exportar_pdf(request, pk):
 
     # NOTAS CLÍNICAS
     if notas:
-        story.append(Paragraph(" Notas Clínicas (últimas 20)", style_seccion))
+        story.append(Paragraph(titulo_notas, style_seccion))
         for nota in notas:
             nota_header = Table([[
                 Paragraph(nota.get_tipo_display(), ParagraphStyle('nh', parent=styles['Normal'],

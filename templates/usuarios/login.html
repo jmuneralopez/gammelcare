@@ -6,62 +6,78 @@
   <title>GammelCare — Iniciar Sesión</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --gc-dark: #1F4E79;
-      --gc-mid:  #2E75B6;
-      --gc-light: #D6E4F0;
+      --gc-navy:        #0B3D62;
+      --gc-navy-2:      #124A76;
+      --gc-blue:        #1768AC;
+      --gc-sage:        #4F9E86;
+      --gc-sage-dark:   #3E8571;
+      --gc-sage-light:  #E3F2EC;
+      --gc-bg:          #F6FAF9;
+      --gc-border:      #D8E8E3;
     }
     body {
-      background: linear-gradient(135deg, var(--gc-dark) 0%, var(--gc-mid) 100%);
+      background: linear-gradient(150deg, var(--gc-navy) 0%, var(--gc-navy-2) 55%, var(--gc-sage-dark) 140%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
     .login-card {
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      border: 1px solid var(--gc-border);
+      border-radius: 20px;
+      box-shadow: 0 24px 60px rgba(11,61,98,0.30);
       padding: 2.5rem 2rem;
       width: 100%;
       max-width: 400px;
     }
     .login-logo {
-      color: var(--gc-dark);
+      color: var(--gc-navy);
+      font-family: 'Manrope', 'Inter', Arial, sans-serif;
       font-size: 2rem;
       font-weight: 700;
-      letter-spacing: -1px;
+      letter-spacing: -0.02em;
     }
-    .login-logo i { color: var(--gc-mid); }
+    .login-logo i { color: var(--gc-sage); }
     .login-subtitle {
-      color: #6c757d;
+      color: #5B7069;
       font-size: 0.9rem;
-      margin-bottom: 1.8rem;
+      margin-bottom: 0.6rem;
     }
+    .login-pulse { display: block; margin: 0 auto 1.6rem; }
     .form-control:focus {
-      border-color: var(--gc-mid);
-      box-shadow: 0 0 0 0.2rem rgba(46,117,182,0.18);
+      border-color: var(--gc-blue);
+      box-shadow: 0 0 0 0.2rem rgba(23,104,172,0.18);
     }
     .btn-login {
-      background-color: var(--gc-dark);
+      background-color: var(--gc-navy);
       color: #fff;
       border: none;
       width: 100%;
       padding: 0.6rem;
       font-size: 1rem;
-      border-radius: 6px;
-      transition: background 0.2s;
+      border-radius: 10px;
+      transition: background 0.2s, box-shadow 0.2s;
     }
-    .btn-login:hover { background-color: var(--gc-mid); color: #fff; }
+    .btn-login:hover {
+      background-color: var(--gc-blue);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(11,61,98,0.3);
+    }
     .divider {
-      border-top: 1px solid var(--gc-light);
+      border-top: 1px solid var(--gc-border);
       margin: 1.5rem 0 1rem;
     }
     .footer-text {
       font-size: 0.78rem;
-      color: #adb5bd;
+      color: #94A3B8;
       text-align: center;
     }
   </style>
@@ -72,9 +88,12 @@
   <!-- Logo -->
   <div class="text-center mb-1">
     <div class="login-logo">
-      <i class="bi bi-heart-pulse-fill"></i> GammelCare
+      <i class="bi bi-heart-pulse"></i> GammelCare
     </div>
     <div class="login-subtitle">Sistema de Gestión para Hogares Geriátricos</div>
+    <svg class="login-pulse" width="120" height="24" viewBox="0 0 120 24" fill="none">
+      <path d="M0 12 H38 L45 3 L54 21 L61 8 L67 12 H120" stroke="#4F9E86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
   </div>
 
   <!-- Errores -->
@@ -131,7 +150,6 @@
 
   <div class="divider"></div>
   <div class="footer-text">
-    Fundación Universitaria Compensar &nbsp;·&nbsp; Práctica II<br>
     Acceso restringido a personal autorizado
   </div>
 </div>

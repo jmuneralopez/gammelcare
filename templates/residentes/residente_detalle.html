@@ -40,16 +40,96 @@
     </a>
     {% endif %}
     {% if user.puede_exportar %}
-    <a href="{% url 'residente_pdf' residente.pk %}" class="btn btn-outline-success"
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalExportarPdf"
        title="Exportar expediente en PDF">
       <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-    </a>
+    </button>
     {% endif %}
     <a href="javascript:history.back()" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Volver
     </a>
   </div>
 </div>
+
+{% if user.puede_exportar %}
+<!-- MODAL: Exportar PDF -->
+<div class="modal fade" id="modalExportarPdf" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{% url 'residente_pdf' residente.pk %}" method="get">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-file-earmark-pdf me-2"></i>Exportar expediente en PDF</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Los datos personales siempre se incluyen. Elige qué otras secciones quieres en el PDF
+            — todas vienen marcadas por defecto para descargar el expediente completo.
+          </p>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="diagnosticos" id="secDiagnosticos" checked>
+            <label class="form-check-label" for="secDiagnosticos">Diagnósticos</label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="examen" id="secExamen" checked>
+            <label class="form-check-label" for="secExamen">Examen de ingreso</label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="expediente" id="secExpediente" checked>
+            <label class="form-check-label" for="secExpediente">Expediente de ingreso (alergias, inventario, observaciones)</label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="notas" id="secNotas" checked
+                   onchange="document.getElementById('notasOpciones').classList.toggle('d-none', !this.checked)">
+            <label class="form-check-label" for="secNotas">Notas clínicas</label>
+          </div>
+          <div id="notasOpciones" class="ms-4 mb-3 ps-2 border-start">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="notas_modo" id="notasUltimas20" value="ultimas20" checked
+                     onchange="document.getElementById('notasPeriodo').classList.add('d-none')">
+              <label class="form-check-label small" for="notasUltimas20">Últimas 20</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="notas_modo" id="notasTodas" value="todas"
+                     onchange="document.getElementById('notasPeriodo').classList.add('d-none')">
+              <label class="form-check-label small" for="notasTodas">Todas</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="notas_modo" id="notasPorPeriodo" value="periodo"
+                     onchange="document.getElementById('notasPeriodo').classList.remove('d-none')">
+              <label class="form-check-label small" for="notasPorPeriodo">Por periodo</label>
+            </div>
+            <div id="notasPeriodo" class="d-none row g-2 mt-2">
+              <div class="col-6">
+                <label class="form-label small mb-0">Desde</label>
+                <input type="date" name="notas_desde" class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-0">Hasta</label>
+                <input type="date" name="notas_hasta" class="form-control form-control-sm">
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="document.querySelectorAll('#modalExportarPdf input[type=checkbox]').forEach(c => c.checked = true)">
+              Marcar todo
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="document.querySelectorAll('#modalExportarPdf input[type=checkbox]').forEach(c => c.checked = false)">
+              Desmarcar todo
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-gc"><i class="bi bi-download me-1"></i>Descargar PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- DATOS PERSONALES -->
 <div class="card card-gc mb-3">
@@ -405,6 +485,28 @@
         Sin diagnósticos registrados.
       </div>
       {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- MEDICAMENTOS -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
+        <i class="bi bi-capsule me-2"></i>Medicamentos
+      </h6>
+      <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'hoja_dia' residente.pk %}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-calendar-check me-1"></i>Hoja del día
+        </a>
+        <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-capsule me-1"></i>Tratamientos
+        </a>
+        <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-sm btn-gc">
+          <i class="bi bi-boxes me-1"></i>Medicamentos e ingresos
+        </a>
+      </div>
     </div>
   </div>
 </div>
