@@ -315,18 +315,31 @@ def usuario_editar(request, pk):
     if request.method == 'POST' and form.is_valid():
         nuevos_roles = form.cleaned_data.get('roles') or []
         nuevo_activo = form.cleaned_data.get('activo')
-        seguira_siendo_administrador_activo = bool(
-            nuevo_activo and any(r.nombre == Rol.ADMINISTRADOR for r in nuevos_roles)
+
+        # 'hogar' solo está en cleaned_data cuando quien edita es superadmin
+        # (para un administrador el campo se elimina del formulario y el
+        # hogar del usuario nunca cambia). Si no está presente, el hogar
+        # sigue siendo el mismo que tenía antes de este guardado.
+        if 'hogar' in form.cleaned_data:
+            nuevo_hogar = form.cleaned_data.get('hogar')
+            nuevo_hogar_id = nuevo_hogar.pk if nuevo_hogar else None
+        else:
+            nuevo_hogar_id = hogar_id_original
+
+        seguira_siendo_administrador_de_ese_hogar = bool(
+            nuevo_activo
+            and any(r.nombre == Rol.ADMINISTRADOR for r in nuevos_roles)
+            and nuevo_hogar_id == hogar_id_original
         )
 
         if (era_administrador_activo_del_hogar
-                and not seguira_siendo_administrador_activo
+                and not seguira_siendo_administrador_de_ese_hogar
                 and _hogar_se_quedaria_sin_administrador(hogar_id_original, usuario.pk)):
             messages.error(
                 request,
-                'No puedes quitar el rol de Administrador (ni desactivar la cuenta) '
-                'a este usuario: es el último administrador activo de su hogar. '
-                'Asigna otro administrador antes de hacer este cambio.'
+                'No puedes quitar el rol de Administrador, desactivar la cuenta, '
+                'ni cambiarle el hogar a este usuario: es el último administrador '
+                'activo de su hogar. Asigna otro administrador antes de hacer este cambio.'
             )
             return render(request, 'usuarios/usuario_form.html', {
                 'form': form,
@@ -342,6 +355,8 @@ def usuario_editar(request, pk):
                 'El rol "Superadministrador" no puede tener un hogar asignado, '
                 'así que se quitó el hogar de este usuario.'
             )
+        elif nuevo_hogar_id != hogar_id_original:
+            messages.info(request, 'Se actualizó el hogar asignado a este usuario.')
         messages.success(request, 'Usuario actualizado correctamente.')
         return redirect('usuario_lista')
     return render(request, 'usuarios/usuario_form.html', {

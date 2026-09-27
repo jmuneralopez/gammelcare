@@ -87,10 +87,17 @@ class UsuarioEditarForm(forms.ModelForm):
         label='Roles',
         required=True
     )
+    hogar = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Hogar',
+        empty_label='Sin hogar asignado'
+    )
 
     class Meta:
         model = Usuario
-        fields = ['first_name', 'last_name', 'email', 'roles', 'activo']
+        fields = ['first_name', 'last_name', 'email', 'roles', 'activo', 'hogar']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -106,6 +113,15 @@ class UsuarioEditarForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if user and user.es_superadmin():
+            # Solo el superadmin puede reasignar el hogar de un usuario ya
+            # creado (p. ej. para corregir una cuenta que quedó sin hogar).
+            self.fields['hogar'].queryset = Hogar.objects.filter(activo=True)
+        else:
+            # Un administrador de hogar no gestiona hogares ajenos: se quita
+            # el campo por completo (no solo se oculta) para que _post_clean()
+            # nunca lo toque y el hogar actual del usuario no se pierda.
+            del self.fields['hogar']
         if user and user.tiene_rol(Rol.ADMINISTRADOR):
             self.fields['roles'].queryset = Rol.objects.filter(
                 nombre__in=[Rol.ADMINISTRADOR] + Rol.ROLES_CLINICOS
@@ -114,12 +130,15 @@ class UsuarioEditarForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         roles = cleaned_data.get('roles')
-        # Este formulario no expone el campo `hogar` (no está en Meta.fields),
-        # así que la corrección se aplica directamente sobre self.instance:
-        # _post_clean() solo reconstruye desde cleaned_data los campos que sí
-        # están en Meta.fields, por lo que este cambio de instancia persiste
-        # hasta el save().
-        if roles and any(r.nombre == Rol.SUPERADMIN for r in roles) and self.instance.hogar_id:
-            self.instance.hogar = None
+        if roles and any(r.nombre == Rol.SUPERADMIN for r in roles):
+            # Un superadmin no debe quedar asignado a un hogar. Se corrige en
+            # cleaned_data (si el campo está presente, i.e. quien edita es
+            # superadmin) y también directamente sobre self.instance (para
+            # cuando el campo no está en el formulario, i.e. quien edita es
+            # administrador y el usuario ya tenía hogar de alguna otra forma).
+            if 'hogar' in cleaned_data:
+                cleaned_data['hogar'] = None
+            if self.instance.hogar_id:
+                self.instance.hogar = None
             self.hogar_auto_corregido = True
         return cleaned_data
