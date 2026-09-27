@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {{ prescripcion.medicamento }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-capsule me-2"></i>{{ prescripcion.medicamento }}
+  </h4>
+  <div class="d-flex gap-2">
+    {% if puede_suspender %}
+    <a href="{% url 'tratamiento_suspender' prescripcion.pk %}" class="btn btn-outline-danger">
+      <i class="bi bi-pause-circle me-1"></i>Suspender
+    </a>
+    {% endif %}
+    <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+<div class="card card-gc mb-4">
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-md-6"><small class="text-muted d-block">Residente</small><strong>{{ nombre }}</strong></div>
+      <div class="col-md-6"><small class="text-muted d-block">Estado</small>
+        {% if prescripcion.estado == 'activa' %}<span class="badge bg-success">Activa</span>
+        {% elif prescripcion.estado == 'suspendida' %}<span class="badge bg-secondary">Suspendida</span>
+        {% else %}<span class="badge bg-dark">Finalizada</span>{% endif %}
+      </div>
+      <div class="col-md-4"><small class="text-muted d-block">Dosis</small>{{ prescripcion.dosis_cantidad }} {{ prescripcion.get_dosis_unidad_display }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Vía</small>{{ prescripcion.get_via_administracion_display }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Pauta</small>
+        {% if prescripcion.tipo_pauta == 'prn' %}Por razón necesaria (PRN){% else %}Horarios fijos{% endif %}
+      </div>
+      {% if horarios %}
+      <div class="col-12"><small class="text-muted d-block">Horarios</small>
+        {% for h in horarios %}<span class="badge me-1" style="background-color:#2E75B6;">{{ h.hora|time:"H:i" }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      <div class="col-md-4"><small class="text-muted d-block">Días de la semana</small>{{ prescripcion.dias_semana }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Fecha de inicio</small>{{ prescripcion.fecha_inicio }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Fecha de fin</small>{{ prescripcion.fecha_fin|default:"Indefinida" }}</div>
+      {% if prescripcion.indicaciones %}
+      <div class="col-12"><small class="text-muted d-block">Indicaciones</small>{{ prescripcion.indicaciones }}</div>
+      {% endif %}
+      {% if prescripcion.diagnostico %}
+      <div class="col-12"><small class="text-muted d-block">Diagnóstico relacionado</small>{{ prescripcion.diagnostico.codigo_cie10 }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card card-gc mb-4">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-3" style="color:#1F4E79;">Respaldo de la fórmula</h6>
+    <div class="row g-3">
+      <div class="col-md-4"><small class="text-muted d-block">Formulada por</small>{{ prescripcion.formulada_por }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Fecha de la fórmula</small>{{ prescripcion.fecha_formula }}</div>
+      <div class="col-md-4"><small class="text-muted d-block">Número de fórmula</small>{{ prescripcion.numero_formula|default:"—" }}</div>
+      {% if prescripcion.archivo_formula %}
+      <div class="col-12"><a href="{{ prescripcion.archivo_formula.url }}" target="_blank"><i class="bi bi-paperclip me-1"></i>Ver archivo adjunto</a></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if prescripcion.estado == 'suspendida' %}
+<div class="card card-gc mb-4">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-3 text-danger">Suspensión</h6>
+    <p class="mb-1"><small class="text-muted">Motivo:</small> {{ prescripcion.motivo_suspension }}</p>
+    <p class="mb-0"><small class="text-muted">Suspendida por {{ prescripcion.suspendida_por }} el {{ prescripcion.fecha_suspension }}</small></p>
+  </div>
+</div>
+{% endif %}
+
+<div class="text-muted" style="font-size:0.85rem;">
+  Registrada por {{ prescripcion.registrada_por }} el {{ prescripcion.fecha_registro }}
+</div>
+{% endblock %}

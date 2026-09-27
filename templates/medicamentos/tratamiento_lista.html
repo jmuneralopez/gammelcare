@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Tratamientos de {{ nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-capsule me-2"></i>Tratamientos formulados — {{ nombre }}
+  </h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'hoja_dia' residente.pk %}" class="btn btn-outline-primary">
+      <i class="bi bi-calendar-check me-1"></i>Hoja del día
+    </a>
+    <a href="{% url 'tratamiento_crear' residente.pk %}" class="btn btn-gc">
+      <i class="bi bi-plus-circle me-1"></i>Registrar tratamiento
+    </a>
+  </div>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0 align-middle">
+      <thead style="background-color:#EBF3FA;">
+        <tr>
+          <th class="ps-3">Medicamento</th>
+          <th>Dosis</th>
+          <th>Vía</th>
+          <th>Pauta</th>
+          <th>Formulada por</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in prescripciones %}
+        <tr>
+          <td class="ps-3">{{ p.medicamento }}</td>
+          <td>{{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}</td>
+          <td>{{ p.get_via_administracion_display }}</td>
+          <td>
+            {% if p.tipo_pauta == 'prn' %}
+              <span class="badge bg-warning text-dark">PRN</span>
+            {% else %}
+              {% for h in p.horarios.all %}<span class="badge me-1" style="background-color:#2E75B6;">{{ h.hora|time:"H:i" }}</span>{% endfor %}
+            {% endif %}
+          </td>
+          <td>{{ p.formulada_por }}</td>
+          <td>
+            {% if p.estado == 'activa' %}
+              <span class="badge bg-success">Activa</span>
+            {% elif p.estado == 'suspendida' %}
+              <span class="badge bg-secondary">Suspendida</span>
+            {% else %}
+              <span class="badge bg-dark">Finalizada</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'tratamiento_detalle' p.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Este residente no tiene tratamientos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -11,5 +11,6 @@ urlpatterns = [
     path('notas/', include('notas_clinicas.urls')),
     path('hogares/', include('hogares.urls')),
     path('auditoria/', include('auditoria.urls')),
+    path('medicamentos/', include('medicamentos.urls')),
     path('', lambda request: redirect('login'), name='home'),
 ]

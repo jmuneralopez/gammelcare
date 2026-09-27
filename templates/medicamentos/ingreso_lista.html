@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {% if es_botiquin %}Botiquín del hogar{% else %}Medicamentos de {{ nombre }}{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+  .dot-verde { background-color:#28a745; }
+  .dot-amarillo { background-color:#ffc107; }
+  .dot-rojo { background-color:#dc3545; }
+  .dot-vencido { background-color:#212529; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-boxes me-2"></i>
+    {% if es_botiquin %}Botiquín del hogar{% else %}Medicamentos de {{ nombre }}{% endif %}
+  </h4>
+  <div class="d-flex gap-2">
+    {% if es_botiquin %}
+    <a href="{% url 'ingreso_botiquin_crear' %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar ingreso</a>
+    {% else %}
+    <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-capsule me-1"></i>Tratamientos</a>
+    <a href="{% url 'ingreso_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar ingreso</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0 align-middle">
+      <thead style="background-color:#EBF3FA;">
+        <tr>
+          <th class="ps-3">Medicamento</th>
+          {% if es_botiquin %}<th>Residente</th>{% endif %}
+          <th>Lote</th>
+          <th>Vencimiento</th>
+          <th>Saldo</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in ingresos %}
+        <tr>
+          <td class="ps-3">
+            <span class="dot dot-{{ i.semaforo }}"></span>{{ i.medicamento }}
+            {% if i.medicamento.requiere_refrigeracion %}<i class="bi bi-snow text-info ms-1" title="Requiere refrigeración"></i>{% endif %}
+            {% if i.medicamento.control_especial %}<i class="bi bi-shield-lock text-warning ms-1" title="Control especial"></i>{% endif %}
+          </td>
+          {% if es_botiquin %}<td class="text-muted">— (botiquín)</td>{% endif %}
+          <td>{{ i.lote }}</td>
+          <td>
+            {{ i.fecha_vencimiento }}
+            {% if i.semaforo == 'vencido' %}<span class="badge bg-dark ms-1">Vencido</span>
+            {% elif i.semaforo == 'rojo' %}<span class="badge bg-danger ms-1">&lt; 6 meses</span>
+            {% elif i.semaforo == 'amarillo' %}<span class="badge bg-warning text-dark ms-1">6–12 meses</span>
+            {% endif %}
+          </td>
+          <td>{{ i.cantidad_disponible }} {{ i.get_unidad_display }}</td>
+          <td>
+            {% if i.estado == 'disponible' %}<span class="badge bg-success">Disponible</span>
+            {% elif i.estado == 'agotado' %}<span class="badge bg-secondary">Agotado</span>
+            {% else %}<span class="badge bg-dark">{{ i.get_estado_display }}</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No hay medicamentos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

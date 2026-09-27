@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Hoja del día — {{ nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .fila-toma { border-left: 4px solid #D6E4F0; }
+  .fila-toma.pendiente { border-left-color: #2E75B6; }
+  .fila-toma.administrado { border-left-color: #28a745; background-color:#f4fbf5; }
+  .fila-toma.no-administrado { border-left-color: #dc3545; background-color:#fdf4f4; }
+  .fila-toma.sin-existencias { border-left-color: #fd7e14; }
+  .accion-form { display:inline-block; }
+  .caja-accion { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; margin-top:8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-calendar-check me-2"></i>Hoja del día — {{ nombre }}
+  </h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-capsule me-1"></i>Tratamientos</a>
+    <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-boxes me-1"></i>Medicamentos</a>
+  </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-4 p-2" style="background-color:#EBF3FA; border-radius:8px;">
+  <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+  <strong>{{ fecha }}{% if fecha == hoy %} (hoy){% endif %}</strong>
+  <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+</div>
+
+<h6 class="fw-bold mb-2" style="color:#1F4E79;">Horarios fijos</h6>
+{% for f in filas %}
+  {% with p=f.prescripcion %}
+  <div class="card card-gc mb-2 fila-toma {% if f.pendiente and f.sin_existencias %}sin-existencias{% elif f.pendiente %}pendiente{% elif f.administracion.estado == 'administrado' %}administrado{% else %}no-administrado{% endif %}">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+          <strong>{{ f.fecha_programada|time:"H:i" }}</strong> — {{ p.medicamento }}
+          <span class="text-muted">({{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}, {{ p.get_via_administracion_display }})</span>
+          {% if p.medicamento.control_especial %}<i class="bi bi-shield-lock text-warning ms-1" title="Control especial"></i>{% endif %}
+          {% if p.indicaciones %}<div class="text-muted" style="font-size:0.82rem;">{{ p.indicaciones }}</div>{% endif %}
+        </div>
+        <div class="text-end">
+          {% if not f.pendiente %}
+            {% if f.administracion.estado == 'administrado' %}
+              <span class="badge bg-success">
+                ✓ {{ f.administracion.cantidad_administrada }} {{ p.get_dosis_unidad_display }}
+                {% if f.administracion.es_dosis_parcial %}(dosis parcial){% endif %}
+              </span>
+              <div class="text-muted" style="font-size:0.78rem;">{{ f.administracion.administrada_por }} · {{ f.administracion.fecha_administracion|time:"H:i" }}</div>
+              {% if f.administracion.es_uso_botiquin %}<span class="badge bg-info text-dark mt-1">Botiquín — {{ f.administracion.get_motivo_uso_botiquin_display }}</span>{% endif %}
+            {% else %}
+              <span class="badge bg-danger">✕ {{ f.administracion.get_motivo_no_administracion_display }}</span>
+            {% endif %}
+            {% if f.administracion.anulada %}
+              <div class="badge bg-dark mt-1">Anulada — {{ f.administracion.motivo_anulacion }}</div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      {% if f.puede_anular %}
+        <form method="post" action="{% url 'administracion_anular' f.administracion.pk %}" class="mt-2">
+          {% csrf_token %}
+          <div class="input-group input-group-sm" style="max-width:420px;">
+            <input type="text" name="motivo_anulacion" class="form-control" placeholder="Motivo de anulación" required>
+            <button type="submit" class="btn btn-outline-danger">Anular</button>
+          </div>
+        </form>
+      {% endif %}
+
+      {% if f.pendiente and puede_administrar %}
+        {% if f.sin_existencias %}
+          <div class="caja-accion">
+            <div class="text-warning fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Sin existencias propias — ¿usar del botiquín del hogar?</div>
+            <form method="post" action="{% url 'administracion_registrar' p.pk f.horario.pk %}" class="row g-2 align-items-end">
+              {% csrf_token %}
+              <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+              <input type="hidden" name="usar_botiquin" value="1">
+              <div class="col-auto">
+                <select name="motivo_uso_botiquin" class="form-select form-select-sm" required>
+                  {% for val, label in motivos_uso_botiquin %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-auto"><input type="text" name="observacion" class="form-control form-control-sm" placeholder="Observación (obligatoria)" required style="min-width:220px;"></div>
+              <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Usar del botiquín</button></div>
+            </form>
+            <form method="post" action="{% url 'administracion_no_registrar' p.pk f.horario.pk %}" class="mt-1">
+              {% csrf_token %}
+              <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+              <input type="hidden" name="motivo_no_administracion" value="sin_existencias">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">No administrar (sin existencias)</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <form method="post" action="{% url 'administracion_registrar' p.pk f.horario.pk %}" class="row g-2 align-items-end accion-form">
+              {% csrf_token %}
+              <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+              <div class="col-auto">
+                <input type="number" step="0.01" name="cantidad_administrada" value="{{ p.dosis_cantidad }}" class="form-control form-control-sm" style="width:90px;">
+              </div>
+              <div class="col-auto">
+                <input type="text" name="observacion" class="form-control form-control-sm" placeholder="Observación (si aplica)" style="min-width:200px;">
+              </div>
+              <div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Administrar</button></div>
+            </form>
+
+            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#no-adm-{{ p.pk }}-{{ f.horario.pk }}">
+              No administrar
+            </button>
+          </div>
+          <div class="collapse mt-2" id="no-adm-{{ p.pk }}-{{ f.horario.pk }}">
+            <form method="post" action="{% url 'administracion_no_registrar' p.pk f.horario.pk %}" class="row g-2 align-items-end caja-accion">
+              {% csrf_token %}
+              <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+              <div class="col-auto">
+                <select name="motivo_no_administracion" class="form-select form-select-sm">
+                  {% for val, label in motivos_no_administracion %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-auto"><input type="text" name="observacion" class="form-control form-control-sm" placeholder="Observación" style="min-width:200px;"></div>
+              <div class="col-auto"><button type="submit" class="btn btn-sm btn-outline-danger">Confirmar</button></div>
+            </form>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+{% empty %}
+  <p class="text-muted">Sin tratamientos de horarios fijos vigentes para este día.</p>
+{% endfor %}
+
+<h6 class="fw-bold mb-2 mt-4" style="color:#1F4E79;">Por razón necesaria (PRN)</h6>
+{% for item in prn %}
+  {% with p=item.prescripcion %}
+  <div class="card card-gc mb-2 fila-toma {% if item.sin_existencias %}sin-existencias{% endif %}">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+          <strong>{{ p.medicamento }}</strong>
+          <span class="text-muted">({{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}, {{ p.get_via_administracion_display }})</span>
+          {% if item.ultima_administracion %}
+            <div class="text-muted" style="font-size:0.8rem;">Última toma: {{ item.ultima_administracion.fecha_administracion }}</div>
+          {% else %}
+            <div class="text-muted" style="font-size:0.8rem;">Sin tomas registradas hoy.</div>
+          {% endif %}
+          {% if item.aviso_intervalo %}
+            <div class="text-warning" style="font-size:0.82rem;"><i class="bi bi-exclamation-triangle me-1"></i>Aún no pasa el intervalo mínimo entre tomas ({{ p.frecuencia_minima_horas }} h) — puede administrarse si hay razón clínica.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if puede_administrar %}
+      <form method="post" action="{% url 'administracion_prn_registrar' p.pk %}" class="row g-2 align-items-end mt-2 caja-accion">
+        {% csrf_token %}
+        <div class="col-auto"><input type="number" step="0.01" name="cantidad_administrada" value="{{ p.dosis_cantidad }}" class="form-control form-control-sm" style="width:90px;"></div>
+        <div class="col-auto"><input type="text" name="observacion" class="form-control form-control-sm" placeholder="Motivo de esta toma (obligatorio)" required style="min-width:240px;"></div>
+        {% if item.sin_existencias %}
+        <div class="col-auto">
+          <input type="hidden" name="usar_botiquin" value="1">
+          <select name="motivo_uso_botiquin" class="form-select form-select-sm" required>
+            {% for val, label in motivos_uso_botiquin %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Administrar del botiquín</button></div>
+        {% else %}
+        <div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Administrar ahora</button></div>
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+{% empty %}
+  <p class="text-muted">Sin tratamientos PRN vigentes.</p>
+{% endfor %}
+{% endblock %}
