@@ -21,7 +21,7 @@ class Rol(models.Model):
         (SUPERADMIN, 'Superadministrador'),
         (ADMINISTRADOR, 'Administrador del Hogar'),
         (MEDICO, 'Médico'),
-        (ENFERMERO, 'Enfermero/a'),
+        (ENFERMERO, 'Auxiliar de Enfermería'),
         (JEFE_ENFERMERIA, 'Jefe de Enfermería'),
         (FISIOTERAPEUTA, 'Fisioterapeuta'),
         (NUTRICIONISTA, 'Nutricionista'),
