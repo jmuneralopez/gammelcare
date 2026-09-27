@@ -135,6 +135,7 @@
 {% endfor %}
 
 <h6 class="fw-bold mb-2 mt-4" style="color:#1F4E79;">Por razón necesaria (PRN)</h6>
+<small class="text-muted d-block mb-2">Medicamentos que no tienen hora fija: se administran solo cuando el residente los necesita.</small>
 {% for item in prn %}
   {% with p=item.prescripcion %}
   <div class="card card-gc mb-2 fila-toma {% if item.sin_existencias %}sin-existencias{% endif %}">

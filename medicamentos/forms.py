@@ -101,14 +101,22 @@ class PrescripcionForm(forms.ModelForm):
             'archivo_formula',
         ]
         widgets = {
-            'dosis_cantidad': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'dosis_cantidad': forms.NumberInput(attrs={
+                'class': 'form-control', 'step': '0.01', 'placeholder': 'Ej: 1'
+            }),
             'dosis_unidad': forms.Select(attrs={'class': 'form-select'}),
             'via_administracion': forms.Select(attrs={'class': 'form-select'}),
             'tipo_pauta': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_pauta'}),
-            'frecuencia_minima_horas': forms.NumberInput(attrs={'class': 'form-control'}),
-            'dosis_maxima_dia': forms.NumberInput(attrs={'class': 'form-control'}),
+            'frecuencia_minima_horas': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'Ej: 6'
+            }),
+            'dosis_maxima_dia': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'Ej: 4'
+            }),
             'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'cantidad_total_formulada': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'cantidad_total_formulada': forms.NumberInput(attrs={
+                'class': 'form-control', 'step': '0.01', 'placeholder': 'Ej: 30 (opcional)'
+            }),
             'indicaciones': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 2,
                 'placeholder': 'Ej: con alimentos, no triturar, media hora antes'
@@ -118,13 +126,25 @@ class PrescripcionForm(forms.ModelForm):
                 'class': 'form-control', 'placeholder': 'Ej: Dr. Restrepo — Sanitas'
             }),
             'fecha_formula': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'numero_formula': forms.TextInput(attrs={'class': 'form-control'}),
+            'numero_formula': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Ej: 123456 (si la fórmula lo trae)'
+            }),
         }
         labels = {
             'formulada_por': 'Formulada por',
             'fecha_formula': 'Fecha de la fórmula',
             'numero_formula': 'Número de fórmula',
             'archivo_formula': 'Archivo de la fórmula (foto o escaneo)',
+        }
+        help_texts = {
+            'dosis_cantidad': 'Lo que se da CADA VEZ (no el total del día). Ej: si toma 1 tableta '
+                               'tres veces al día, aquí va "1".',
+            'cantidad_total_formulada': 'Cuánto trajo o debe traer la fórmula en total, para saber '
+                                         'si lo que llega después coincide. Déjelo vacío si no aplica.',
+            'frecuencia_minima_horas': 'Solo para pauta PRN: horas mínimas que deben pasar entre una '
+                                        'toma y la siguiente.',
+            'dosis_maxima_dia': 'Solo para pauta PRN: cuántas veces como máximo se puede dar en un día.',
+            'numero_formula': 'Opcional — el número que trae la orden médica o de la EPS, si tiene uno.',
         }
 
     def __init__(self, *args, residente=None, **kwargs):
@@ -189,7 +209,10 @@ class IngresoEncabezadoForm(forms.Form):
     )
     observaciones = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 'rows': 2,
+            'placeholder': 'Ej: llegó una caja incompleta, faltan 5 tabletas (opcional)'
+        }),
         label='Observaciones'
     )
 
@@ -209,11 +232,15 @@ class IngresoFilaForm(forms.Form):
     )
     lote = forms.CharField(
         max_length=50, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lote'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 'placeholder': 'Ej: L2026-08 (viene en la caja)'
+        })
     )
     cantidad_ingresada = forms.DecimalField(
         max_digits=8, decimal_places=2, required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Cantidad'})
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control', 'step': '0.01', 'placeholder': 'Ej: 30'
+        })
     )
     unidad = forms.ChoiceField(
         choices=IngresoMedicamento.UNIDADES_INGRESO,

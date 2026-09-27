@@ -10,9 +10,11 @@
     <a href="{% url 'hoja_dia' residente.pk %}" class="btn btn-outline-primary">
       <i class="bi bi-calendar-check me-1"></i>Hoja del día
     </a>
+    {% if puede_registrar_tratamiento %}
     <a href="{% url 'tratamiento_crear' residente.pk %}" class="btn btn-gc">
       <i class="bi bi-plus-circle me-1"></i>Registrar tratamiento
     </a>
+    {% endif %}
   </div>
 </div>
 

@@ -13,7 +13,7 @@ from residentes.models import Residente
 from usuarios.decorators import (
     clinico_requerido, registro_tratamiento_requerido,
     ingreso_medicamento_requerido, administracion_requerido,
-    ajuste_inventario_requerido, rol_requerido,
+    rol_requerido,
 )
 from usuarios.models import Rol
 
@@ -101,6 +101,13 @@ def tratamiento_lista(request, pk):
         'residente': residente,
         'nombre': residente.get_nombre(),
         'prescripciones': prescripciones,
+        # El botón "Registrar tratamiento" solo debe verse para quien
+        # realmente puede usarlo — clinico_requerido (esta vista) es más
+        # amplio que registro_tratamiento_requerido (la vista de creación),
+        # así que sin este chequeo un fisioterapeuta o auxiliar de
+        # enfermería vería el botón y le saldría "no tienes permisos" al
+        # entrar.
+        'puede_registrar_tratamiento': request.user.tiene_rol(*Rol.ROLES_REGISTRO_TRATAMIENTO),
     })
 
 
@@ -337,12 +344,27 @@ def ingreso_lista(request, pk):
         'nombre': residente.get_nombre(),
         'ingresos': ingresos,
         'es_botiquin': False,
+        # Mismo motivo que en tratamiento_lista: quien puede VER esta lista
+        # (clinico_requerido) es más amplio que quien puede REGISTRAR un
+        # ingreso (ingreso_medicamento_requerido) — p. ej. un médico ve la
+        # lista pero no registra ingresos.
+        'puede_registrar_ingreso': request.user.tiene_rol(*Rol.ROLES_INGRESO_MEDICAMENTO),
     })
 
 
 @login_required
-@ajuste_inventario_requerido
+@ingreso_medicamento_requerido
 def botiquin_lista(request):
+    """Ver el botiquín del hogar. Usa el mismo rol que registrar un
+    ingreso al botiquín (ingreso_medicamento_requerido) — quien puede
+    agregar algo aquí también debe poder ver qué hay, y de paso
+    'ingreso_botiquin_crear' redirige aquí al terminar. Antes exigía
+    ajuste_inventario_requerido (más estrecho, sin Auxiliar de
+    Enfermería) y esa redirección quedaba en un callejón sin salida:
+    el auxiliar registraba el ingreso y el propio sistema lo mandaba a
+    una pantalla a la que no tenía acceso. 'ajuste_inventario_requerido'
+    queda reservado para cuando se construyan los ajustes/descartes de
+    saldo (Fase 2-3), que sí deben quedar más restringidos."""
     hogar = request.user.hogar
     ingresos = (
         IngresoMedicamento.objects
@@ -355,6 +377,7 @@ def botiquin_lista(request):
         'nombre': None,
         'ingresos': ingresos,
         'es_botiquin': True,
+        'puede_registrar_ingreso': request.user.tiene_rol(*Rol.ROLES_INGRESO_MEDICAMENTO),
     })
 
 

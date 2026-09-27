@@ -28,6 +28,17 @@
   {% endif %}
 </div>
 
+<div class="alert alert-warning py-2">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  {% if es_botiquin %}
+  Registre aquí lo que compra el hogar para uso compartido entre residentes (no de un residente en particular).
+  {% else %}
+  Registre aquí lo que trae la familia para este residente.
+  {% endif %}
+  El lote y la fecha de vencimiento son obligatorios: con eso el sistema descuenta primero lo que vence más pronto
+  cuando se administre.
+</div>
+
 <form method="post" id="ingreso-form">
   {% csrf_token %}
 
@@ -57,6 +68,15 @@
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">Medicamentos recibidos</h6>
 
       {{ formset.management_form }}
+
+      <div class="row g-2 mb-1 d-none d-md-flex" style="font-size:0.8rem;">
+        <div class="col-md-3 text-muted fw-semibold">Medicamento</div>
+        <div class="col-md-2 text-muted fw-semibold">Lote</div>
+        <div class="col-md-2 text-muted fw-semibold">Cantidad</div>
+        <div class="col-md-2 text-muted fw-semibold">Unidad</div>
+        <div class="col-md-2 text-muted fw-semibold">Vencimiento</div>
+        <div class="col-md-1"></div>
+      </div>
 
       <div id="filas-rows">
         {% for f in formset %}

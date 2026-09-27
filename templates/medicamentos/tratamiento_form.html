@@ -54,6 +54,7 @@
         <div class="col-md-3">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Cantidad de la dosis</label>
           {{ form.dosis_cantidad }}
+          <small class="text-muted d-block mt-1">{{ form.dosis_cantidad.help_text }}</small>
         </div>
         <div class="col-md-3">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Unidad</label>
@@ -66,10 +67,12 @@
         <div class="col-md-4">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Diagnóstico relacionado</label>
           {{ form.diagnostico }}
+          <small class="text-muted d-block mt-1">Opcional — a qué diagnóstico del residente responde este tratamiento.</small>
         </div>
         <div class="col-md-4">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Cantidad total formulada</label>
           {{ form.cantidad_total_formulada }}
+          <small class="text-muted d-block mt-1">{{ form.cantidad_total_formulada.help_text }}</small>
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Indicaciones</label>
@@ -82,6 +85,11 @@
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">Pauta</h6>
+      <div class="alert alert-light border py-2 mb-3" style="font-size:0.85rem;">
+        <strong>Horarios fijos:</strong> se administra a horas específicas cada día (ej: 8:00 a.m. y 8:00 p.m.).
+        <strong class="ms-2">PRN (por razón necesaria):</strong> no tiene hora fija, se da solo cuando el
+        residente lo necesita, respetando el tiempo mínimo entre tomas y el máximo al día.
+      </div>
       <div class="row g-3">
         <div class="col-md-4">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Tipo de pauta</label>
@@ -90,15 +98,18 @@
         <div class="col-md-4" id="campo-frecuencia-prn" style="display:none;">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Frecuencia mínima entre tomas (horas)</label>
           {{ form.frecuencia_minima_horas }}
+          <small class="text-muted d-block mt-1">{{ form.frecuencia_minima_horas.help_text }}</small>
         </div>
         <div class="col-md-4" id="campo-maximo-prn" style="display:none;">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Máximo de tomas al día</label>
           {{ form.dosis_maxima_dia }}
+          <small class="text-muted d-block mt-1">{{ form.dosis_maxima_dia.help_text }}</small>
         </div>
       </div>
 
       <div id="bloque-horarios" class="mt-3">
         <label class="form-label fw-semibold d-block" style="font-size:0.9rem;">Horarios</label>
+        <small class="text-muted d-block mb-2">Elija una pauta rápida o agregue horas manualmente. Puede quitar y agregar horas antes de guardar.</small>
         <div class="d-flex flex-wrap gap-2 mb-2">
           <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="08:00">1 vez al día</button>
           <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="08:00,20:00">Cada 12 h</button>
@@ -126,6 +137,7 @@
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">Duración</h6>
+      <small class="text-muted d-block mb-2">¿Hasta cuándo se debe dar este medicamento?</small>
       <div class="d-flex flex-wrap gap-4 mb-3">
         {{ form.duracion_tipo }}
       </div>
@@ -134,11 +146,12 @@
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Fecha de inicio</label>
           {{ form.fecha_inicio }}
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4" id="campo-duracion-dias" style="display:none;">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Número de días</label>
           {{ form.duracion_dias }}
+          <small class="text-muted d-block mt-1">Cuántos días desde la fecha de inicio.</small>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4" id="campo-duracion-fecha" style="display:none;">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Hasta la fecha</label>
           {{ form.duracion_fecha }}
         </div>
@@ -241,6 +254,14 @@ $(document).ready(function() {
   }
   $('#id_tipo_pauta').on('change', toggleCamposPorTipoPauta);
   toggleCamposPorTipoPauta();
+
+  function toggleCamposPorDuracion() {
+    const tipo = $('input[name="duracion_tipo"]:checked').val();
+    $('#campo-duracion-dias').toggle(tipo === 'dias');
+    $('#campo-duracion-fecha').toggle(tipo === 'fecha');
+  }
+  $('input[name="duracion_tipo"]').on('change', toggleCamposPorDuracion);
+  toggleCamposPorDuracion();
 
   // ── Horarios (chips editables) ─────────────────────────
   let horas = [];

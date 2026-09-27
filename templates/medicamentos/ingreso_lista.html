@@ -19,10 +19,14 @@
   </h4>
   <div class="d-flex gap-2">
     {% if es_botiquin %}
+    {% if puede_registrar_ingreso %}
     <a href="{% url 'ingreso_botiquin_crear' %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar ingreso</a>
+    {% endif %}
     {% else %}
     <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-capsule me-1"></i>Tratamientos</a>
+    {% if puede_registrar_ingreso %}
     <a href="{% url 'ingreso_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar ingreso</a>
+    {% endif %}
     {% endif %}
   </div>
 </div>
