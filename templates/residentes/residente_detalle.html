@@ -222,9 +222,11 @@
         </h6>
       </div>
       <div class="d-flex align-items-center gap-2">
+        {% if user.tipos_nota_permitidos %}
         <a href="{% url 'nota_crear' residente.pk %}" class="btn btn-sm btn-gc">
           <i class="bi bi-plus-circle me-1"></i>Nueva nota
         </a>
+        {% endif %}
         <i class="bi bi-chevron-down collapse-icon" data-bs-toggle="collapse"
            data-bs-target="#notas-section" style="color:#2E75B6; cursor:pointer;"></i>
       </div>

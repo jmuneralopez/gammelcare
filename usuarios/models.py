@@ -172,10 +172,16 @@ class Usuario(AbstractUser):
         return self.roles.filter(nombre__in=Rol.ROLES_GESTION_DIAGNOSTICOS).exists()
 
     def tipos_nota_permitidos(self):
-        """Retorna lista de tipos de nota que puede crear según sus roles."""
-        if self.tiene_rol(Rol.SUPERADMIN, Rol.ADMINISTRADOR):
-            from notas_clinicas.models import NotaClinica
-            return [t[0] for t in NotaClinica.TIPOS]
+        """Retorna lista de tipos de nota que puede crear según sus roles.
+
+        El administrador del hogar y el superadmin NO tienen tipo propio
+        aquí a propósito (2026-09-27): todos los tipos de NotaClinica.TIPOS
+        representan una disciplina clínica concreta (evolución médica,
+        enfermería, fisioterapia, ...) y ninguno de esos dos roles ejerce
+        una — es el mismo criterio que ya rige medicamentos, diagnósticos y
+        exportación del expediente. Si algún día se necesita que el
+        administrador registre observaciones no clínicas, eso pide un tipo
+        de nota nuevo y neutral, no reusar uno clínico."""
         tipos = []
         for rol in self.roles.filter(nombre__in=Rol.NOTA_POR_ROL.keys()):
             tipo = Rol.NOTA_POR_ROL.get(rol.nombre)

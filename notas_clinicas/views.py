@@ -100,6 +100,12 @@ def atencion_lista(request):
 def nota_crear(request, pk):
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
     tipos_permitidos = request.user.tipos_nota_permitidos()
+    if not tipos_permitidos:
+        messages.error(
+            request,
+            'Tu rol no tiene un tipo de nota clínica asociado para registrar.'
+        )
+        return redirect('residente_detalle', pk=residente.pk)
     form = NotaClinicaForm(request.POST or None, tipos_permitidos=tipos_permitidos)
 
     if request.method == 'POST' and form.is_valid():
