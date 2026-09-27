@@ -1,0 +1,4 @@
+# Dependencias solo para correr la suite de pruebas (pytest).
+# No hace falta instalarlas en el servidor de producción.
+pytest==9.1.1
+pytest-django==4.14.0
