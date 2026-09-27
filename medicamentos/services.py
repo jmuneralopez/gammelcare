@@ -5,11 +5,12 @@ inventario. Ver plan-modulo-medicamentos.md, secciones 2.3 a 2.5.
 """
 from datetime import datetime, timedelta
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
 
 from .models import (
     IngresoMedicamento, Administracion, MovimientoInventario, Prescripcion,
+    HorarioPrescripcion,
 )
 
 
@@ -215,3 +216,145 @@ def hoja_del_dia(residente, fecha=None):
         })
 
     return filas, prn
+# ── Ronda por franja horaria (3.1) ───────────────────────────────
+# Vista de todo el hogar agrupada por franja horaria, en vez de residente
+# por residente. Reusa la misma lógica de la hoja del día (FEFO, botiquín,
+# no-administración) — lo único distinto es que agrupa por franja y cruza
+# todos los residentes del hogar en vez de uno solo.
+
+def franjas_del_dia(hogar, fecha):
+    """Horas distintas en que hay al menos una toma de horario fijo vigente
+    ese día en todo el hogar — son las pestañas de la ronda (3.1). No sale
+    de `ConfiguracionMedicamentos.horas_estandar` (esas son solo sugerencias
+    al crear un tratamiento) sino de los horarios reales ya formulados."""
+    horarios = (
+        HorarioPrescripcion.objects
+        .filter(
+            prescripcion__residente__hogar=hogar,
+            prescripcion__estado=Prescripcion.ACTIVA,
+            prescripcion__tipo_pauta=Prescripcion.HORARIOS_FIJOS,
+        )
+        .select_related('prescripcion')
+    )
+    return sorted({h.hora for h in horarios if h.prescripcion.vigente_en(fecha)})
+
+
+def franja_mas_cercana(franjas, ahora_hora):
+    """La franja cuya hora programada está más cerca de la hora actual —
+    para posicionar la ronda sola al abrirla (ver 3.1: 'al abrir a las
+    07:10 se posiciona sola en la ronda de las 07:00'). No aplica la
+    ventana aquí: eso lo decide la vista con `ConfiguracionMedicamentos`,
+    esta función solo encuentra la más próxima."""
+    if not franjas:
+        return None
+
+    def distancia_en_minutos(hora):
+        minutos_hora = hora.hour * 60 + hora.minute
+        minutos_ahora = ahora_hora.hour * 60 + ahora_hora.minute
+        return abs(minutos_hora - minutos_ahora)
+
+    return min(franjas, key=distancia_en_minutos)
+
+
+def ronda_por_franja(hogar, fecha, hora):
+    """Arma en memoria los bloques de la ronda para una franja horaria:
+    un bloque por residente (en el mismo orden pasillo/habitación/cama que
+    ya usa `atencion_lista`), con las tomas de esa hora exacta. Un
+    residente sin tomas en esta franja no aparece — igual que la hoja del
+    día, nunca se pre-generan casilleros vacíos (ver plan 2.5)."""
+    from residentes.models import Residente
+
+    tz = timezone.get_current_timezone()
+    fecha_programada = timezone.make_aware(datetime.combine(fecha, hora), tz)
+
+    residentes = (
+        Residente.objects
+        .filter(hogar=hogar, activo=True, cama_actual__isnull=False)
+        .select_related('cama_actual__habitacion__departamento')
+        .order_by(
+            'cama_actual__habitacion__departamento__nombre',
+            'cama_actual__habitacion__numero',
+            'cama_actual__codigo',
+        )
+    )
+
+    bloques = []
+    for residente in residentes:
+        horarios = (
+            HorarioPrescripcion.objects
+            .filter(
+                hora=hora,
+                prescripcion__residente=residente,
+                prescripcion__estado=Prescripcion.ACTIVA,
+                prescripcion__tipo_pauta=Prescripcion.HORARIOS_FIJOS,
+            )
+            .select_related('prescripcion__medicamento')
+        )
+        filas = []
+        for horario in horarios:
+            prescripcion = horario.prescripcion
+            if not prescripcion.vigente_en(fecha):
+                continue
+            administracion = (
+                Administracion.objects
+                .filter(prescripcion=prescripcion, fecha_programada=fecha_programada, anulada=False)
+                .select_related('administrada_por')
+                .first()
+            )
+            lote_disponible = elegir_lote_fefo(residente, prescripcion.medicamento)
+            filas.append({
+                'prescripcion': prescripcion,
+                'horario': horario,
+                'administracion': administracion,
+                'pendiente': administracion is None,
+                'sin_existencias': administracion is None and lote_disponible is None,
+            })
+        if filas:
+            bloques.append({'residente': residente, 'filas': filas})
+
+    return bloques
+
+
+def procesar_marcas_ronda(marcas, usuario):
+    """Aplica de una vez la lista de marcas que llegó del guardado único de
+    la ronda (3.1: 'un solo POST con todo lo marcado'). Cada marca se
+    procesa por separado — un error en una fila (sin existencias, doble
+    registro por un reintento) nunca debe tumbar las demás filas ya
+    marcadas correctamente. Devuelve (exitosas, fallidas); cada elemento de
+    `fallidas` es (marca, mensaje) para que la vista informe exactamente
+    qué residente/medicamento quedó pendiente de resolver a mano."""
+    exitosas = []
+    fallidas = []
+    for marca in marcas:
+        prescripcion = marca['prescripcion']
+        try:
+            if marca['accion'] == 'no_administrar':
+                administracion = registrar_no_administracion(
+                    prescripcion=prescripcion,
+                    fecha_programada=marca['fecha_programada'],
+                    horario=marca['horario'],
+                    motivo=marca['motivo'],
+                    observacion=marca.get('observacion', ''),
+                    usuario=usuario,
+                )
+            else:
+                usar_botiquin = marca['accion'] == 'usar_botiquin'
+                administracion = registrar_administracion(
+                    prescripcion=prescripcion,
+                    fecha_programada=marca['fecha_programada'],
+                    horario=marca['horario'],
+                    cantidad=marca.get('cantidad') or prescripcion.dosis_cantidad,
+                    observacion=marca.get('observacion', ''),
+                    usuario=usuario,
+                    usar_botiquin=usar_botiquin,
+                    motivo_uso_botiquin=marca.get('motivo_uso_botiquin', ''),
+                    hogar=prescripcion.residente.hogar,
+                )
+            exitosas.append((marca, administracion))
+        except SinExistenciasError:
+            fallidas.append((marca, 'Sin existencias (ni del residente ni del botiquín).'))
+        except IntegrityError:
+            fallidas.append((marca, 'Ya había un registro para esta toma (¿doble guardado?).'))
+        except ValueError as exc:
+            fallidas.append((marca, str(exc)))
+    return exitosas, fallidas

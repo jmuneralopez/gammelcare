@@ -12,6 +12,7 @@ import pytest
 from hogares.models import Hogar
 from residentes.models import Residente
 from usuarios.models import Rol, Usuario
+from infraestructura.models import Departamento, Habitacion, Cama
 from medicamentos.models import Medicamento, Prescripcion, HorarioPrescripcion, IngresoMedicamento
 
 
@@ -77,9 +78,19 @@ def usuario_sin_hogar():
 
 
 @pytest.fixture
-def residente(db, hogar):
+def cama(db, hogar):
+    """Una cama real, para que `residente` aparezca en pantallas que
+    filtran por cama_actual (atencion_lista, y la ronda por franja)."""
+    departamento = Departamento.objects.create(hogar=hogar, nombre='Pabellón A')
+    habitacion = Habitacion.objects.create(departamento=departamento, numero='101')
+    return Cama.objects.create(habitacion=habitacion, codigo='A', estado=Cama.OCUPADA)
+
+
+@pytest.fixture
+def residente(db, hogar, cama):
     r = Residente(
         hogar=hogar,
+        cama_actual=cama,
         fecha_nacimiento=date(1945, 3, 12),
         tipo_documento='CC',
     )

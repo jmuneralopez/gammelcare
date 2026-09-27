@@ -1,11 +1,14 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 
 from auditoria.models import RegistroAuditoria
@@ -621,3 +624,178 @@ def administracion_anular(request, pk):
     )
     messages.success(request, 'Administración anulada. El stock fue devuelto.')
     return redirect('hoja_dia', pk=residente.pk)
+# ── Ronda por franja horaria (3.1) ───────────────────────────────
+
+def _decimal_o_none(valor):
+    if valor in (None, ''):
+        return None
+    try:
+        return Decimal(str(valor))
+    except InvalidOperation:
+        return None
+
+
+def _url_ronda(fecha=None, hora=None, modo=None):
+    parametros = {}
+    if fecha:
+        parametros['fecha'] = fecha
+    if hora:
+        parametros['hora'] = hora
+    if modo:
+        parametros['modo'] = modo
+    query = urlencode(parametros)
+    return f"{reverse('ronda')}?{query}" if query else reverse('ronda')
+
+
+@login_required
+@clinico_requerido
+def ronda(request):
+    """La ronda por franja horaria (3.1): todo el hogar agrupado por
+    pabellón/habitación/cama, para la hora que se esté administrando en
+    este momento — en vez de entrar residente por residente. Con
+    ?modo=alistamiento es la misma pantalla en solo lectura, para repasar
+    antes de salir al pasillo."""
+    hogar = request.user.hogar
+    config = ConfiguracionMedicamentos.para_hogar(hogar)
+
+    fecha_str = request.GET.get('fecha')
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else timezone.localdate()
+    except ValueError:
+        fecha = timezone.localdate()
+
+    modo_alistamiento = request.GET.get('modo') == 'alistamiento'
+
+    franjas = services.franjas_del_dia(hogar, fecha)
+
+    hora_seleccionada = None
+    hora_str = request.GET.get('hora')
+    if hora_str:
+        try:
+            hora_candidata = datetime.strptime(hora_str, '%H:%M').time()
+            if hora_candidata in franjas:
+                hora_seleccionada = hora_candidata
+        except ValueError:
+            hora_seleccionada = None
+    if hora_seleccionada is None:
+        hora_seleccionada = services.franja_mas_cercana(franjas, timezone.localtime().time())
+
+    bloques = []
+    franja_dentro_de_ventana = False
+    if hora_seleccionada:
+        bloques = services.ronda_por_franja(hogar, fecha, hora_seleccionada)
+        for bloque in bloques:
+            administrables = [
+                {'p': f['prescripcion'].pk, 'h': f['horario'].pk, 'd': str(f['prescripcion'].dosis_cantidad)}
+                for f in bloque['filas'] if f['pendiente'] and not f['sin_existencias']
+            ]
+            bloque['filas_json'] = json.dumps(administrables)
+        ahora = timezone.localtime()
+        minutos_ahora = ahora.hour * 60 + ahora.minute
+        minutos_franja = hora_seleccionada.hour * 60 + hora_seleccionada.minute
+        franja_dentro_de_ventana = abs(minutos_ahora - minutos_franja) <= config.ventana_ronda_horas * 60
+
+    total_pendientes = sum(
+        1 for bloque in bloques for fila in bloque['filas'] if fila['pendiente']
+    )
+
+    return render(request, 'medicamentos/ronda.html', {
+        'hogar': hogar,
+        'fecha': fecha,
+        'fecha_anterior': fecha - timedelta(days=1),
+        'fecha_siguiente': fecha + timedelta(days=1),
+        'hoy': timezone.localdate(),
+        'franjas': franjas,
+        'hora_seleccionada': hora_seleccionada,
+        'bloques': bloques,
+        'modo_alistamiento': modo_alistamiento,
+        'franja_dentro_de_ventana': franja_dentro_de_ventana,
+        'total_pendientes': total_pendientes,
+        'puede_administrar': request.user.tiene_rol(*Rol.ROLES_ADMINISTRACION),
+        'motivos_no_administracion': Administracion.MOTIVOS_NO_ADMINISTRACION,
+        'motivos_uso_botiquin': Administracion.MOTIVOS_USO_BOTIQUIN,
+    })
+
+
+@login_required
+@administracion_requerido
+def ronda_guardar(request):
+    """Un solo POST con todo lo marcado en la ronda (3.1) — no una petición
+    por medicamento. Cada marca se valida y se procesa por separado
+    (services.procesar_marcas_ronda): un error en una fila nunca descarta
+    las demás filas ya marcadas correctamente."""
+    fecha_str = request.POST.get('fecha', '')
+    hora_str = request.POST.get('hora', '')
+    destino = _url_ronda(fecha=fecha_str, hora=hora_str)
+
+    if request.method != 'POST':
+        return redirect(destino)
+
+    try:
+        marcas_crudas = json.loads(request.POST.get('acciones_json') or '[]')
+    except (TypeError, ValueError):
+        messages.error(request, 'No se pudo leer lo marcado en la ronda. Intente de nuevo.')
+        return redirect(destino)
+
+    if not marcas_crudas:
+        messages.warning(request, 'No había nada marcado para guardar.')
+        return redirect(destino)
+
+    tz = timezone.get_current_timezone()
+    marcas = []
+    descartadas = 0
+    for item in marcas_crudas:
+        try:
+            prescripcion = Prescripcion.objects.select_related('residente__hogar').get(
+                pk=item['prescripcion'], residente__hogar=request.user.hogar
+            )
+            horario = HorarioPrescripcion.objects.get(pk=item['horario'], prescripcion=prescripcion)
+            fecha_item = datetime.strptime(item['fecha'], '%Y-%m-%d').date()
+            fecha_programada = timezone.make_aware(datetime.combine(fecha_item, horario.hora), tz)
+        except (Prescripcion.DoesNotExist, HorarioPrescripcion.DoesNotExist, KeyError, ValueError):
+            descartadas += 1
+            continue
+
+        marcas.append({
+            'prescripcion': prescripcion,
+            'horario': horario,
+            'fecha_programada': fecha_programada,
+            'accion': item.get('accion'),
+            'cantidad': _decimal_o_none(item.get('cantidad')),
+            'observacion': (item.get('observacion') or '').strip(),
+            'motivo': item.get('motivo', ''),
+            'motivo_uso_botiquin': item.get('motivo_uso_botiquin', ''),
+        })
+
+    exitosas, fallidas = services.procesar_marcas_ronda(marcas, request.user)
+
+    for marca, administracion in exitosas:
+        if marca['accion'] == 'no_administrar':
+            registrar_auditoria(
+                usuario=request.user,
+                accion=RegistroAuditoria.NO_ADMINISTRACION,
+                descripcion=f'No administración de {marca["prescripcion"].medicamento} '
+                            f'— residente #{marca["prescripcion"].residente_id} (ronda)',
+                request=request
+            )
+        elif marca['accion'] == 'usar_botiquin':
+            registrar_auditoria(
+                usuario=request.user,
+                accion=RegistroAuditoria.USO_BOTIQUIN,
+                descripcion=f'Uso del botiquín para {marca["prescripcion"].medicamento} '
+                            f'— residente #{marca["prescripcion"].residente_id} (ronda)',
+                request=request
+            )
+
+    if exitosas:
+        messages.success(request, f'{len(exitosas)} registro(s) guardado(s) de la ronda.')
+    for marca, error in fallidas:
+        messages.error(
+            request,
+            f'{marca["prescripcion"].residente.get_nombre()} — '
+            f'{marca["prescripcion"].medicamento}: {error}'
+        )
+    if descartadas:
+        messages.warning(request, f'{descartadas} marca(s) no se pudieron validar y no se guardaron.')
+
+    return redirect(destino)
