@@ -68,7 +68,7 @@ class ExamenForm(forms.ModelForm):
 class ValorForm(forms.Form):
     analito = forms.ModelChoiceField(
         queryset=AnalitoCatalogo.objects.none(), required=False,
-        empty_label='— Otro (escribir nombre) —',
+        empty_label='— Otro parámetro (escribir nombre) —',
         widget=forms.Select(attrs={'class': 'form-select form-select-sm analito-select'}),
     )
     nombre = forms.CharField(
@@ -96,7 +96,7 @@ class ValorForm(forms.Form):
         datos = super().clean()
         analito = datos.get('analito')
         if not analito and not datos.get('nombre'):
-            raise forms.ValidationError('Elija un analito del catálogo o escriba el nombre.')
+            raise forms.ValidationError('Elija un parámetro de la lista o escriba el nombre.')
         if analito:
             datos['nombre'] = datos.get('nombre') or analito.nombre
             datos['unidad'] = datos.get('unidad') or analito.unidad
@@ -134,7 +134,7 @@ class AnalitoRapidoForm(forms.ModelForm):
     def clean_nombre(self):
         nombre = self.cleaned_data['nombre'].strip()
         if AnalitoCatalogo.disponibles_para(self.hogar).filter(nombre__iexact=nombre).exists():
-            raise forms.ValidationError('Ese analito ya está en la lista.')
+            raise forms.ValidationError('Ese parámetro ya está en la lista.')
         return nombre
 
     def clean(self):

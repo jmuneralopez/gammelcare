@@ -63,7 +63,8 @@ class RegistroInmutable(models.Model):
 
 
 class AnalitoCatalogo(models.Model):
-    """Analitos frecuentes con unidad y rango de referencia POR DEFECTO.
+    """Parámetros de laboratorio frecuentes (en el código, "analitos") con
+    unidad y rango de referencia POR DEFECTO.
 
     El rango real es el que reporta cada laboratorio: al registrar un valor
     el rango se copia al resultado y se puede ajustar ahí. Este catálogo
@@ -92,8 +93,8 @@ class AnalitoCatalogo(models.Model):
 
     class Meta:
         db_table = 'examenes_analitos'
-        verbose_name = 'Analito'
-        verbose_name_plural = 'Analitos'
+        verbose_name = 'Parámetro de laboratorio'
+        verbose_name_plural = 'Parámetros de laboratorio'
         ordering = ['orden', 'nombre']
 
     def __str__(self):

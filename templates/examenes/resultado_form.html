@@ -60,13 +60,13 @@
         <h6 class="fw-bold mb-0" style="color:#1F4E79;">Valores del laboratorio <small class="text-muted fw-normal">(opcional)</small></h6>
         <button type="button" class="btn btn-sm btn-outline-primary" id="agregarValor"><i class="bi bi-plus"></i> Agregar otro valor</button>
       </div>
-      <p class="text-muted small">Al elegir un analito se llenan la unidad y un rango por defecto. <strong>Escriba el rango que trae el reporte del laboratorio</strong> si es distinto.</p>
+      <p class="text-muted small">Al elegir un parámetro se llenan la unidad y un rango por defecto. <strong>Escriba el rango que trae el reporte del laboratorio</strong> si es distinto.</p>
       {{ formset.management_form }}
       {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
       <div class="table-responsive">
         <table class="table table-sm align-middle" id="tablaValores">
           <thead><tr>
-            <th style="min-width:200px;">Analito</th><th>Nombre (si es otro)</th><th>Valor</th><th>Unidad</th><th>Ref. mín.</th><th>Ref. máx.</th><th></th>
+            <th style="min-width:200px;">Parámetro</th><th>Nombre (si es otro)</th><th>Valor</th><th>Unidad</th><th>Ref. mín.</th><th>Ref. máx.</th><th></th>
           </tr></thead>
           <tbody>
             {% for f in formset %}
@@ -97,7 +97,7 @@
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <p class="small text-muted mb-0" id="notaAnalito"></p>
         <button type="button" class="btn btn-sm btn-link px-0" data-bs-toggle="modal" data-bs-target="#modalAnalito">
-          <i class="bi bi-plus-circle me-1"></i>¿El analito no está en la lista? Agregarlo
+          <i class="bi bi-plus-circle me-1"></i>¿El parámetro no está en la lista? Agregarlo
         </button>
       </div>
     </div>
@@ -113,7 +113,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h6 class="modal-title fw-bold">Agregar analito a la lista del hogar</h6>
+        <h6 class="modal-title fw-bold">Agregar parámetro a la lista del hogar</h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
