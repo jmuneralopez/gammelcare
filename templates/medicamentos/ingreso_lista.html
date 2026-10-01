@@ -67,9 +67,28 @@
             {% elif i.estado == 'agotado' %}<span class="badge bg-secondary">Agotado</span>
             {% else %}<span class="badge bg-dark">{{ i.get_estado_display }}</span>{% endif %}
           </td>
+          <td class="text-end">
+            {% if puede_descartar and i.estado != 'descartado' and i.estado != 'devuelto' and i.cantidad_disponible > 0 %}
+            <button class="btn btn-sm {% if i.semaforo == 'vencido' %}btn-danger{% else %}btn-outline-secondary{% endif %}" data-bs-toggle="collapse" data-bs-target="#descartar-{{ i.pk }}">
+              <i class="bi bi-trash3 me-1"></i>Descartar lote
+            </button>
+            {% endif %}
+          </td>
         </tr>
+        {% if puede_descartar and i.estado != 'descartado' and i.estado != 'devuelto' and i.cantidad_disponible > 0 %}
+        <tr class="collapse" id="descartar-{{ i.pk }}"><td colspan="7">
+          <form method="post" action="{% url 'lote_descartar' i.pk %}" class="d-flex gap-2 align-items-end flex-wrap">
+            {% csrf_token %}
+            <div class="flex-grow-1">
+              <label class="form-label small fw-semibold">Motivo del descarte (se saca todo el saldo del lote)</label>
+              <input type="text" name="motivo" class="form-control form-control-sm" value="{% if i.semaforo == 'vencido' %}Lote vencido{% endif %}" required>
+            </div>
+            <button type="submit" class="btn btn-sm btn-danger">Confirmar descarte</button>
+          </form>
+        </td></tr>
+        {% endif %}
         {% empty %}
-        <tr><td colspan="6" class="text-center text-muted py-4">No hay medicamentos registrados.</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4">No hay medicamentos registrados.</td></tr>
         {% endfor %}
       </tbody>
     </table>

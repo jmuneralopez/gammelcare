@@ -18,6 +18,7 @@ urlpatterns = [
     path('residente/<int:pk>/ingresos/', views.ingreso_lista, name='ingreso_lista'),
     path('botiquin/ingreso/nuevo/', views.ingreso_botiquin_crear, name='ingreso_botiquin_crear'),
     path('botiquin/', views.botiquin_lista, name='botiquin_lista'),
+    path('lote/<int:pk>/descartar/', views.lote_descartar, name='lote_descartar'),
 
     # Ronda por franja horaria (todo el hogar de un vistazo)
     path('ronda/', views.ronda, name='ronda'),

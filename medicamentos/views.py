@@ -16,7 +16,7 @@ from residentes.models import Residente
 from usuarios.decorators import (
     clinico_requerido, registro_tratamiento_requerido,
     ingreso_medicamento_requerido, administracion_requerido,
-    rol_requerido,
+    rol_requerido, ajuste_inventario_requerido,
 )
 from usuarios.models import Rol
 
@@ -391,6 +391,7 @@ def ingreso_lista(request, pk):
         # ingreso (ingreso_medicamento_requerido) — p. ej. un médico ve la
         # lista pero no registra ingresos.
         'puede_registrar_ingreso': request.user.tiene_rol(*Rol.ROLES_INGRESO_MEDICAMENTO),
+        'puede_descartar': request.user.tiene_rol(*Rol.ROLES_AJUSTE_INVENTARIO),
     })
 
 
@@ -420,7 +421,38 @@ def botiquin_lista(request):
         'ingresos': ingresos,
         'es_botiquin': True,
         'puede_registrar_ingreso': request.user.tiene_rol(*Rol.ROLES_INGRESO_MEDICAMENTO),
+        'puede_descartar': request.user.tiene_rol(*Rol.ROLES_AJUSTE_INVENTARIO),
     })
+
+
+@login_required
+@ajuste_inventario_requerido
+def lote_descartar(request, pk):
+    """Descarta todo el saldo de un lote (normalmente vencido), con motivo.
+    Solo administrador y jefe de enfermería: es uno de los actos que puede
+    hacer que el saldo cambie sin un suministro que lo respalde."""
+    lote = get_object_or_404(
+        IngresoMedicamento.objects.select_related('residente', 'medicamento'),
+        Q(hogar=request.user.hogar, residente__isnull=True) | Q(residente__hogar=request.user.hogar),
+        pk=pk,
+    )
+    destino = redirect('ingreso_lista', pk=lote.residente_id) if lote.residente_id else redirect('botiquin_lista')
+    if request.method != 'POST':
+        return destino
+    motivo = request.POST.get('motivo', '').strip() or 'Lote vencido'
+    try:
+        services.descartar_lote(lote, request.user, motivo)
+    except ValueError as e:
+        messages.error(request, str(e))
+        return destino
+    registrar_auditoria(
+        request.user, RegistroAuditoria.DESCARTE_VENCIDO,
+        f'Descarte del lote {lote.lote} de {lote.medicamento} '
+        f'({"residente #" + str(lote.residente_id) if lote.residente_id else "botiquín"}): {motivo[:150]}',
+        request,
+    )
+    messages.success(request, f'Lote {lote.lote} descartado. Queda en el historial con su motivo.')
+    return destino
 
 
 # ── Hoja del día y administración ────────────────────────────────

@@ -358,3 +358,27 @@ def procesar_marcas_ronda(marcas, usuario):
         except ValueError as exc:
             fallidas.append((marca, str(exc)))
     return exitosas, fallidas
+
+
+@transaction.atomic
+def descartar_lote(lote, usuario, motivo):
+    """Saca de circulación todo el saldo de un lote (vencido o dañado),
+    con su movimiento en el libro de inventario. El lote no se borra."""
+    lote = IngresoMedicamento.objects.select_for_update().get(pk=lote.pk)
+    if lote.estado in (IngresoMedicamento.DESCARTADO, IngresoMedicamento.DEVUELTO):
+        raise ValueError('Este lote ya fue descartado o devuelto.')
+    if not motivo.strip():
+        raise ValueError('El descarte necesita un motivo.')
+    saldo = lote.cantidad_disponible
+    lote.cantidad_disponible = 0
+    lote.estado = IngresoMedicamento.DESCARTADO
+    lote.save(update_fields=['cantidad_disponible', 'estado'])
+    MovimientoInventario.objects.create(
+        ingreso=lote,
+        tipo=MovimientoInventario.DESCARTE_VENCIDO,
+        cantidad=-saldo,
+        motivo=motivo.strip(),
+        usuario=usuario,
+    )
+    return lote
+
