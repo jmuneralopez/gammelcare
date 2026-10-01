@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load examenes_tags %}
+{% block title %}GammelCare — Tendencias{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4" style="color:#1F4E79;"><i class="bi bi-graph-up me-2"></i>Tendencias de laboratorio</h4>
+
+{% include 'examenes/_encabezado_residente.html' %}
+
+{% if graficas %}
+<p class="text-muted small">Una gráfica por analito con todos los valores vigentes. La franja sombreada es el rango de referencia del valor más reciente.</p>
+<div class="row g-3">
+  {% for g in graficas %}
+  <div class="col-lg-6">
+    <div class="card card-gc h-100">
+      <div class="card-body">
+        <h6 class="fw-bold" style="color:#1F4E79;">{{ g.nombre }} {% if g.unidad %}<small class="text-muted fw-normal">({{ g.unidad }})</small>{% endif %}</h6>
+        {% if g.puntos|length > 1 %}
+        <canvas id="grafica{{ g.id }}" height="160" data-serie='{{ g.datos }}'></canvas>
+        {% endif %}
+        <table class="table table-sm mb-0 mt-2">
+          <tbody>
+          {% for p in g.puntos reversed %}
+            <tr>
+              <td class="text-nowrap">{{ p.fecha|date:"d/m/Y" }}</td>
+              <td class="text-end fw-semibold">{{ p.valor.valor_formateado }}</td>
+              <td>{% interpretacion p.valor %}</td>
+              <td class="text-end"><a href="{% url 'examen_detalle' p.examen_id %}" class="small">examen</a></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card card-gc"><div class="card-body text-center text-muted py-4">
+  <i class="bi bi-graph-down fs-3 d-block mb-2"></i>Aún no hay valores de laboratorio registrados para este residente.
+</div></div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+document.querySelectorAll('canvas[data-serie]').forEach(function (canvas) {
+  const s = JSON.parse(canvas.dataset.serie);
+  const datasets = [{
+    label: 'Valor', data: s.valores, borderColor: '#0B3D62', backgroundColor: '#0B3D62',
+    tension: 0.2, pointRadius: 4,
+  }];
+  if (s.ref_min !== null || s.ref_max !== null) {
+    const todos = s.valores.concat([s.ref_min, s.ref_max].filter(v => v !== null));
+    const piso = Math.min.apply(null, todos);
+    const techo = Math.max.apply(null, todos);
+    datasets.push({
+      label: 'Ref. máx.', data: s.labels.map(() => s.ref_max !== null ? s.ref_max : techo),
+      borderColor: 'rgba(79,158,134,0.6)', borderDash: [4, 4], pointRadius: 0, fill: false,
+    });
+    datasets.push({
+      label: 'Ref. mín.', data: s.labels.map(() => s.ref_min !== null ? s.ref_min : piso),
+      borderColor: 'rgba(79,158,134,0.6)', borderDash: [4, 4], pointRadius: 0,
+      backgroundColor: 'rgba(79,158,134,0.12)', fill: '-1',
+    });
+  }
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels: s.labels, datasets: datasets },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } },
+  });
+});
+</script>
+{% endblock %}

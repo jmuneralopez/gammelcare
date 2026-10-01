@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {% if es_adenda %}Adenda{% else %}Cargar resultado{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-upload me-2"></i>{% if es_adenda %}Adenda al resultado{% else %}Cargar resultado{% endif %}
+    <small class="text-muted fw-normal">· {{ examen.nombre }}</small>
+  </h4>
+</div>
+
+{% include 'examenes/_encabezado_residente.html' %}
+
+{% if es_adenda %}
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle me-1"></i>Lo ya cargado no se modifica: la adenda agrega archivos o valores nuevos con su motivo.
+  {% if examen.estado == 'revisado' %}<strong>El examen volverá a quedar pendiente de revisión médica.</strong>{% endif %}
+  Para corregir un valor mal digitado use el lápiz junto a ese valor en el detalle del examen.
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+  <div class="card card-gc mb-3" style="max-width:900px;">
+    <div class="card-body p-4">
+      <div class="row g-3">
+        {% if es_adenda %}
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.motivo.label }}</label>
+          {{ form.motivo }}
+          {% for e in form.motivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        {% else %}
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">{{ form.fecha_toma.label }}</label>
+          {{ form.fecha_toma }}
+          {% for e in form.fecha_toma.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.conclusion.label }}</label>
+          {{ form.conclusion }}
+          <small class="text-muted">Para imágenes, electrocardiogramas o informes en texto.</small>
+        </div>
+        {% endif %}
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.archivos.label }}</label>
+          {{ form.archivos }}
+          {% for e in form.archivos.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          <small class="text-muted">Puede seleccionar varios. Una foto tomada con el celular sirve si se lee bien.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-gc mb-3">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0" style="color:#1F4E79;">Valores del laboratorio <small class="text-muted fw-normal">(opcional)</small></h6>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="agregarValor"><i class="bi bi-plus"></i> Agregar valor</button>
+      </div>
+      <p class="text-muted small">Al elegir un analito se llenan la unidad y un rango por defecto. <strong>Escriba el rango que trae el reporte del laboratorio</strong> si es distinto.</p>
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle" id="tablaValores">
+          <thead><tr>
+            <th style="min-width:200px;">Analito</th><th>Nombre (si es otro)</th><th>Valor</th><th>Unidad</th><th>Ref. mín.</th><th>Ref. máx.</th><th></th>
+          </tr></thead>
+          <tbody>
+            {% for f in formset %}
+            <tr class="fila-valor">
+              <td>{{ f.analito }}{% for e in f.non_field_errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+              <td>{{ f.nombre }}</td>
+              <td>{{ f.valor }}{% for e in f.valor.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+              <td>{{ f.unidad }}</td>
+              <td>{{ f.ref_min }}</td>
+              <td>{{ f.ref_max }}</td>
+              <td><button type="button" class="btn btn-sm btn-outline-danger quitar-fila" title="Quitar"><i class="bi bi-x"></i></button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <template id="plantillaFila">
+        <tr class="fila-valor">
+          <td>{{ formset.empty_form.analito }}</td>
+          <td>{{ formset.empty_form.nombre }}</td>
+          <td>{{ formset.empty_form.valor }}</td>
+          <td>{{ formset.empty_form.unidad }}</td>
+          <td>{{ formset.empty_form.ref_min }}</td>
+          <td>{{ formset.empty_form.ref_max }}</td>
+          <td><button type="button" class="btn btn-sm btn-outline-danger quitar-fila" title="Quitar"><i class="bi bi-x"></i></button></td>
+        </tr>
+      </template>
+      <p class="small text-muted mb-0" id="notaAnalito"></p>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar {% if es_adenda %}adenda{% else %}resultado{% endif %}</button>
+    <a href="{% url 'examen_detalle' examen.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const catalogo = {{ catalogo_json|safe }};
+  const total = document.getElementById('id_valores-TOTAL_FORMS');
+  const cuerpo = document.querySelector('#tablaValores tbody');
+  const plantilla = document.getElementById('plantillaFila').innerHTML;
+  const nota = document.getElementById('notaAnalito');
+
+  function renumerar() {
+    const filas = cuerpo.querySelectorAll('tr.fila-valor');
+    filas.forEach(function (fila, i) {
+      fila.querySelectorAll('input, select').forEach(function (campo) {
+        campo.name = campo.name.replace(/valores-(\d+|__prefix__)-/, 'valores-' + i + '-');
+        campo.id = campo.id.replace(/valores-(\d+|__prefix__)-/, 'valores-' + i + '-');
+      });
+    });
+    total.value = filas.length;
+  }
+
+  function prellenar(select) {
+    const datos = catalogo[select.value];
+    const fila = select.closest('tr');
+    if (!datos) { nota.textContent = ''; return; }
+    const asignar = function (sufijo, valor) {
+      const campo = fila.querySelector('[name$="-' + sufijo + '"]');
+      if (campo && valor !== null && valor !== undefined) campo.value = valor;
+    };
+    asignar('unidad', datos.unidad);
+    const rmin = fila.querySelector('[name$="-ref_min"]');
+    const rmax = fila.querySelector('[name$="-ref_max"]');
+    rmin.value = datos.ref_min === null ? '' : datos.ref_min;
+    rmax.value = datos.ref_max === null ? '' : datos.ref_max;
+    nota.textContent = datos.nota ? 'Nota: ' + datos.nota : '';
+    const valor = fila.querySelector('[name$="-valor"]');
+    if (valor) valor.focus();
+  }
+
+  document.getElementById('agregarValor').addEventListener('click', function () {
+    cuerpo.insertAdjacentHTML('beforeend', plantilla);
+    renumerar();
+  });
+  cuerpo.addEventListener('click', function (ev) {
+    const boton = ev.target.closest('.quitar-fila');
+    if (boton) { boton.closest('tr').remove(); renumerar(); }
+  });
+  cuerpo.addEventListener('change', function (ev) {
+    if (ev.target.classList.contains('analito-select')) prellenar(ev.target);
+  });
+  if (!cuerpo.querySelector('tr.fila-valor')) {
+    cuerpo.insertAdjacentHTML('beforeend', plantilla);
+    renumerar();
+  }
+})();
+</script>
+{% endblock %}

@@ -208,6 +208,12 @@
             <i class="bi bi-clock-history me-1"></i>Ronda de medicamentos
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'examenes_bandeja' %}active{% endif %}"
+             href="{% url 'examenes_bandeja' %}">
+            <i class="bi bi-clipboard2-data me-1"></i>Exámenes
+          </a>
+        </li>
         {% endif %}
 
         {% if user.es_administrativo %}
@@ -237,6 +243,14 @@
             <i class="bi bi-person-lines-fill me-1"></i>Residentes
           </a>
         </li>
+        {% if not user.es_clinico %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'examenes_bandeja' %}active{% endif %}"
+             href="{% url 'examenes_bandeja' %}">
+            <i class="bi bi-clipboard2-data me-1"></i>Exámenes
+          </a>
+        </li>
+        {% endif %}
         <li class="nav-item">
           <a class="nav-link {% if 'departamentos' in request.path %}active{% endif %}"
              href="{% url 'departamento_lista' %}">

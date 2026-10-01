@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load examenes_tags %}
+{% block title %}GammelCare — Exámenes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-data me-2"></i>Exámenes y paraclínicos</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'examenes_tendencias' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-graph-up me-1"></i>Tendencias</a>
+    {% if puede_registrar and residente.activo %}
+    <a href="{% url 'examen_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar examen</a>
+    {% endif %}
+  </div>
+</div>
+
+{% include 'examenes/_encabezado_residente.html' %}
+
+<div class="card card-gc">
+  <div class="card-body">
+    {% if examenes %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead style="background-color:#D6E4F0;"><tr>
+          <th>Examen</th><th>Tipo</th><th>Orden</th><th>Toma</th><th>Estado</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for e in examenes %}
+          <tr>
+            <td>{{ e.nombre }}
+              {% if e.estado != 'cancelado' %}
+                {% if e.tiene_criticos %} <span class="badge text-bg-danger">Crítico</span>
+                {% elif e.tiene_fuera_de_rango %} <span class="badge text-bg-warning">Fuera de rango</span>{% endif %}
+              {% endif %}
+            </td>
+            <td>{{ e.get_tipo_display }}</td>
+            <td class="text-nowrap">{{ e.fecha_orden|date:"d/m/Y"|default:"—" }}</td>
+            <td class="text-nowrap">{{ e.fecha_toma|date:"d/m/Y"|default:"—" }}</td>
+            <td>{% estado_examen e %}</td>
+            <td class="text-end"><a href="{% url 'examen_detalle' e.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-clipboard2-x fs-3 d-block mb-2"></i>Sin exámenes registrados.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'auditoria',
     'catalogos',
     'medicamentos',
+    'examenes',
 ]
 
 MIDDLEWARE = [
@@ -129,6 +130,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Archivos clínicos privados (resultados de exámenes, etc.). Nunca se sirven
+# como estáticos: solo a través de vistas que verifican rol y hogar y dejan
+# registro en la auditoría. En producción debe apuntar a un disco cifrado y
+# respaldado.
+PRIVATE_MEDIA_ROOT = config('PRIVATE_MEDIA_ROOT', default=str(BASE_DIR / 'media_privada'))
+EXAMENES_MAX_MB = config('EXAMENES_MAX_MB', default=10, cast=int)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_URL = '/usuarios/login/'
 LOGIN_REDIRECT_URL = '/usuarios/dashboard/'

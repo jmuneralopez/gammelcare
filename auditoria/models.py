@@ -25,6 +25,15 @@ class RegistroAuditoria(models.Model):
     ANULACION_ADMINISTRACION = 'anulacion_administracion'
     USO_BOTIQUIN = 'uso_botiquin'
 
+    # Módulo de exámenes y paraclínicos.
+    EXAMEN_REGISTRADO = 'examen_registrado'
+    RESULTADO_EXAMEN = 'resultado_examen'
+    ADENDA_EXAMEN = 'adenda_examen'
+    CORRECCION_RESULTADO = 'correccion_resultado'
+    REVISION_EXAMEN = 'revision_examen'
+    CANCELACION_EXAMEN = 'cancelacion_examen'
+    CONSULTA_RESULTADO = 'consulta_resultado'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -42,6 +51,13 @@ class RegistroAuditoria(models.Model):
         (DESCARTE_VENCIDO, 'Descarte de lote vencido'),
         (ANULACION_ADMINISTRACION, 'Anulación de administración'),
         (USO_BOTIQUIN, 'Uso del botiquín del hogar'),
+        (EXAMEN_REGISTRADO, 'Registro de orden de examen'),
+        (RESULTADO_EXAMEN, 'Carga de resultado de examen'),
+        (ADENDA_EXAMEN, 'Adenda a resultado de examen'),
+        (CORRECCION_RESULTADO, 'Corrección de valor de examen'),
+        (REVISION_EXAMEN, 'Revisión médica de examen'),
+        (CANCELACION_EXAMEN, 'Cancelación de orden de examen'),
+        (CONSULTA_RESULTADO, 'Consulta de archivo de resultado'),
     ]
 
     usuario = models.ForeignKey(

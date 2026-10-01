@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load examenes_tags %}
+{% block title %}GammelCare — {{ examen.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-clipboard2-pulse me-2"></i>{{ examen.nombre }} {% estado_examen examen %}
+  </h4>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if examen.estado == 'pendiente' and puede_registrar %}
+      <a href="{% url 'examen_resultado' examen.pk %}" class="btn btn-gc"><i class="bi bi-upload me-1"></i>Cargar resultado</a>
+      <a href="{% url 'examen_editar' examen.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Corregir orden</a>
+      <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar"><i class="bi bi-x-circle me-1"></i>Cancelar orden</button>
+    {% endif %}
+    {% if examen.estado == 'resultado' and puede_revisar %}
+      <a href="{% url 'examen_revisar' examen.pk %}" class="btn btn-gc"><i class="bi bi-clipboard2-check me-1"></i>Revisar</a>
+    {% endif %}
+    {% if examen.estado == 'resultado' or examen.estado == 'revisado' %}{% if puede_registrar %}
+      <a href="{% url 'examen_adenda' examen.pk %}" class="btn btn-outline-primary"><i class="bi bi-plus-square me-1"></i>Agregar adenda</a>
+    {% endif %}{% endif %}
+  </div>
+</div>
+
+{% include 'examenes/_encabezado_residente.html' %}
+
+{% if examen.tiene_criticos and examen.estado == 'resultado' %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-octagon me-2"></i><strong>Valores críticos sin revisión médica.</strong> Avise al médico de inmediato.</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card card-gc mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold" style="color:#1F4E79;">Orden</h6>
+        <dl class="row mb-0 small">
+          <dt class="col-5">Tipo</dt><dd class="col-7">{{ examen.get_tipo_display }}</dd>
+          <dt class="col-5">Ordenado por</dt><dd class="col-7">{{ examen.ordenado_por|default:"—" }}</dd>
+          <dt class="col-5">EPS / IPS / laboratorio</dt><dd class="col-7">{{ examen.entidad|default:"—" }}</dd>
+          <dt class="col-5">Fecha de la orden</dt><dd class="col-7">{{ examen.fecha_orden|date:"d/m/Y"|default:"—" }}</dd>
+          <dt class="col-5">Indicaciones</dt><dd class="col-7">{{ examen.indicaciones|default:"—"|linebreaksbr }}</dd>
+          <dt class="col-5">Registrada por</dt><dd class="col-7">{{ examen.registrado_por.get_full_name|default:examen.registrado_por.username }} · {{ examen.fecha_registro|date:"d/m/Y H:i" }}</dd>
+          {% if examen.estado == 'cancelado' %}
+          <dt class="col-5 text-danger">Cancelada</dt>
+          <dd class="col-7">{{ examen.fecha_cancelacion|date:"d/m/Y H:i" }} · {{ examen.cancelado_por.get_full_name|default:examen.cancelado_por.username }}<br>{{ examen.motivo_cancelacion }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if examen.fecha_resultado %}
+    <div class="card card-gc mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold" style="color:#1F4E79;">Resultado</h6>
+        <p class="small mb-2">
+          Toma: <strong>{{ examen.fecha_toma|date:"d/m/Y"|default:"—" }}</strong><br>
+          Cargado por {{ examen.resultado_cargado_por.get_full_name|default:examen.resultado_cargado_por.username }} · {{ examen.fecha_resultado|date:"d/m/Y H:i" }}
+        </p>
+        {% if examen.conclusion %}<p class="mb-2"><strong>Conclusión:</strong> {{ examen.conclusion|linebreaksbr }}</p>{% endif %}
+        {% if archivos %}{% include 'examenes/_archivos.html' %}{% else %}<p class="text-muted small mb-0">Sin archivos adjuntos.</p>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    {% if vigentes %}
+    <div class="card card-gc mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold" style="color:#1F4E79;">Valores</h6>
+        {% with valores=vigentes con_acciones=puede_registrar %}{% include 'examenes/_tabla_valores.html' %}{% endwith %}
+        <p class="text-muted small mt-2 mb-0">La interpretación usa el rango de referencia registrado con cada valor.</p>
+        {% if corregidos %}
+        <details class="mt-3">
+          <summary class="small">Historial de correcciones ({{ corregidos|length }})</summary>
+          <ul class="small mt-2">
+            {% for v in corregidos %}
+            <li>{{ v.nombre }}: <s>{{ v.valor_formateado }} {{ v.unidad }}</s> → {{ v.corregido_por.valor_formateado }} {{ v.corregido_por.unidad }}
+              · {{ v.corregido_por.fecha_registro|date:"d/m/Y H:i" }} · {{ v.corregido_por.registrado_por.get_full_name|default:v.corregido_por.registrado_por.username }}
+              <br><span class="fst-italic">{{ v.corregido_por.motivo_correccion }}</span></li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card card-gc mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold" style="color:#1F4E79;">Revisión médica</h6>
+        {% for r in revisiones %}
+        <div class="border rounded p-2 mb-2 {% if not forloop.first %}opacity-75{% endif %}">
+          <div class="small text-muted">{{ r.fecha|date:"d/m/Y H:i" }} · {{ r.medico.get_full_name|default:r.medico.username }}{% if not forloop.first %} · revisión anterior{% endif %}</div>
+          {% if r.interpretacion %}<div><strong>Hallazgos:</strong> {{ r.interpretacion|linebreaksbr }}</div>{% endif %}
+          <div><strong>Conducta:</strong> {{ r.conducta|linebreaksbr }}</div>
+        </div>
+        {% empty %}
+        <p class="text-muted small mb-0">{% if examen.estado == 'resultado' %}Pendiente de revisión por el médico.{% else %}Sin revisión.{% endif %}</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if examen.estado == 'pendiente' and puede_registrar %}
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <form method="post" action="{% url 'examen_cancelar' examen.pk %}">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">Cancelar orden</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold">{{ cancelar_form.motivo.label }}</label>
+        {{ cancelar_form.motivo }}
+        <small class="text-muted">La orden queda en el historial como cancelada; no se borra.</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Volver</button>
+        <button type="submit" class="btn btn-danger">Cancelar orden</button>
+      </div>
+    </form>
+  </div></div>
+</div>
+{% endif %}
+{% endblock %}

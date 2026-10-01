@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load examenes_tags %}
 {% block title %}GammelCare — Expediente{% endblock %}
 
 {% block extra_css %}
@@ -490,6 +491,8 @@
     </div>
   </div>
 </div>
+
+{% resumen_examenes residente %}
 
 <!-- MEDICAMENTOS -->
 <div class="card card-gc mb-3">

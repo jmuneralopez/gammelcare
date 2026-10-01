@@ -1,0 +1,24 @@
+{% load examenes_tags %}
+<div class="table-responsive">
+  <table class="table table-sm align-middle mb-0">
+    <thead style="background-color:#D6E4F0;"><tr>
+      <th>Analito</th><th class="text-end">Valor</th><th>Unidad</th><th>Referencia</th><th>Interpretación</th>{% if con_acciones %}<th></th>{% endif %}
+    </tr></thead>
+    <tbody>
+    {% for v in valores %}
+      <tr{% if v.es_critico %} class="table-danger"{% endif %}>
+        <td>{{ v.nombre }}{% if v.reemplaza_id %} <span class="badge text-bg-info" title="{{ v.motivo_correccion }}">Corregido</span>{% endif %}</td>
+        <td class="text-end fw-semibold">{{ v.valor_formateado }}</td>
+        <td>{{ v.unidad }}</td>
+        <td class="text-nowrap">{{ v.rango_texto }}</td>
+        <td>{% interpretacion v %}</td>
+        {% if con_acciones %}
+        <td class="text-end">
+          <a href="{% url 'valor_corregir' v.pk %}" class="btn btn-sm btn-outline-secondary" title="Corregir valor"><i class="bi bi-pencil"></i></a>
+        </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

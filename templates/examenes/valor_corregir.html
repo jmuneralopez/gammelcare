@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Corregir valor{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4" style="color:#1F4E79;"><i class="bi bi-pencil-square me-2"></i>Corregir valor de {{ valor.nombre }}</h4>
+
+<div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
+  <strong>Residente:</strong> {{ nombre }} · <strong>Examen:</strong> {{ examen.nombre }}<br>
+  <strong>Valor registrado:</strong> {{ valor.valor_formateado }} {{ valor.unidad }} (ref. {{ valor.rango_texto }})
+</div>
+
+<div class="alert alert-info small"><i class="bi bi-info-circle me-1"></i>El valor original no se borra: queda en el historial junto con el motivo de la corrección.{% if examen.estado == 'revisado' %} <strong>El examen volverá a quedar pendiente de revisión médica.</strong>{% endif %}</div>
+
+<div class="card card-gc" style="max-width:700px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label fw-semibold">Valor correcto</label>{{ form.valor }}{% for e in form.valor.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Unidad</label>{{ form.unidad }}</div>
+        <div class="col-md-2"><label class="form-label fw-semibold">Ref. mín.</label>{{ form.ref_min }}</div>
+        <div class="col-md-2"><label class="form-label fw-semibold">Ref. máx.</label>{{ form.ref_max }}</div>
+        <div class="col-12"><label class="form-label fw-semibold">{{ form.motivo.label }}</label>{{ form.motivo }}{% for e in form.motivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-gc">Guardar corrección</button>
+        <a href="{% url 'examen_detalle' examen.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
