@@ -302,3 +302,51 @@ def test_paginas_renderizan(client, examen_pendiente, residente, usuarios, gluco
     assert len(r.context['graficas']) == 1 and len(r.context['graficas'][0]['puntos']) == 2
     r = client.get(reverse('residente_detalle', args=[residente.pk]))
     assert 'Exámenes y paraclínicos' in r.content.decode()
+
+
+# ── Catálogo de analitos alimentado desde el formulario ─────────────
+
+def test_agregar_analito_desde_el_formulario(client, usuarios, hogar, otro_hogar, medico_otro_hogar, examen_pendiente):
+    from examenes.models import AnalitoCatalogo
+    client.force_login(usuarios['auxiliar'])
+    r = client.post(reverse('analito_crear_rapido'), {'nombre': 'Ferritina', 'unidad': 'ng/mL', 'ref_min': '30', 'ref_max': '400'})
+    assert r.status_code == 200
+    nuevo = AnalitoCatalogo.objects.get(nombre='Ferritina')
+    assert nuevo.hogar == hogar and nuevo.creado_por == usuarios['auxiliar']
+    assert r.json()['id'] == nuevo.pk and r.json()['unidad'] == 'ng/mL'
+
+    # Aparece en el formulario de resultados de este hogar...
+    r = client.get(reverse('examen_resultado', args=[examen_pendiente.pk]))
+    assert str(nuevo.pk) in r.context['catalogo_json']
+    # ...y no se puede duplicar.
+    r = client.post(reverse('analito_crear_rapido'), {'nombre': 'ferritina', 'unidad': 'ng/mL'})
+    assert r.status_code == 400
+
+    # Otro hogar no lo ve y puede crear el suyo.
+    assert nuevo not in AnalitoCatalogo.disponibles_para(otro_hogar)
+    client.force_login(medico_otro_hogar)
+    assert client.post(reverse('analito_crear_rapido'), {'nombre': 'Ferritina', 'unidad': 'ng/mL'}).status_code == 200
+    assert AnalitoCatalogo.objects.filter(nombre='Ferritina').count() == 2
+
+
+def test_analito_rapido_requiere_permiso_y_post(client, usuarios):
+    client.force_login(usuarios['fisioterapeuta'])
+    client.post(reverse('analito_crear_rapido'), {'nombre': 'X', 'unidad': 'u'})
+    from examenes.models import AnalitoCatalogo
+    assert not AnalitoCatalogo.objects.filter(nombre='X').exists()
+    client.force_login(usuarios['auxiliar'])
+    assert client.get(reverse('analito_crear_rapido')).status_code == 405
+
+
+def test_valor_con_analito_de_otro_hogar_rechazado(client, usuarios, otro_hogar, examen_pendiente):
+    from examenes.models import AnalitoCatalogo
+    ajeno = AnalitoCatalogo.objects.create(codigo='ajeno-1', nombre='Ajeno', unidad='u', hogar=otro_hogar)
+    client.force_login(usuarios['auxiliar'])
+    r = client.post(reverse('examen_resultado', args=[examen_pendiente.pk]), {
+        'fecha_toma': date.today().isoformat(), 'conclusion': '',
+        'valores-TOTAL_FORMS': '1', 'valores-INITIAL_FORMS': '0',
+        'valores-MIN_NUM_FORMS': '0', 'valores-MAX_NUM_FORMS': '1000',
+        'valores-0-analito': str(ajeno.pk), 'valores-0-valor': '5',
+        'valores-0-unidad': '', 'valores-0-nombre': '', 'valores-0-ref_min': '', 'valores-0-ref_max': '',
+    })
+    assert r.status_code == 200 and not r.context['formset'].is_valid()

@@ -238,7 +238,7 @@ class Migration(migrations.Migration):
                     "motivo",
                     models.TextField(
                         blank=True,
-                        help_text="Obligatorio si se agrega después del resultado inicial (adenda).",
+                        help_text="Obligatorio si se agrega después del resultado inicial (información adicional).",
                     ),
                 ),
                 (

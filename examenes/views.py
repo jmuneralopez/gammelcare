@@ -4,7 +4,7 @@ from collections import OrderedDict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -15,7 +15,7 @@ from usuarios.decorators import clinico_requerido
 
 from . import services
 from .forms import (
-    AdendaForm, CancelarForm, CorreccionValorForm, ExamenForm, ResultadoForm,
+    AdendaForm, AnalitoRapidoForm, CancelarForm, CorreccionValorForm, ExamenForm, ResultadoForm,
     RevisionForm, ValorFormSet,
 )
 from .models import AnalitoCatalogo, ArchivoResultado, Examen, ValorResultado
@@ -51,7 +51,7 @@ def _permisos(request):
     }
 
 
-def _catalogo_json():
+def _catalogo_json(hogar):
     return json.dumps({
         str(a.pk): {
             'unidad': a.unidad,
@@ -59,12 +59,39 @@ def _catalogo_json():
             'ref_max': None if a.ref_max is None else float(a.ref_max),
             'nota': a.nota,
         }
-        for a in AnalitoCatalogo.objects.filter(activo=True)
+        for a in AnalitoCatalogo.disponibles_para(hogar)
     })
 
 
 def _valores_validos(formset):
     return [f.cleaned_data for f in formset.forms if f.cleaned_data]
+
+
+@login_required
+@registro_examen_requerido
+@require_POST
+def analito_crear_rapido(request):
+    """Agrega un analito al catálogo del hogar desde el formulario de
+    resultados (ventana emergente) y lo devuelve para seleccionarlo."""
+    form = AnalitoRapidoForm(request.POST, hogar=request.user.hogar)
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors}, status=400)
+    import uuid
+    from django.utils.text import slugify
+    analito = form.save(commit=False)
+    analito.hogar = request.user.hogar
+    analito.creado_por = request.user
+    analito.codigo = f'{slugify(analito.nombre)[:24]}-{uuid.uuid4().hex[:8]}'
+    analito.orden = 10000
+    analito.save()
+    return JsonResponse({
+        'id': analito.pk,
+        'text': str(analito),
+        'unidad': analito.unidad,
+        'ref_min': None if analito.ref_min is None else float(analito.ref_min),
+        'ref_max': None if analito.ref_max is None else float(analito.ref_max),
+        'nota': '',
+    })
 
 
 # ── Bandeja del hogar ───────────────────────────────────────────────
@@ -184,11 +211,11 @@ def examen_detalle(request, pk):
 def examen_resultado(request, pk):
     examen = _examen(request, pk)
     if examen.estado != Examen.PENDIENTE:
-        messages.info(request, 'Este examen ya tiene resultado. Para agregar información use la adenda.')
+        messages.info(request, 'Este examen ya tiene resultado. Use "Agregar información al resultado".')
         return redirect('examen_detalle', pk=examen.pk)
 
     form = ResultadoForm(request.POST or None, request.FILES or None, initial={'fecha_toma': timezone.localdate()})
-    formset = ValorFormSet(request.POST or None, prefix='valores')
+    formset = ValorFormSet(request.POST or None, prefix='valores', form_kwargs={'hogar': request.user.hogar})
     if request.method == 'POST' and form.is_valid() and formset.is_valid():
         try:
             services.cargar_resultado(
@@ -212,7 +239,8 @@ def examen_resultado(request, pk):
 
     return render(request, 'examenes/resultado_form.html', {
         'examen': examen, 'residente': examen.residente, 'nombre': examen.residente.get_nombre(),
-        'form': form, 'formset': formset, 'catalogo_json': _catalogo_json(), 'es_adenda': False,
+        'form': form, 'formset': formset, 'catalogo_json': _catalogo_json(request.user.hogar), 'es_adenda': False,
+        'analito_form': AnalitoRapidoForm(),
     })
 
 
@@ -221,11 +249,11 @@ def examen_resultado(request, pk):
 def examen_adenda(request, pk):
     examen = _examen(request, pk)
     if examen.estado not in (Examen.RESULTADO, Examen.REVISADO):
-        messages.error(request, 'Solo se agregan adendas a exámenes con resultado.')
+        messages.error(request, 'Solo se agrega información a exámenes que ya tienen resultado.')
         return redirect('examen_detalle', pk=examen.pk)
 
     form = AdendaForm(request.POST or None, request.FILES or None)
-    formset = ValorFormSet(request.POST or None, prefix='valores')
+    formset = ValorFormSet(request.POST or None, prefix='valores', form_kwargs={'hogar': request.user.hogar})
     if request.method == 'POST' and form.is_valid() and formset.is_valid():
         estaba_revisado = examen.estado == Examen.REVISADO
         try:
@@ -237,8 +265,8 @@ def examen_adenda(request, pk):
             form.add_error(None, e.messages[0])
         else:
             _auditar(request, RegistroAuditoria.ADENDA_EXAMEN,
-                     f'Adenda al examen #{examen.pk}: {form.cleaned_data["motivo"][:150]}')
-            msg = 'Adenda guardada.'
+                     f'Información adicional en el examen #{examen.pk}: {form.cleaned_data["motivo"][:150]}')
+            msg = 'Información adicional guardada.'
             if estaba_revisado:
                 msg += ' El examen vuelve a quedar pendiente de revisión médica.'
             messages.success(request, msg)
@@ -246,7 +274,8 @@ def examen_adenda(request, pk):
 
     return render(request, 'examenes/resultado_form.html', {
         'examen': examen, 'residente': examen.residente, 'nombre': examen.residente.get_nombre(),
-        'form': form, 'formset': formset, 'catalogo_json': _catalogo_json(), 'es_adenda': True,
+        'form': form, 'formset': formset, 'catalogo_json': _catalogo_json(request.user.hogar), 'es_adenda': True,
+        'analito_form': AnalitoRapidoForm(),
     })
 
 

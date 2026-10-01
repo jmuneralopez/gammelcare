@@ -84,9 +84,9 @@ def agregar_adenda(examen, usuario, motivo, archivos=(), valores=()):
     revisado, vuelve a pendiente de revisión."""
     examen = Examen.objects.select_for_update().get(pk=examen.pk)
     if examen.estado not in (Examen.RESULTADO, Examen.REVISADO):
-        raise ValidationError('Solo se agregan adendas a exámenes con resultado.')
+        raise ValidationError('Solo se agrega información a exámenes que ya tienen resultado.')
     if not motivo.strip():
-        raise ValidationError('La adenda necesita un motivo.')
+        raise ValidationError('La información adicional necesita un motivo.')
     if not archivos and not valores:
         raise ValidationError('Adjunte al menos un archivo o registre al menos un valor.')
     _guardar_archivos(examen, archivos, usuario, motivo=motivo.strip())

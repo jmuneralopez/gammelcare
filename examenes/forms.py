@@ -98,7 +98,7 @@ class ExamenForm(forms.ModelForm):
 
 class ValorForm(forms.Form):
     analito = forms.ModelChoiceField(
-        queryset=AnalitoCatalogo.objects.filter(activo=True), required=False,
+        queryset=AnalitoCatalogo.objects.none(), required=False,
         empty_label='— Otro (escribir nombre) —',
         widget=forms.Select(attrs={'class': 'form-select form-select-sm analito-select'}),
     )
@@ -136,8 +136,44 @@ class ValorForm(forms.Form):
             raise forms.ValidationError('El mínimo de referencia es mayor que el máximo.')
         return datos
 
+    def __init__(self, *args, hogar=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['analito'].queryset = AnalitoCatalogo.disponibles_para(hogar)
+
 
 ValorFormSet = formset_factory(ValorForm, extra=0, can_delete=False)
+
+
+class AnalitoRapidoForm(forms.ModelForm):
+    """Alta de un analito desde el formulario de resultados, sin salir de
+    él (mismo patrón que el alta rápida de medicamentos)."""
+
+    class Meta:
+        model = AnalitoCatalogo
+        fields = ['nombre', 'unidad', 'ref_min', 'ref_max']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej.: Ferritina'}),
+            'unidad': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej.: ng/mL'}),
+            'ref_min': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
+            'ref_max': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
+        }
+
+    def __init__(self, *args, hogar=None, **kwargs):
+        self.hogar = hogar
+        super().__init__(*args, **kwargs)
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data['nombre'].strip()
+        if AnalitoCatalogo.disponibles_para(self.hogar).filter(nombre__iexact=nombre).exists():
+            raise forms.ValidationError('Ese analito ya está en la lista.')
+        return nombre
+
+    def clean(self):
+        datos = super().clean()
+        rmin, rmax = datos.get('ref_min'), datos.get('ref_max')
+        if rmin is not None and rmax is not None and rmin > rmax:
+            raise forms.ValidationError('El mínimo de referencia es mayor que el máximo.')
+        return datos
 
 
 class ResultadoForm(forms.Form):
@@ -157,7 +193,7 @@ class ResultadoForm(forms.Form):
 
 class AdendaForm(forms.Form):
     motivo = forms.CharField(
-        label='Motivo de la adenda',
+        label='Motivo (qué llegó o qué faltaba)',
         widget=forms.Textarea(attrs={
             'class': 'form-control', 'rows': 2,
             'placeholder': 'Ej.: el laboratorio envió el reporte completo con el perfil lipídico.',

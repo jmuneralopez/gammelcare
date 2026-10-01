@@ -9,15 +9,15 @@
   </h4>
   <div class="d-flex gap-2 flex-wrap">
     {% if examen.estado == 'pendiente' and puede_registrar %}
-      <a href="{% url 'examen_resultado' examen.pk %}" class="btn btn-gc"><i class="bi bi-upload me-1"></i>Cargar resultado</a>
-      <a href="{% url 'examen_editar' examen.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Corregir orden</a>
+      <a href="{% url 'examen_resultado' examen.pk %}" class="btn btn-gc"><i class="bi bi-upload me-1"></i>Subir resultado</a>
+      <a href="{% url 'examen_editar' examen.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Corregir datos de la orden</a>
       <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar"><i class="bi bi-x-circle me-1"></i>Cancelar orden</button>
     {% endif %}
     {% if examen.estado == 'resultado' and puede_revisar %}
-      <a href="{% url 'examen_revisar' examen.pk %}" class="btn btn-gc"><i class="bi bi-clipboard2-check me-1"></i>Revisar</a>
+      <a href="{% url 'examen_revisar' examen.pk %}" class="btn btn-gc"><i class="bi bi-clipboard2-check me-1"></i>Revisar y dar conducta</a>
     {% endif %}
     {% if examen.estado == 'resultado' or examen.estado == 'revisado' %}{% if puede_registrar %}
-      <a href="{% url 'examen_adenda' examen.pk %}" class="btn btn-outline-primary"><i class="bi bi-plus-square me-1"></i>Agregar adenda</a>
+      <a href="{% url 'examen_adenda' examen.pk %}" class="btn btn-outline-primary"><i class="bi bi-plus-square me-1"></i>Agregar información al resultado</a>
     {% endif %}{% endif %}
   </div>
 </div>

@@ -6,9 +6,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-data me-2"></i>Exámenes y paraclínicos</h4>
   <div class="d-flex gap-2">
-    <a href="{% url 'examenes_tendencias' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-graph-up me-1"></i>Tendencias</a>
+    <a href="{% url 'examenes_tendencias' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-graph-up me-1"></i>Ver evolución de laboratorios</a>
     {% if puede_registrar and residente.activo %}
-    <a href="{% url 'examen_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar examen</a>
+    <a href="{% url 'examen_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar orden de examen</a>
     {% endif %}
   </div>
 </div>

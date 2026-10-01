@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}GammelCare — {% if es_adenda %}Adenda{% else %}Cargar resultado{% endif %}{% endblock %}
+{% block title %}GammelCare — {% if es_adenda %}Información adicional{% else %}Subir resultado{% endif %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
-    <i class="bi bi-upload me-2"></i>{% if es_adenda %}Adenda al resultado{% else %}Cargar resultado{% endif %}
+    <i class="bi bi-upload me-2"></i>{% if es_adenda %}Agregar información al resultado{% else %}Subir resultado{% endif %}
     <small class="text-muted fw-normal">· {{ examen.nombre }}</small>
   </h4>
 </div>
@@ -13,7 +13,7 @@
 
 {% if es_adenda %}
 <div class="alert alert-info small">
-  <i class="bi bi-info-circle me-1"></i>Lo ya cargado no se modifica: la adenda agrega archivos o valores nuevos con su motivo.
+  <i class="bi bi-info-circle me-1"></i>Lo ya cargado no se modifica: aquí se agregan archivos o valores nuevos, con su motivo.
   {% if examen.estado == 'revisado' %}<strong>El examen volverá a quedar pendiente de revisión médica.</strong>{% endif %}
   Para corregir un valor mal digitado use el lápiz junto a ese valor en el detalle del examen.
 </div>
@@ -58,7 +58,7 @@
     <div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold mb-0" style="color:#1F4E79;">Valores del laboratorio <small class="text-muted fw-normal">(opcional)</small></h6>
-        <button type="button" class="btn btn-sm btn-outline-primary" id="agregarValor"><i class="bi bi-plus"></i> Agregar valor</button>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="agregarValor"><i class="bi bi-plus"></i> Agregar otro valor</button>
       </div>
       <p class="text-muted small">Al elegir un analito se llenan la unidad y un rango por defecto. <strong>Escriba el rango que trae el reporte del laboratorio</strong> si es distinto.</p>
       {{ formset.management_form }}
@@ -94,15 +94,46 @@
           <td><button type="button" class="btn btn-sm btn-outline-danger quitar-fila" title="Quitar"><i class="bi bi-x"></i></button></td>
         </tr>
       </template>
-      <p class="small text-muted mb-0" id="notaAnalito"></p>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <p class="small text-muted mb-0" id="notaAnalito"></p>
+        <button type="button" class="btn btn-sm btn-link px-0" data-bs-toggle="modal" data-bs-target="#modalAnalito">
+          <i class="bi bi-plus-circle me-1"></i>¿El analito no está en la lista? Agregarlo
+        </button>
+      </div>
     </div>
   </div>
 
   <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar {% if es_adenda %}adenda{% else %}resultado{% endif %}</button>
+    <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar {% if es_adenda %}información adicional{% else %}resultado{% endif %}</button>
     <a href="{% url 'examen_detalle' examen.pk %}" class="btn btn-outline-secondary">Cancelar</a>
   </div>
 </form>
+
+<div class="modal fade" id="modalAnalito" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">Agregar analito a la lista del hogar</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="analitoErrores" class="text-danger small mb-2"></div>
+        <div class="row g-2">
+          <div class="col-8"><label class="form-label small fw-semibold">Nombre</label>{{ analito_form.nombre }}</div>
+          <div class="col-4"><label class="form-label small fw-semibold">Unidad</label>{{ analito_form.unidad }}</div>
+          <div class="col-6"><label class="form-label small fw-semibold">Ref. mínima (opcional)</label>{{ analito_form.ref_min }}</div>
+          <div class="col-6"><label class="form-label small fw-semibold">Ref. máxima (opcional)</label>{{ analito_form.ref_max }}</div>
+        </div>
+        <p class="small text-muted mt-2 mb-0">Queda disponible para todo el personal de este hogar.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-gc" id="guardarAnalito">Agregar a la lista</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -111,7 +142,7 @@
   const catalogo = {{ catalogo_json|safe }};
   const total = document.getElementById('id_valores-TOTAL_FORMS');
   const cuerpo = document.querySelector('#tablaValores tbody');
-  const plantilla = document.getElementById('plantillaFila').innerHTML;
+  let plantilla = document.getElementById('plantillaFila').innerHTML;
   const nota = document.getElementById('notaAnalito');
 
   function renumerar() {
@@ -154,6 +185,41 @@
   cuerpo.addEventListener('change', function (ev) {
     if (ev.target.classList.contains('analito-select')) prellenar(ev.target);
   });
+  document.getElementById('guardarAnalito').addEventListener('click', function () {
+    const modal = document.getElementById('modalAnalito');
+    const datos = new FormData();
+    modal.querySelectorAll('input').forEach(function (c) { datos.append(c.name, c.value); });
+    datos.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    const errores = document.getElementById('analitoErrores');
+    errores.textContent = '';
+    fetch('{% url "analito_crear_rapido" %}', { method: 'POST', body: datos })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          errores.textContent = Object.values(res.j.errors || {}).flat().join(' ') || 'No se pudo guardar.';
+          return;
+        }
+        const a = res.j;
+        catalogo[String(a.id)] = { unidad: a.unidad, ref_min: a.ref_min, ref_max: a.ref_max, nota: a.nota };
+        const opcion = '<option value="' + a.id + '">' + a.text.replace(/</g, '&lt;') + '</option>';
+        cuerpo.querySelectorAll('select.analito-select').forEach(function (sel) { sel.insertAdjacentHTML('beforeend', opcion); });
+        const tpl = document.getElementById('plantillaFila');
+        tpl.innerHTML = tpl.innerHTML.replace('</select>', opcion + '</select>');
+        plantilla = tpl.innerHTML;
+        let destino = Array.from(cuerpo.querySelectorAll('select.analito-select')).find(function (sel) { return !sel.value; });
+        if (!destino) {
+          cuerpo.insertAdjacentHTML('beforeend', plantilla);
+          renumerar();
+          destino = cuerpo.querySelector('tr.fila-valor:last-child select.analito-select');
+        }
+        destino.value = String(a.id);
+        prellenar(destino);
+        modal.querySelectorAll('input').forEach(function (c) { c.value = ''; });
+        bootstrap.Modal.getInstance(modal).hide();
+      })
+      .catch(function () { errores.textContent = 'No se pudo guardar. Revise la conexión.'; });
+  });
+
   if (!cuerpo.querySelector('tr.fila-valor')) {
     cuerpo.insertAdjacentHTML('beforeend', plantilla);
     renumerar();

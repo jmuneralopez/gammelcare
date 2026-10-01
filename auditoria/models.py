@@ -53,7 +53,7 @@ class RegistroAuditoria(models.Model):
         (USO_BOTIQUIN, 'Uso del botiquín del hogar'),
         (EXAMEN_REGISTRADO, 'Registro de orden de examen'),
         (RESULTADO_EXAMEN, 'Carga de resultado de examen'),
-        (ADENDA_EXAMEN, 'Adenda a resultado de examen'),
+        (ADENDA_EXAMEN, 'Información adicional en examen'),
         (CORRECCION_RESULTADO, 'Corrección de valor de examen'),
         (REVISION_EXAMEN, 'Revisión médica de examen'),
         (CANCELACION_EXAMEN, 'Cancelación de orden de examen'),

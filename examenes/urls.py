@@ -15,4 +15,5 @@ urlpatterns = [
     path('<int:pk>/cancelar/', views.examen_cancelar, name='examen_cancelar'),
     path('valor/<int:pk>/corregir/', views.valor_corregir, name='valor_corregir'),
     path('archivo/<int:pk>/', views.archivo_ver, name='archivo_ver'),
+    path('analito/nuevo/', views.analito_crear_rapido, name='analito_crear_rapido'),
 ]

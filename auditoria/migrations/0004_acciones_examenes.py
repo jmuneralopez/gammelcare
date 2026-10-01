@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                     ("uso_botiquin", "Uso del botiquín del hogar"),
                     ("examen_registrado", "Registro de orden de examen"),
                     ("resultado_examen", "Carga de resultado de examen"),
-                    ("adenda_examen", "Adenda a resultado de examen"),
+                    ("adenda_examen", "Información adicional en examen"),
                     ("correccion_resultado", "Corrección de valor de examen"),
                     ("revision_examen", "Revisión médica de examen"),
                     ("cancelacion_examen", "Cancelación de orden de examen"),

@@ -44,7 +44,7 @@
               {% else %}<span class="text-muted small">—</span>{% endif %}
             </td>
             <td class="text-end text-nowrap">
-              {% if puede_revisar %}<a href="{% url 'examen_revisar' e.pk %}" class="btn btn-sm btn-gc">Revisar</a>{% endif %}
+              {% if puede_revisar %}<a href="{% url 'examen_revisar' e.pk %}" class="btn btn-sm btn-gc">Revisar y dar conducta</a>{% endif %}
               <a href="{% url 'examen_detalle' e.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
             </td>
           </tr>
@@ -73,7 +73,7 @@
             <td class="text-nowrap">{{ e.fecha_orden|date:"d/m/Y"|default:"—" }}</td>
             <td>{% with d=e.dias_pendiente %}<span class="{% if d > 15 %}text-danger fw-semibold{% endif %}">{{ d }}</span>{% endwith %}</td>
             <td class="text-end text-nowrap">
-              {% if puede_registrar %}<a href="{% url 'examen_resultado' e.pk %}" class="btn btn-sm btn-gc">Cargar resultado</a>{% endif %}
+              {% if puede_registrar %}<a href="{% url 'examen_resultado' e.pk %}" class="btn btn-sm btn-gc">Subir resultado</a>{% endif %}
               <a href="{% url 'examen_detalle' e.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
             </td>
           </tr>

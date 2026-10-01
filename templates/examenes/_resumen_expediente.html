@@ -10,14 +10,14 @@
       </h6>
       <div class="d-flex align-items-center gap-2">
         <a href="{% url 'examenes_tendencias' residente.pk %}" class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-graph-up me-1"></i>Tendencias
+          <i class="bi bi-graph-up me-1"></i>Ver evolución de laboratorios
         </a>
         <a href="{% url 'examenes_residente' residente.pk %}" class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-list-ul me-1"></i>Todos
+          <i class="bi bi-list-ul me-1"></i>Ver todos los exámenes
         </a>
         {% if puede_registrar and residente.activo %}
         <a href="{% url 'examen_crear' residente.pk %}" class="btn btn-sm btn-gc">
-          <i class="bi bi-plus-circle me-1"></i>Registrar examen
+          <i class="bi bi-plus-circle me-1"></i>Registrar orden de examen
         </a>
         {% endif %}
       </div>

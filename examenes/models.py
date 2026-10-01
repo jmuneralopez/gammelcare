@@ -79,6 +79,16 @@ class AnalitoCatalogo(models.Model):
     nota = models.CharField(max_length=255, blank=True)
     orden = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
+    # Catálogo híbrido, igual que el de medicamentos: hogar=NULL es el
+    # catálogo base compartido; hogar=X es un analito que agregó ese hogar
+    # desde el formulario de resultados y que solo ese hogar ve.
+    hogar = models.ForeignKey(
+        'hogares.Hogar', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='analitos_propios',
+    )
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name='+',
+    )
 
     class Meta:
         db_table = 'examenes_analitos'
@@ -87,7 +97,14 @@ class AnalitoCatalogo(models.Model):
         ordering = ['orden', 'nombre']
 
     def __str__(self):
-        return f'{self.nombre} ({self.unidad})'
+        return f'{self.nombre} ({self.unidad})' if self.unidad else self.nombre
+
+    @classmethod
+    def disponibles_para(cls, hogar):
+        """Catálogo base más los analitos propios del hogar."""
+        return cls.objects.filter(activo=True).filter(
+            models.Q(hogar__isnull=True) | models.Q(hogar=hogar)
+        )
 
 
 class Examen(models.Model):
@@ -207,7 +224,7 @@ class ArchivoResultado(RegistroInmutable):
     tamano_bytes = models.PositiveIntegerField()
     sha256 = models.CharField(max_length=64, editable=False)
     motivo = models.TextField(
-        blank=True, help_text='Obligatorio si se agrega después del resultado inicial (adenda).',
+        blank=True, help_text='Obligatorio si se agrega después del resultado inicial (información adicional).',
     )
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
     fecha_subida = models.DateTimeField(default=timezone.now, editable=False)
