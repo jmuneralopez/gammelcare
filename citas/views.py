@@ -34,7 +34,7 @@ def _cita(request, pk):
 def agenda(request):
     """Agenda del hogar: hoy, los próximos días y las que quedaron sin cierre."""
     dias = request.GET.get('dias', '7')
-    dias = int(dias) if dias in ('1', '7', '30') else 7
+    dias = int(dias) if dias in ('1', '7', '30', '90') else 7
     hoy = timezone.localdate()
     proximas = services.proximas(request.user.hogar, dias=dias)
     por_dia = {}

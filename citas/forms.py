@@ -14,11 +14,22 @@ def _fecha_hora():
     return forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format=FORMATO_FECHA_HORA)
 
 
-def _no_pasada(valor):
+# Las EPS dan citas de especialista con meses de espera; un control anual
+# también se agenda con un año de anticipación. Más allá de eso casi
+# siempre es un error de digitación del año.
+MAX_DIAS_ANTICIPACION = 400
+
+
+def _validar_fecha(valor, margen_horas=1):
     # Una hora de margen: se agenda mientras se habla por teléfono con la EPS.
-    if valor and valor < timezone.now() - timedelta(hours=1):
+    if valor and valor < timezone.now() - timedelta(hours=margen_horas):
         raise forms.ValidationError('Esa fecha ya pasó.')
+    if valor and valor > timezone.now() + timedelta(days=MAX_DIAS_ANTICIPACION):
+        raise forms.ValidationError('La fecha está a más de un año. Revise el año que escribió.')
     return valor
+
+
+_no_pasada = _validar_fecha
 
 
 class CitaForm(forms.ModelForm):
@@ -87,7 +98,4 @@ class ReprogramarForm(forms.Form):
     }))
 
     def clean_fecha_hora(self):
-        valor = self.cleaned_data.get('fecha_hora')
-        if valor and valor < timezone.now():
-            raise forms.ValidationError('Esa fecha ya pasó.')
-        return valor
+        return _validar_fecha(self.cleaned_data.get('fecha_hora'), margen_horas=0)

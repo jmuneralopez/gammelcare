@@ -9,6 +9,7 @@
     <a href="?dias=1" class="btn btn-sm {% if dias == 1 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Hoy</a>
     <a href="?dias=7" class="btn btn-sm {% if dias == 7 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 7 días</a>
     <a href="?dias=30" class="btn btn-sm {% if dias == 30 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 30 días</a>
+    <a href="?dias=90" class="btn btn-sm {% if dias == 90 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 3 meses</a>
   </div>
 </div>
 <p class="text-muted small">Para agendar una cita, entre al expediente del residente y use <strong>Agendar cita</strong>.</p>
@@ -41,7 +42,7 @@
   <div class="card-body">
     <h6 class="fw-bold mb-3" style="color:#1F4E79;">
       {% if dia == hoy %}Hoy{% elif dia == manana %}Mañana{% else %}{{ dia|date:"l"|capfirst }}{% endif %},
-      {{ dia|date:"j \d\e F" }}
+      {{ dia|date:"j \d\e F" }}{% if dia.year != hoy.year %} de {{ dia.year }}{% endif %}
       <span class="badge text-bg-light border ms-1">{{ citas|length }}</span>
     </h6>
     {% for c in citas %}

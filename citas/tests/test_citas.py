@@ -147,3 +147,20 @@ def test_otro_hogar_no_ve_la_cita(client, residente, usuarios, usuario_otro_hoga
     client.force_login(usuario_otro_hogar)
     assert client.get(reverse('cita_detalle', args=[cita.pk])).status_code == 404
     assert client.get(reverse('citas_residente', args=[residente.pk])).status_code == 404
+
+
+def test_se_agenda_con_tres_meses_y_aparece_en_la_agenda(client, residente, usuarios):
+    client.force_login(usuarios['auxiliar'])
+    en_3_meses = timezone.localtime(timezone.now() + timedelta(days=88)).strftime(FMT)
+    r = client.post(reverse('cita_crear', args=[residente.pk]), _datos(especialidad='Reumatología', fecha_hora=en_3_meses))
+    assert r.status_code == 302
+    assert 'Reumatología' not in client.get(reverse('citas_agenda') + '?dias=30').content.decode()
+    assert 'Reumatología' in client.get(reverse('citas_agenda') + '?dias=90').content.decode()
+    assert 'Reumatología' in client.get(reverse('citas_residente', args=[residente.pk])).content.decode()
+
+
+def test_fecha_a_mas_de_un_anio_se_rechaza(client, residente, usuarios):
+    client.force_login(usuarios['auxiliar'])
+    lejana = timezone.localtime(timezone.now() + timedelta(days=500)).strftime(FMT)
+    r = client.post(reverse('cita_crear', args=[residente.pk]), _datos(fecha_hora=lejana))
+    assert r.status_code == 200 and 'Revise el año' in str(r.context['form'].errors)
