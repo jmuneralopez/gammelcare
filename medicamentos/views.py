@@ -422,7 +422,35 @@ def botiquin_lista(request):
         'es_botiquin': True,
         'puede_registrar_ingreso': request.user.tiene_rol(*Rol.ROLES_INGRESO_MEDICAMENTO),
         'puede_descartar': request.user.tiene_rol(*Rol.ROLES_AJUSTE_INVENTARIO),
+        'prestamos': (
+            Administracion.objects
+            .filter(residente__hogar=hogar, motivo_uso_botiquin=Administracion.PRESTAMO,
+                    repuesto=False, anulada=False)
+            .select_related('residente', 'prescripcion__medicamento', 'ingreso_usado')
+            .order_by('fecha_administracion')
+        ),
     })
+
+
+@login_required
+@ajuste_inventario_requerido
+def prestamo_marcar_repuesto(request, pk):
+    """La familia (o la EPS) repuso al botiquín lo que se le prestó al
+    residente. Solo marca la reposición; el ingreso de lo repuesto al
+    botiquín se registra aparte con "Agregar al botiquín"."""
+    administracion = get_object_or_404(
+        Administracion, pk=pk, residente__hogar=request.user.hogar,
+        motivo_uso_botiquin=Administracion.PRESTAMO,
+    )
+    if request.method == 'POST' and not administracion.repuesto:
+        services.marcar_prestamo_repuesto(administracion, request.user)
+        registrar_auditoria(
+            request.user, RegistroAuditoria.USO_BOTIQUIN,
+            f'Préstamo del botiquín #{administracion.pk} marcado como repuesto (residente #{administracion.residente_id})',
+            request,
+        )
+        messages.success(request, 'Préstamo marcado como repuesto. Recuerde agregar al botiquín lo que trajeron.')
+    return redirect(reverse('botiquin_lista') + '#prestamos')
 
 
 @login_required

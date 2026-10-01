@@ -1,0 +1,12 @@
+{% if alertas_criticas and request.resolver_match.url_name != 'alertas_bandeja' %}
+<div class="alert alert-danger d-flex justify-content-between align-items-center flex-wrap gap-2 sticky-top shadow-sm" style="top:0; z-index:1020;">
+  <div>
+    <i class="bi bi-exclamation-octagon-fill me-2"></i><strong>Alerta crítica:</strong>
+    {% for a in alertas_criticas %}{{ a.titulo }}{% if not forloop.last %} · {% endif %}{% endfor %}
+  </div>
+  <span class="d-flex gap-2">
+    {% with a=alertas_criticas.0 %}{% if a.url_accion %}<a href="{{ a.url_accion }}" class="btn btn-sm btn-danger">{{ a.texto_accion|default:"Ir" }}</a>{% endif %}{% endwith %}
+    <a href="{% url 'alertas_bandeja' %}?gravedad=critica" class="btn btn-sm btn-outline-danger">Ver alertas críticas</a>
+  </span>
+</div>
+{% endif %}

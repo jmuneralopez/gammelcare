@@ -1,0 +1,4 @@
+{% if alerta.gravedad == 'critica' %}<span class="badge text-bg-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Crítica</span>
+{% elif alerta.gravedad == 'alta' %}<span class="badge text-bg-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Alta</span>
+{% elif alerta.gravedad == 'media' %}<span class="badge text-bg-primary">Media</span>
+{% else %}<span class="badge text-bg-secondary">Informativa</span>{% endif %}

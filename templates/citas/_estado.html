@@ -1,0 +1,5 @@
+{% if cita.estado == 'programada' %}{% if cita.vencida_sin_cierre %}<span class="badge text-bg-warning">Sin registrar qué pasó</span>{% else %}<span class="badge text-bg-primary">Programada</span>{% endif %}
+{% elif cita.estado == 'cumplida' %}<span class="badge text-bg-success">Cumplida</span>
+{% elif cita.estado == 'no_asistio' %}<span class="badge text-bg-danger">No asistió</span>
+{% elif cita.estado == 'cancelada' %}<span class="badge text-bg-secondary">Cancelada</span>
+{% else %}<span class="badge text-bg-light border">Reprogramada</span>{% endif %}

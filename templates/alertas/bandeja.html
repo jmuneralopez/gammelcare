@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Alertas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bell me-2"></i>Alertas</h4>
+  <div class="d-flex gap-2">
+    {% if puede_publicar %}<a href="{% url 'aviso_crear' %}" class="btn btn-gc"><i class="bi bi-megaphone me-1"></i>Publicar aviso</a>{% endif %}
+    {% if puede_configurar %}<a href="{% url 'alertas_configuracion' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Configurar alertas</a>{% endif %}
+  </div>
+</div>
+
+<div class="row g-2 mb-3">
+  {% for g, nombre in gravedades %}
+  <div class="col-6 col-md-3">
+    <a href="?gravedad={{ g }}&ver={{ ver }}" class="text-decoration-none">
+      <div class="card card-gc h-100 {% if gravedad == g %}border-primary border-2{% endif %}"><div class="card-body py-2">
+        <div class="text-muted small">{{ nombre }}</div>
+        <div class="fs-4 fw-bold {% if g == 'critica' and conteo.critica %}text-danger{% elif g == 'alta' and conteo.alta %}text-warning-emphasis{% endif %}">{% if g == 'critica' %}{{ conteo.critica }}{% elif g == 'alta' %}{{ conteo.alta }}{% elif g == 'media' %}{{ conteo.media }}{% else %}{{ conteo.informativa }}{% endif %}</div>
+      </div></div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<form method="get" class="card card-gc mb-3"><div class="card-body py-2 d-flex gap-2 flex-wrap align-items-end">
+  {% if puede_ver_todas %}
+  <div><label class="form-label small mb-0">Mostrar</label>
+    <select name="ver" class="form-select form-select-sm">
+      <option value="mias" {% if ver == 'mias' %}selected{% endif %}>Las de mis roles</option>
+      <option value="todas" {% if ver == 'todas' %}selected{% endif %}>Todas las del hogar</option>
+    </select></div>
+  {% endif %}
+  <div><label class="form-label small mb-0">Estado</label>
+    <select name="estado" class="form-select form-select-sm">
+      <option value="activas" {% if estado == 'activas' %}selected{% endif %}>Pendientes (nuevas y atendidas)</option>
+      {% for e, n in estados %}<option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select></div>
+  <div><label class="form-label small mb-0">Importancia</label>
+    <select name="gravedad" class="form-select form-select-sm">
+      <option value="">Todas</option>
+      {% for g, n in gravedades %}<option value="{{ g }}" {% if gravedad == g %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select></div>
+  <div><label class="form-label small mb-0">Residente</label>
+    <select name="residente" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      {% for pk, n in residentes %}<option value="{{ pk }}" {% if residente_id == pk|stringformat:"s" %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-sm btn-outline-primary">Filtrar</button>
+  <a href="{% url 'alertas_bandeja' %}" class="btn btn-sm btn-link">Quitar filtros</a>
+</div></form>
+
+{% for alerta in alertas %}
+  {% include 'alertas/_tarjeta.html' %}
+{% empty %}
+  <div class="card card-gc"><div class="card-body text-muted"><i class="bi bi-check2-circle me-2 text-success"></i>No hay alertas con estos filtros.</div></div>
+{% endfor %}
+<p class="small text-muted mt-3">Última revisión automática: {{ ultima_evaluacion|date:"d/m/Y H:i"|default:"—" }}. Las alertas del sistema se cierran solas cuando la situación se resuelve.</p>
+{% endblock %}

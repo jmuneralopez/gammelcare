@@ -127,6 +127,7 @@
   <div class="collapse navbar-collapse" id="navMenu">
     <ul class="navbar-nav ms-auto align-items-center">
       {% if user.is_authenticated %}
+      {% include 'alertas/_campana.html' %}
       <li class="nav-item dropdown me-2">
         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2"
            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -189,6 +190,14 @@
             <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </li>
+        {% if alertas_campana %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'alertas' in request.path %}active{% endif %}"
+             href="{% url 'alertas_bandeja' %}">
+            <i class="bi bi-bell me-1"></i>Alertas{% if alertas_campana.total %} <span class="badge rounded-pill bg-{{ alertas_campana.color }}">{{ alertas_campana.total }}</span>{% endif %}
+          </a>
+        </li>
+        {% endif %}
 
         {% if user.es_clinico %}
         <li class="nav-item mt-2">
@@ -220,6 +229,12 @@
           <a class="nav-link {% if request.resolver_match.url_name == 'examenes_bandeja' %}active{% endif %}"
              href="{% url 'examenes_bandeja' %}">
             <i class="bi bi-clipboard2-data me-1"></i>Exámenes del hogar
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'citas_agenda' %}active{% endif %}"
+             href="{% url 'citas_agenda' %}">
+            <i class="bi bi-calendar2-week me-1"></i>Agenda de citas
           </a>
         </li>
         {% endif %}
@@ -262,6 +277,12 @@
           <a class="nav-link {% if request.resolver_match.url_name == 'examenes_bandeja' %}active{% endif %}"
              href="{% url 'examenes_bandeja' %}">
             <i class="bi bi-clipboard2-data me-1"></i>Exámenes del hogar
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'citas_agenda' %}active{% endif %}"
+             href="{% url 'citas_agenda' %}">
+            <i class="bi bi-calendar2-week me-1"></i>Agenda de citas
           </a>
         </li>
         {% endif %}
@@ -326,6 +347,7 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="col-md-10 main-content">
+      {% include 'alertas/_banner_criticas.html' %}
       {% if messages %}
         {% for message in messages %}
           <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">

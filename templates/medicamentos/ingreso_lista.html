@@ -42,6 +42,7 @@
           <th>Vencimiento</th>
           <th>Saldo</th>
           <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -94,4 +95,33 @@
     </table>
   </div>
 </div>
+
+{% if es_botiquin %}
+<div class="card card-gc mt-4" id="prestamos">
+  <div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;"><i class="bi bi-arrow-left-right me-2"></i>Préstamos del botiquín pendientes de reposición</h6>
+    <p class="small text-muted">Medicamento del botiquín que se le suministró a un residente porque no tenía en su cajón. Cuando la familia lo reponga, agréguelo al botiquín y márquelo aquí.</p>
+    {% if prestamos %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead style="background-color:#D6E4F0;"><tr><th>Fecha</th><th>Residente</th><th>Medicamento</th><th>Cantidad</th><th></th></tr></thead>
+        <tbody>
+        {% for a in prestamos %}
+          <tr>
+            <td class="text-nowrap">{{ a.fecha_administracion|date:"d/m/Y H:i" }}</td>
+            <td>{{ a.residente.get_nombre }}</td>
+            <td>{{ a.prescripcion.medicamento }}</td>
+            <td>{{ a.cantidad_administrada|floatformat:"-2" }}</td>
+            <td class="text-end">{% if puede_descartar %}
+              <form method="post" action="{% url 'prestamo_marcar_repuesto' a.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success">Marcar como repuesto</button></form>
+            {% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-muted mb-0">No hay préstamos pendientes.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

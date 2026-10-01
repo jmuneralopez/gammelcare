@@ -42,6 +42,18 @@ class RegistroAuditoria(models.Model):
     ANTECEDENTE_INACTIVADO = 'antecedente_inactivado'
     ORDEN_PESE_A_ALERGIA = 'orden_pese_a_alergia'
 
+    # Citas médicas.
+    CITA_REGISTRADA = 'cita_registrada'
+    CITA_MODIFICADA = 'cita_modificada'
+    CITA_CERRADA = 'cita_cerrada'
+    CITA_CANCELADA = 'cita_cancelada'
+
+    # Alertas.
+    AVISO_CREADO = 'aviso_creado'
+    ALERTA_ATENDIDA = 'alerta_atendida'
+    ALERTA_DESCARTADA = 'alerta_descartada'
+    CONFIGURACION_ALERTAS = 'configuracion_alertas'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -72,6 +84,14 @@ class RegistroAuditoria(models.Model):
         (ANTECEDENTE_REGISTRADO, 'Registro de antecedente'),
         (ANTECEDENTE_INACTIVADO, 'Inactivación de antecedente'),
         (ORDEN_PESE_A_ALERGIA, 'Orden médica registrada pese a alergia'),
+        (CITA_REGISTRADA, 'Cita médica agendada'),
+        (CITA_MODIFICADA, 'Cita médica corregida o reprogramada'),
+        (CITA_CERRADA, 'Registro de lo que pasó en una cita'),
+        (CITA_CANCELADA, 'Cita médica cancelada'),
+        (AVISO_CREADO, 'Aviso manual publicado'),
+        (ALERTA_ATENDIDA, 'Alerta atendida'),
+        (ALERTA_DESCARTADA, 'Alerta descartada'),
+        (CONFIGURACION_ALERTAS, 'Cambio en la configuración de alertas'),
     ]
 
     usuario = models.ForeignKey(

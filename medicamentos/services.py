@@ -382,3 +382,10 @@ def descartar_lote(lote, usuario, motivo):
     )
     return lote
 
+
+def marcar_prestamo_repuesto(administracion, usuario):
+    administracion.repuesto = True
+    administracion.fecha_reposicion = timezone.localdate()
+    administracion.repuesto_marcado_por = usuario
+    administracion.save(update_fields=['repuesto', 'fecha_reposicion', 'repuesto_marcado_por'])
+    return administracion

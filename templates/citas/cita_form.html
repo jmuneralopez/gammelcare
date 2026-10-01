@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {% if cita %}Corregir cita{% else %}Agendar cita{% endif %}{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-calendar-plus me-2"></i>{% if cita %}Corregir cita{% else %}Agendar cita{% endif %}</h4>
+{% include 'citas/_encabezado_residente.html' %}
+
+<div class="card card-gc" style="max-width:900px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      <h6 class="fw-bold" style="color:#1F4E79;">La cita</h6>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.tipo.label }}</label>{{ form.tipo }}</div>
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.especialidad.label }}</label>{{ form.especialidad }}</div>
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.profesional.label }}</label>{{ form.profesional }}</div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">{{ form.fecha_hora.label }}</label>{{ form.fecha_hora }}
+          {% for e in form.fecha_hora.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">{{ form.lugar.label }}</label>{{ form.lugar }}
+          {% for e in form.lugar.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      <h6 class="fw-bold" style="color:#1F4E79;">Cómo prepararlo y cómo llega</h6>
+      <div class="row g-3">
+        <div class="col-12"><div class="form-check">{{ form.requiere_ayuno }}<label class="form-check-label fw-semibold" for="{{ form.requiere_ayuno.id_for_label }}">{{ form.requiere_ayuno.label }}</label></div></div>
+        <div class="col-12"><label class="form-label fw-semibold">{{ form.preparacion.label }}</label>{{ form.preparacion }}</div>
+        <div class="col-md-6"><label class="form-label fw-semibold">{{ form.acompanante.label }}</label>{{ form.acompanante }}</div>
+        <div class="col-md-6"><label class="form-label fw-semibold">{{ form.transporte.label }}</label>{{ form.transporte }}</div>
+        <div class="col-12"><label class="form-label fw-semibold">{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>{% if cita %}Guardar corrección{% else %}Agendar cita{% endif %}</button>
+        <a href="{% if cita %}{% url 'cita_detalle' cita.pk %}{% else %}{% url 'citas_residente' residente.pk %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

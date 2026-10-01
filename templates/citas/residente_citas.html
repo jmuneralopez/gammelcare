@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load citas_tags antecedentes_tags %}
+{% block title %}GammelCare — Citas de {{ nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-calendar2-week me-2"></i>Citas médicas de {{ nombre }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+    {% if puede_registrar and residente.activo %}<a href="{% url 'cita_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-calendar-plus me-1"></i>Agendar cita</a>{% endif %}
+  </div>
+</div>
+{% banner_alergias residente compacto=True %}
+
+<div class="card card-gc mb-4">
+  <div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Próximas y pendientes de registrar</h6>
+    {% for c in abiertas %}
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+      <div>
+        <div><strong class="me-2">{{ c.fecha_hora|date:"d/m/Y H:i" }}</strong>{{ c.titulo }} {% estado_cita c %}</div>
+        <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ c.lugar }}{% if c.profesional %} · {{ c.profesional }}{% endif %}</div>
+        <div class="mt-1">{% include 'citas/_logistica.html' with cita=c %}</div>
+      </div>
+      <a href="{% url 'cita_detalle' c.pk %}" class="btn btn-sm {% if c.vencida_sin_cierre %}btn-gc{% else %}btn-outline-secondary{% endif %}">{% if c.vencida_sin_cierre %}Registrar qué pasó{% else %}Ver cita{% endif %}</a>
+    </div>
+    {% empty %}<p class="text-muted mb-0">No tiene citas programadas.</p>{% endfor %}
+  </div>
+</div>
+
+<div class="card card-gc">
+  <div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Historial</h6>
+    {% if historial %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead style="background-color:#D6E4F0;"><tr><th>Fecha</th><th>Cita</th><th>Estado</th><th>Resumen</th><th></th></tr></thead>
+        <tbody>
+        {% for c in historial %}
+          <tr>
+            <td class="text-nowrap">{{ c.fecha_hora|date:"d/m/Y H:i" }}</td>
+            <td>{{ c.titulo }}</td>
+            <td>{% estado_cita c %}</td>
+            <td class="small">{{ c.resumen|truncatechars:90 }}</td>
+            <td class="text-end"><a href="{% url 'cita_detalle' c.pk %}" class="btn btn-sm btn-outline-secondary">Ver cita</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-muted mb-0">Sin citas anteriores.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

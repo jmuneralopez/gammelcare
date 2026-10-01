@@ -1,0 +1,17 @@
+{% load alertas_tags %}
+{% if alertas %}
+<div class="card card-gc mb-3 border-warning">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bell me-2"></i>Alertas de este residente ({{ alertas|length }})</h6>
+      <a href="{% url 'alertas_bandeja' %}?residente={{ residente.pk }}&ver=todas" class="btn btn-sm btn-outline-primary">Ver en la bandeja de alertas</a>
+    </div>
+    {% for a in alertas %}
+    <div class="d-flex justify-content-between align-items-center gap-2 py-1 small {% if not forloop.last %}border-bottom{% endif %}">
+      <span>{% gravedad a %} {{ a.titulo }}</span>
+      {% if a.url_accion %}<a href="{{ a.url_accion }}" class="btn btn-sm btn-outline-secondary text-nowrap">{{ a.texto_accion }}</a>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,21 @@
+{% if alertas_campana %}
+<li class="nav-item dropdown me-2">
+  <a class="nav-link position-relative px-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Alertas">
+    <i class="bi bi-bell{% if alertas_campana.total %}-fill text-{{ alertas_campana.color }}{% endif %} fs-5"></i>
+    <span class="ms-1 small">Alertas</span>
+    {% if alertas_campana.total %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-{{ alertas_campana.color }}">{{ alertas_campana.total }}</span>{% endif %}
+  </a>
+  <ul class="dropdown-menu dropdown-menu-end shadow p-0" style="min-width:360px; max-width:420px;">
+    <li class="px-3 py-2 border-bottom fw-semibold">Alertas para usted</li>
+    {% for a in alertas_campana.primeras %}
+    <li><a class="dropdown-item py-2 text-wrap border-bottom small" href="{{ a.url_accion|default:'/alertas/' }}">
+      {% load alertas_tags %}{% gravedad a %} {% if a.estado == 'atendida' %}<span class="badge text-bg-light border">Atendida</span>{% endif %}
+      <div class="mt-1">{{ a.titulo }}</div>
+    </a></li>
+    {% empty %}
+    <li class="px-3 py-3 text-muted small">No tiene alertas pendientes.</li>
+    {% endfor %}
+    <li><a class="dropdown-item py-2 text-center fw-semibold" href="{% url 'alertas_bandeja' %}">Ver todas las alertas</a></li>
+  </ul>
+</li>
+{% endif %}

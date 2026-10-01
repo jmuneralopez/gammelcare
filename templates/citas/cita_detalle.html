@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load citas_tags antecedentes_tags %}
+{% block title %}GammelCare — Cita{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-calendar2-event me-2"></i>{{ cita.titulo }} {% estado_cita cita %}</h4>
+  {% if puede_registrar and cita.abierta %}<a href="{% url 'cita_editar' cita.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Corregir cita</a>{% endif %}
+</div>
+{% include 'citas/_encabezado_residente.html' %}
+{% banner_alergias residente compacto=True %}
+
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="row g-3 small">
+      <div class="col-md-3"><div class="text-muted">Fecha y hora</div><div class="fw-semibold fs-6">{{ cita.fecha_hora|date:"l j \d\e F \d\e Y, H:i"|capfirst }}</div></div>
+      <div class="col-md-5"><div class="text-muted">Lugar</div><div>{{ cita.lugar }}</div></div>
+      <div class="col-md-4"><div class="text-muted">Profesional</div><div>{{ cita.profesional|default:"—" }}</div></div>
+      <div class="col-md-12"><div class="text-muted mb-1">Logística</div>{% include 'citas/_logistica.html' %}</div>
+      {% if cita.preparacion %}<div class="col-md-12"><div class="text-muted">Preparación e indicaciones</div><div>{{ cita.preparacion|linebreaksbr }}</div></div>{% endif %}
+      {% if cita.observaciones %}<div class="col-md-12"><div class="text-muted">Observaciones</div><div>{{ cita.observaciones|linebreaksbr }}</div></div>{% endif %}
+      <div class="col-md-12 text-muted">Agendada por {{ cita.registrado_por.get_full_name|default:cita.registrado_por.username }} el {{ cita.fecha_registro|date:"d/m/Y H:i" }}
+        {% if cita.reprogramada_desde %} · reprogramada desde la <a href="{% url 'cita_detalle' cita.reprogramada_desde.pk %}">cita del {{ cita.reprogramada_desde.fecha_hora|date:"d/m/Y H:i" }}</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not cita.abierta %}
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">{% if cita.estado == 'cumplida' %}Qué pasó en la cita{% elif cita.estado == 'no_asistio' %}Por qué no asistió{% elif cita.estado == 'cancelada' %}Motivo de la cancelación{% else %}Motivo de la reprogramación{% endif %}</h6>
+    <p class="mb-2">{{ cita.resumen|linebreaksbr }}</p>
+    {% if cita.archivo_soporte %}<a href="{% url 'cita_soporte_ver' cita.pk %}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-paperclip me-1"></i>Ver soporte</a>{% endif %}
+    {% if cita.estado == 'reprogramada' and cita.reprogramada_en %}<a href="{% url 'cita_detalle' cita.reprogramada_en.pk %}" class="btn btn-sm btn-outline-primary">Ver la nueva cita ({{ cita.reprogramada_en.fecha_hora|date:"d/m/Y H:i" }})</a>{% endif %}
+    <div class="small text-muted mt-2">Registrado por {{ cita.cerrada_por.get_full_name|default:cita.cerrada_por.username }} el {{ cita.fecha_cierre|date:"d/m/Y H:i" }}</div>
+  </div>
+</div>
+{% elif puede_registrar %}
+<div class="card card-gc">
+  <div class="card-body">
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      {% if puede_cerrar_hoy %}<button class="btn btn-gc" data-bs-toggle="collapse" data-bs-target="#form-cerrar"><i class="bi bi-check2-square me-1"></i>Registrar qué pasó</button>{% endif %}
+      <button class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#form-reprogramar"><i class="bi bi-calendar2-range me-1"></i>Reprogramar cita</button>
+      <button class="btn btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#form-cancelar"><i class="bi bi-x-circle me-1"></i>Cancelar cita</button>
+    </div>
+    <div id="acciones">
+      {% if puede_cerrar_hoy %}
+      <form id="form-cerrar" method="post" action="{% url 'cita_cerrar' cita.pk %}" enctype="multipart/form-data" class="collapse {% if abrir == 'cerrar' %}show{% endif %} border rounded p-3 mb-3" data-bs-parent="#acciones" novalidate>
+        {% csrf_token %}
+        <label class="form-label fw-semibold">{{ cerrar_form.estado.label }}</label>
+        <div class="d-flex gap-4 mb-2">{% for r in cerrar_form.estado %}<div class="form-check">{{ r.tag }}<label class="form-check-label" for="{{ r.id_for_label }}">{{ r.choice_label }}</label></div>{% endfor %}</div>
+        {% for e in cerrar_form.estado.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        <label class="form-label fw-semibold">{{ cerrar_form.resumen.label }}</label>{{ cerrar_form.resumen }}
+        {% for e in cerrar_form.resumen.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        <label class="form-label fw-semibold mt-2">{{ cerrar_form.archivo.label }}</label>{{ cerrar_form.archivo }}
+        {% for e in cerrar_form.archivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        <div class="small text-muted mt-2">Si el profesional cambió medicamentos u ordenó exámenes, regístrelos en <strong>Órdenes médicas</strong> y <strong>Exámenes</strong> del residente.</div>
+        <button type="submit" class="btn btn-gc mt-3">Guardar</button>
+      </form>
+      {% endif %}
+      <form id="form-reprogramar" method="post" action="{% url 'cita_reprogramar' cita.pk %}" class="collapse {% if abrir == 'reprogramar' %}show{% endif %} border rounded p-3 mb-3" data-bs-parent="#acciones" novalidate>
+        {% csrf_token %}
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label fw-semibold">{{ reprogramar_form.fecha_hora.label }}</label>{{ reprogramar_form.fecha_hora }}
+            {% for e in reprogramar_form.fecha_hora.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-md-8"><label class="form-label fw-semibold">{{ reprogramar_form.lugar.label }}</label>{{ reprogramar_form.lugar }}</div>
+          <div class="col-12"><label class="form-label fw-semibold">{{ reprogramar_form.motivo.label }}</label>{{ reprogramar_form.motivo }}
+            {% for e in reprogramar_form.motivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Reprogramar</button>
+      </form>
+      <form id="form-cancelar" method="post" action="{% url 'cita_cancelar' cita.pk %}" class="collapse {% if abrir == 'cancelar' %}show{% endif %} border rounded p-3" data-bs-parent="#acciones" novalidate>
+        {% csrf_token %}
+        <label class="form-label fw-semibold">{{ cancelar_form.motivo.label }}</label>{{ cancelar_form.motivo }}
+        {% for e in cancelar_form.motivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        <button type="submit" class="btn btn-danger mt-3">Confirmar cancelación</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

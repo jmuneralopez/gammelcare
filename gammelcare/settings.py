@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'medicamentos',
     'examenes',
     'antecedentes',
+    'citas',
+    'alertas',
 ]
 
 MIDDLEWARE = [
@@ -70,6 +72,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'alertas.context_processors.alertas',
             ],
         },
     },
