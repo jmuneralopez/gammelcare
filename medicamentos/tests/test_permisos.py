@@ -98,7 +98,7 @@ def test_boton_registrar_tratamiento_no_aparece_para_quien_no_puede_usarlo(
     resp = client.get(reverse('tratamiento_lista', args=[residente.pk]))
     assert resp.status_code == 200
     assert resp.context['puede_registrar_tratamiento'] is False
-    assert b'Registrar tratamiento' not in resp.content
+    assert 'Registrar orden médica'.encode() not in resp.content
 
 
 def test_boton_registrar_tratamiento_aparece_para_quien_si_puede(
@@ -108,7 +108,7 @@ def test_boton_registrar_tratamiento_aparece_para_quien_si_puede(
     resp = client.get(reverse('tratamiento_lista', args=[residente.pk]))
     assert resp.status_code == 200
     assert resp.context['puede_registrar_tratamiento'] is True
-    assert b'Registrar tratamiento' in resp.content
+    assert 'Registrar orden médica'.encode() in resp.content
 
 
 def test_boton_registrar_ingreso_no_aparece_para_quien_no_puede_usarlo(

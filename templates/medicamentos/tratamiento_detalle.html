@@ -9,7 +9,7 @@
   <div class="d-flex gap-2">
     {% if puede_suspender %}
     <a href="{% url 'tratamiento_suspender' prescripcion.pk %}" class="btn btn-outline-danger">
-      <i class="bi bi-pause-circle me-1"></i>Suspender
+      <i class="bi bi-pause-circle me-1"></i>Suspender por orden médica
     </a>
     {% endif %}
     <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-secondary">
@@ -58,7 +58,7 @@
       <div class="col-md-4"><small class="text-muted d-block">Fecha de la fórmula</small>{{ prescripcion.fecha_formula }}</div>
       <div class="col-md-4"><small class="text-muted d-block">Número de fórmula</small>{{ prescripcion.numero_formula|default:"—" }}</div>
       {% if prescripcion.archivo_formula %}
-      <div class="col-12"><a href="{{ prescripcion.archivo_formula.url }}" target="_blank"><i class="bi bi-paperclip me-1"></i>Ver archivo adjunto</a></div>
+      <div class="col-12"><a href="{% url 'tratamiento_formula_ver' prescripcion.pk %}" target="_blank" rel="noopener"><i class="bi bi-paperclip me-1"></i>Ver foto de la fórmula</a></div>
       {% endif %}
     </div>
   </div>

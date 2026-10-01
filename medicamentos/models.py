@@ -3,6 +3,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
+
+from gammelcare.archivos_privados import almacenamiento_privado
 from django.db.models import Q
 from django.utils import timezone
 
@@ -130,6 +132,16 @@ class Medicamento(models.Model):
         self.save(update_fields=['hogar'])
 
 
+def _ruta_formula(instance, filename):
+    import os
+    import uuid
+    extension = os.path.splitext(filename)[1].lower()
+    return (
+        f'medicamentos/formulas/hogar_{instance.residente.hogar_id}/'
+        f'residente_{instance.residente_id}/{uuid.uuid4().hex}{extension}'
+    )
+
+
 class Prescripcion(models.Model):
 
     HORARIOS_FIJOS = 'horarios_fijos'
@@ -233,8 +245,12 @@ class Prescripcion(models.Model):
         max_length=50, blank=True,
         verbose_name='Número de fórmula'
     )
+    # Foto de la fórmula: historia clínica, en el almacenamiento privado y
+    # servida solo por la vista tratamiento_formula_ver (permiso + auditoría).
     archivo_formula = models.FileField(
-        upload_to='medicamentos/formulas/%Y/%m/',
+        upload_to=_ruta_formula,
+        storage=almacenamiento_privado,
+        max_length=255,
         null=True, blank=True,
         verbose_name='Archivo de la fórmula (foto o escaneo)'
     )
@@ -450,8 +466,8 @@ class Administracion(models.Model):
     ADMINISTRADO = 'administrado'
     NO_ADMINISTRADO = 'no_administrado'
     ESTADOS = [
-        (ADMINISTRADO, 'Administrado'),
-        (NO_ADMINISTRADO, 'No administrado'),
+        (ADMINISTRADO, 'Suministrado'),
+        (NO_ADMINISTRADO, 'No suministrado'),
     ]
 
     MOTIVOS_NO_ADMINISTRACION = [
@@ -509,7 +525,7 @@ class Administracion(models.Model):
     cantidad_administrada = models.DecimalField(
         max_digits=6, decimal_places=2,
         null=True, blank=True,
-        verbose_name='Cantidad administrada'
+        verbose_name='Cantidad suministrada'
     )
     ingreso_usado = models.ForeignKey(
         IngresoMedicamento,
@@ -643,7 +659,7 @@ class MovimientoInventario(models.Model):
     DEVOLUCION_FAMILIA = 'devolucion_familia'
     TIPOS = [
         (ENTRADA, 'Entrada'),
-        (SALIDA_ADMINISTRACION, 'Salida por administración'),
+        (SALIDA_ADMINISTRACION, 'Salida por suministro'),
         (AJUSTE, 'Ajuste'),
         (DESCARTE_VENCIDO, 'Descarte por vencimiento'),
         (DEVOLUCION_FAMILIA, 'Devolución a la familia'),

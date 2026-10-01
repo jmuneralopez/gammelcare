@@ -3,7 +3,7 @@
 import django.db.models.deletion
 import django.utils.timezone
 import examenes.models
-import examenes.storage
+import gammelcare.archivos_privados
 from django.conf import settings
 from django.db import migrations, models
 
@@ -226,7 +226,7 @@ class Migration(migrations.Migration):
                     "archivo",
                     models.FileField(
                         max_length=255,
-                        storage=examenes.storage.AlmacenamientoPrivado(),
+                        storage=gammelcare.archivos_privados.AlmacenamientoPrivado(),
                         upload_to=examenes.models._ruta_archivo,
                     ),
                 ),

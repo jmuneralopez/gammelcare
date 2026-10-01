@@ -152,7 +152,7 @@ def tratamiento_crear(request, pk):
                         f'registrado para residente #{residente.pk}',
             request=request
         )
-        messages.success(request, 'Tratamiento registrado correctamente.')
+        messages.success(request, 'Orden médica registrada.')
         return redirect('tratamiento_detalle', pk=prescripcion.pk)
 
     return render(request, 'medicamentos/tratamiento_form.html', {
@@ -181,13 +181,42 @@ def tratamiento_detalle(request, pk):
 
 
 @login_required
+@clinico_requerido
+def tratamiento_formula_ver(request, pk):
+    """Entrega la foto de la fórmula desde el almacenamiento privado, solo a
+    roles clínicos y administrador del mismo hogar, con registro en auditoría."""
+    from django.http import FileResponse, Http404
+    from gammelcare.archivos_privados import tipo_por_extension
+    prescripcion = get_object_or_404(
+        Prescripcion.objects.select_related('residente'),
+        pk=pk, residente__hogar=request.user.hogar,
+    )
+    if not prescripcion.archivo_formula:
+        raise Http404('Esta orden médica no tiene foto de la fórmula.')
+    try:
+        handle = prescripcion.archivo_formula.open('rb')
+    except FileNotFoundError:
+        raise Http404('El archivo no se encuentra en el almacenamiento.')
+    registrar_auditoria(
+        request.user, RegistroAuditoria.CONSULTA_EXPEDIENTE,
+        f'Consulta de la foto de la fórmula de la orden médica #{prescripcion.pk} '
+        f'(residente #{prescripcion.residente_id})', request,
+    )
+    nombre = prescripcion.archivo_formula.name.rsplit('/', 1)[-1]
+    respuesta = FileResponse(handle, content_type=tipo_por_extension(nombre), filename=nombre)
+    respuesta['X-Content-Type-Options'] = 'nosniff'
+    respuesta['Cache-Control'] = 'private, no-store'
+    return respuesta
+
+
+@login_required
 @registro_tratamiento_requerido
 def tratamiento_suspender(request, pk):
     prescripcion = get_object_or_404(
         Prescripcion, pk=pk, residente__hogar=request.user.hogar
     )
     if prescripcion.estado != Prescripcion.ACTIVA:
-        messages.error(request, 'Este tratamiento ya no está activo.')
+        messages.error(request, 'Esta orden médica ya no está activa.')
         return redirect('tratamiento_detalle', pk=prescripcion.pk)
 
     form = SuspensionForm(request.POST or None)
@@ -204,7 +233,7 @@ def tratamiento_suspender(request, pk):
             descripcion=f'Tratamiento #{prescripcion.pk} ({prescripcion.medicamento}) suspendido',
             request=request
         )
-        messages.success(request, 'Tratamiento suspendido correctamente.')
+        messages.success(request, 'Orden médica suspendida.')
         return redirect('tratamiento_detalle', pk=prescripcion.pk)
 
     return render(request, 'medicamentos/tratamiento_suspender.html', {
@@ -288,7 +317,7 @@ def ingreso_crear(request, pk):
                             f'{creados} lote(s) nuevo(s), {sumados} sumado(s) a saldo existente',
                 request=request
             )
-            messages.success(request, f'Ingreso registrado: {creados + sumados} medicamento(s).')
+            messages.success(request, f'Guardado en el cajón: {creados + sumados} medicamento(s).')
             return redirect('ingreso_lista', pk=residente.pk)
         messages.error(request, 'Agregue al menos un medicamento con lote, cantidad y vencimiento.')
 
@@ -324,7 +353,7 @@ def ingreso_botiquin_crear(request):
                             f'{sumados} sumado(s) a saldo existente',
                 request=request
             )
-            messages.success(request, f'Ingreso al botiquín registrado: {creados + sumados} medicamento(s).')
+            messages.success(request, f'Agregado al botiquín: {creados + sumados} medicamento(s).')
             return redirect('botiquin_lista')
         messages.error(request, 'Agregue al menos un medicamento con lote, cantidad y vencimiento.')
 
@@ -462,7 +491,7 @@ def administracion_registrar(request, prescripcion_pk, horario_pk):
         observacion = form.cleaned_data['observacion']
 
     if cantidad != prescripcion.dosis_cantidad and not observacion:
-        messages.error(request, 'La dosis administrada es distinta de la formulada: la observación es obligatoria.')
+        messages.error(request, 'La dosis suministrada es distinta de la formulada: la observación es obligatoria.')
         return redirect('hoja_dia', pk=residente.pk)
 
     try:
@@ -494,7 +523,7 @@ def administracion_registrar(request, prescripcion_pk, horario_pk):
             request=request
         )
 
-    messages.success(request, 'Administración registrada.')
+    messages.success(request, 'Suministro registrado.')
     return redirect('hoja_dia', pk=residente.pk)
 
 
@@ -536,7 +565,7 @@ def administracion_no_registrar(request, prescripcion_pk, horario_pk):
                     f'— motivo: {dict(Administracion.MOTIVOS_NO_ADMINISTRACION).get(form.cleaned_data["motivo_no_administracion"])}',
         request=request
     )
-    messages.success(request, 'Registrado como no administrado.')
+    messages.success(request, 'Registrado como no suministrado.')
     return redirect('hoja_dia', pk=residente.pk)
 
 
@@ -564,7 +593,7 @@ def administracion_prn_registrar(request, prescripcion_pk):
     try:
         cantidad = Decimal(cantidad_raw) if cantidad_raw else prescripcion.dosis_cantidad
     except InvalidOperation:
-        messages.error(request, 'La cantidad administrada no es un número válido.')
+        messages.error(request, 'La cantidad suministrada no es un número válido.')
         return redirect('hoja_dia', pk=residente.pk)
 
     try:
@@ -622,7 +651,7 @@ def administracion_anular(request, pk):
                     f'({administracion.prescripcion.medicamento}) — residente #{residente.pk}',
         request=request
     )
-    messages.success(request, 'Administración anulada. El stock fue devuelto.')
+    messages.success(request, 'Suministro anulado. La unidad volvió al saldo.')
     return redirect('hoja_dia', pk=residente.pk)
 # ── Ronda por franja horaria (3.1) ───────────────────────────────
 

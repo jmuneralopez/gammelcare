@@ -5,38 +5,7 @@ from django.utils import timezone
 
 from .models import AnalitoCatalogo, Examen, RevisionMedica
 
-TIPOS_PERMITIDOS = {
-    'application/pdf': (b'%PDF',),
-    'image/jpeg': (b'\xff\xd8\xff',),
-    'image/png': (b'\x89PNG\r\n\x1a\n',),
-}
-EXTENSIONES_PERMITIDAS = {'.pdf', '.jpg', '.jpeg', '.png'}
-
-
-def validar_archivo_resultado(archivo):
-    """Acepta solo PDF, JPG y PNG, verificando la firma real del archivo
-    (no solo la extensión) y el tamaño máximo configurado."""
-    import os
-    extension = os.path.splitext(archivo.name)[1].lower()
-    if extension not in EXTENSIONES_PERMITIDAS:
-        raise forms.ValidationError(
-            f'"{archivo.name}": solo se aceptan archivos PDF, JPG o PNG.'
-        )
-    maximo = settings.EXAMENES_MAX_MB * 1024 * 1024
-    if archivo.size > maximo:
-        raise forms.ValidationError(
-            f'"{archivo.name}" supera el tamaño máximo de {settings.EXAMENES_MAX_MB} MB.'
-        )
-    archivo.seek(0)
-    cabecera = archivo.read(8)
-    archivo.seek(0)
-    for content_type, firmas in TIPOS_PERMITIDOS.items():
-        if any(cabecera.startswith(f) for f in firmas):
-            archivo.tipo_detectado = content_type
-            return archivo
-    raise forms.ValidationError(
-        f'"{archivo.name}" no parece un PDF o una imagen válida.'
-    )
+from gammelcare.archivos_privados import validar_archivo_clinico as validar_archivo_resultado  # noqa: E402
 
 
 class MultipleFileInput(forms.ClearableFileInput):

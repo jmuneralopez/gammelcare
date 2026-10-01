@@ -11,6 +11,7 @@ urlpatterns = [
     path('residente/<int:pk>/tratamientos/nuevo/', views.tratamiento_crear, name='tratamiento_crear'),
     path('tratamiento/<int:pk>/', views.tratamiento_detalle, name='tratamiento_detalle'),
     path('tratamiento/<int:pk>/suspender/', views.tratamiento_suspender, name='tratamiento_suspender'),
+    path('tratamiento/<int:pk>/formula/', views.tratamiento_formula_ver, name='tratamiento_formula_ver'),
 
     # Ingreso de medicamentos
     path('residente/<int:pk>/ingreso/nuevo/', views.ingreso_crear, name='ingreso_crear'),

@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}GammelCare — Suspender tratamiento{% endblock %}
+{% block title %}GammelCare — Suspender orden médica{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
-    <i class="bi bi-pause-circle me-2"></i>Suspender tratamiento
+    <i class="bi bi-pause-circle me-2"></i>Suspender orden médica
   </h4>
   <a href="{% url 'tratamiento_detalle' prescripcion.pk %}" class="btn btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>Volver

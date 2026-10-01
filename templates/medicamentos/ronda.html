@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 {% block title %}GammelCare — Ronda de medicamentos{% endblock %}
 
 {% block extra_css %}
@@ -24,11 +25,11 @@
   <div class="d-flex gap-2">
     {% if modo_alistamiento %}
       <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}" class="btn btn-gc">
-        <i class="bi bi-play-fill me-1"></i>Ir a la ronda
+        <i class="bi bi-play-fill me-1"></i>Empezar a registrar
       </a>
     {% else %}
       <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}&modo=alistamiento" class="btn btn-outline-secondary">
-        <i class="bi bi-eye me-1"></i>Vista previa (alistamiento)
+        <i class="bi bi-eye me-1"></i>Preparar la ronda
       </a>
     {% endif %}
   </div>
@@ -75,11 +76,11 @@
     <div class="d-flex gap-2">
       {% if not modo_alistamiento and puede_administrar and bloque.filas_json != '[]' %}
       <button type="button" class="btn btn-sm btn-gc" data-filas='{{ bloque.filas_json }}' onclick="rondaAdministrarBloque(this)">
-        Administrar todos
+        Suministrar todo
       </button>
       {% endif %}
       <a href="{% url 'hoja_dia' bloque.residente.pk %}?fecha={{ fecha|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">
-        Hoja completa <i class="bi bi-arrow-right ms-1"></i>
+        Ver su día completo <i class="bi bi-arrow-right ms-1"></i>
       </a>
     </div>
   </div>
@@ -129,8 +130,8 @@
               <div class="col-auto flex-grow-1">
                 <input type="text" class="form-control form-control-sm" id="obsbot-{{ p.pk }}-{{ f.horario.pk }}" placeholder="Observación (obligatoria)" style="min-width:220px;">
               </div>
-              <div class="col-auto"><button type="button" class="btn btn-sm btn-warning" onclick="rondaMarcarUsarBotiquin({{ p.pk }}, {{ f.horario.pk }})">Usar del botiquín</button></div>
-              <div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" onclick="rondaMarcarNoAdmSinExistencias({{ p.pk }}, {{ f.horario.pk }})">No administrar</button></div>
+              <div class="col-auto"><button type="button" class="btn btn-sm btn-warning" onclick="rondaMarcarUsarBotiquin({{ p.pk }}, {{ f.horario.pk }})">Suministrar del botiquín del hogar</button></div>
+              <div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" onclick="rondaMarcarNoAdmSinExistencias({{ p.pk }}, {{ f.horario.pk }})">No suministrado: no hay medicamento</button></div>
             </div>
             <div class="small mt-1" id="marca-estado-{{ p.pk }}-{{ f.horario.pk }}"></div>
           </div>
@@ -139,7 +140,7 @@
           <div class="d-flex justify-content-between align-items-center flex-wrap" id="fila-{{ p.pk }}-{{ f.horario.pk }}">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" id="check-{{ p.pk }}-{{ f.horario.pk }}"
-                     onchange="rondaToggleAdministrar(this, {{ p.pk }}, {{ f.horario.pk }}, '{{ p.dosis_cantidad }}')">
+                     onchange="rondaToggleAdministrar(this, {{ p.pk }}, {{ f.horario.pk }}, '{{ p.dosis_cantidad|unlocalize }}')">
               <label class="form-check-label" for="check-{{ p.pk }}-{{ f.horario.pk }}">
                 <strong>{{ p.medicamento }}</strong> — {{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}, {{ p.get_via_administracion_display }}
                 {% if p.medicamento.control_especial %}<i class="bi bi-shield-lock text-warning ms-1" title="Control especial"></i>{% endif %}
@@ -147,8 +148,8 @@
               </label>
             </div>
             <div class="d-flex gap-1">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#detalle-{{ p.pk }}-{{ f.horario.pk }}" title="Ajustar dosis u observación">···</button>
-              <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#noadm-{{ p.pk }}-{{ f.horario.pk }}" title="No administrar">✕</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#detalle-{{ p.pk }}-{{ f.horario.pk }}" ><i class="bi bi-pencil me-1"></i>Cambiar dosis o anotar</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#noadm-{{ p.pk }}-{{ f.horario.pk }}" ><i class="bi bi-x-lg me-1"></i>No suministrado…</button>
             </div>
           </div>
           <div class="collapse caja-accion mt-2" id="detalle-{{ p.pk }}-{{ f.horario.pk }}">
@@ -156,7 +157,7 @@
               <div class="col-auto">
                 <label class="form-label small mb-0">Cantidad</label>
                 <input type="number" step="0.01" id="cant-{{ p.pk }}-{{ f.horario.pk }}" class="form-control form-control-sm" style="width:90px;"
-                       value="{{ p.dosis_cantidad }}" oninput="rondaAjustarDetalle({{ p.pk }}, {{ f.horario.pk }})">
+                       value="{{ p.dosis_cantidad|unlocalize }}" oninput="rondaAjustarDetalle({{ p.pk }}, {{ f.horario.pk }})">
               </div>
               <div class="col-auto flex-grow-1">
                 <label class="form-label small mb-0">Observación</label>
@@ -195,13 +196,13 @@
   <input type="hidden" name="hora" value="{{ hora_seleccionada|time:'H:i' }}">
   <input type="hidden" name="acciones_json" id="acciones_json" value="[]">
   <div class="barra-guardar d-flex justify-content-end">
-    <button type="submit" id="btn-guardar" class="btn btn-gc btn-lg" disabled>Guardar</button>
+    <button type="submit" id="btn-guardar" class="btn btn-gc btn-lg" disabled>Guardar la ronda</button>
   </div>
 </form>
 {% endif %}
 
 {% else %}
-<p class="text-muted">No hay tratamientos con horario fijo programados para esta fecha.</p>
+<p class="text-muted">No hay órdenes médicas con horario fijo para esta fecha.</p>
 {% endif %}
 {% endblock %}
 
@@ -216,7 +217,7 @@
     var boton = document.getElementById('btn-guardar');
     if (!boton) return;
     var n = Object.keys(estado).length;
-    boton.textContent = n > 0 ? 'Guardar ' + n + ' registro(s)' : 'Guardar';
+    boton.textContent = n > 0 ? 'Guardar la ronda (' + n + ' registro' + (n === 1 ? '' : 's') + ')' : 'Guardar la ronda';
     boton.disabled = n === 0;
   }
 
@@ -263,13 +264,13 @@
     }
     marcarEstado(pres, hor, {accion: 'usar_botiquin', motivo_uso_botiquin: motivo, observacion: observacion});
     var aviso = document.getElementById('marca-estado-' + pres + '-' + hor);
-    if (aviso) aviso.innerHTML = '<span class="badge bg-warning text-dark">Marcado: usar del botiquín</span>';
+    if (aviso) aviso.innerHTML = '<span class="badge bg-warning text-dark">Marcado: suministrar del botiquín</span>';
   };
 
   window.rondaMarcarNoAdmSinExistencias = function(pres, hor) {
     marcarEstado(pres, hor, {accion: 'no_administrar', motivo: 'sin_existencias', observacion: ''});
     var aviso = document.getElementById('marca-estado-' + pres + '-' + hor);
-    if (aviso) aviso.innerHTML = '<span class="badge bg-secondary">Marcado: no administrado (sin existencias)</span>';
+    if (aviso) aviso.innerHTML = '<span class="badge bg-secondary">Marcado: no suministrado (no hay medicamento)</span>';
   };
 
   window.rondaAdministrarBloque = function(boton) {

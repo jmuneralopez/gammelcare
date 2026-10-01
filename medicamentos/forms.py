@@ -1,4 +1,6 @@
 from django import forms
+
+from gammelcare.archivos_privados import validar_archivo_clinico
 from django.forms import formset_factory
 
 from .models import (
@@ -153,6 +155,13 @@ class PrescripcionForm(forms.ModelForm):
             self.fields['diagnostico'].queryset = residente.diagnosticos.filter(activo=True)
         self.fields['diagnostico'].required = False
         self.fields['diagnostico'].empty_label = 'Sin diagnóstico asociado'
+
+    def clean_archivo_formula(self):
+        """Solo PDF, JPG o PNG reales, con el tamaño máximo configurado."""
+        archivo = self.cleaned_data.get('archivo_formula')
+        if archivo and hasattr(archivo, 'content_type'):
+            validar_archivo_clinico(archivo)
+        return archivo
 
     def clean(self):
         cleaned = super().clean()
