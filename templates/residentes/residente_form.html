@@ -62,10 +62,16 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">EPS</label>
           {{ form.eps }}
+          <button type="button" class="btn btn-link btn-sm px-0" data-bs-toggle="modal" data-bs-target="#modalNuevaEps">
+            <i class="bi bi-plus-circle me-1"></i>¿La EPS no está en la lista? Agregarla
+          </button>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Servicio de ambulancia</label>
           {{ form.servicio_ambulancia }}
+          <button type="button" class="btn btn-link btn-sm px-0" data-bs-toggle="modal" data-bs-target="#modalNuevaAmbulancia">
+            <i class="bi bi-plus-circle me-1"></i>¿El servicio no está en la lista? Agregarlo
+          </button>
         </div>
         <div class="col-md-8">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Contacto de emergencia</label>
@@ -225,12 +231,63 @@
     </a>
   </div>
 </form>
+
+<div class="modal fade alta-rapida" id="modalNuevaEps" tabindex="-1"
+     data-url="{% url 'eps_crear_rapido' %}" data-select="#id_eps">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Agregar EPS a la lista</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="errores text-danger small mb-2"></div>
+      <label class="form-label small fw-semibold">Nombre</label><input type="text" name="nombre" class="form-control mb-2" placeholder="Ej.: Nueva EPS">
+      <div class="row g-2">
+        <div class="col-6"><label class="form-label small fw-semibold">Código (opcional)</label><input type="text" name="codigo" class="form-control"></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Teléfono (opcional)</label><input type="text" name="telefono" class="form-control"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-gc guardar-alta">Agregar a la lista</button></div>
+  </div></div>
+</div>
+
+<div class="modal fade alta-rapida" id="modalNuevaAmbulancia" tabindex="-1"
+     data-url="{% url 'ambulancia_crear_rapido' %}" data-select="#id_servicio_ambulancia">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Agregar servicio de ambulancia a la lista</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="errores text-danger small mb-2"></div>
+      <label class="form-label small fw-semibold">Nombre</label><input type="text" name="nombre" class="form-control mb-2" placeholder="Ej.: Ambulancias Vida">
+      <label class="form-label small fw-semibold">Teléfono (opcional)</label><input type="text" name="telefono" class="form-control">
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-gc guardar-alta">Agregar a la lista</button></div>
+  </div></div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
+
+
+  // Alta rápida de EPS y ambulancia desde ventanas emergentes
+  document.querySelectorAll('.modal.alta-rapida').forEach(function (modal) {
+    modal.querySelector('.guardar-alta').addEventListener('click', function () {
+      const datos = new FormData();
+      modal.querySelectorAll('input').forEach(function (c) { datos.append(c.name, c.value); });
+      datos.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+      const errores = modal.querySelector('.errores');
+      errores.textContent = '';
+      fetch(modal.dataset.url, { method: 'POST', body: datos })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) { errores.textContent = Object.values(res.j.errors || {}).flat().join(' ') || 'No se pudo guardar.'; return; }
+          const opcion = new Option(res.j.text, res.j.id, true, true);
+          $(modal.dataset.select).append(opcion).trigger('change');
+          modal.querySelectorAll('input').forEach(function (c) { c.value = ''; });
+          bootstrap.Modal.getInstance(modal).hide();
+        })
+        .catch(function () { errores.textContent = 'No se pudo guardar. Revise la conexión.'; });
+    });
+  });
 
   // Select2 para EPS
   $('#id_eps').select2({

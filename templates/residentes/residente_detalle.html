@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load examenes_tags %}
+{% load antecedentes_tags %}
 {% block title %}GammelCare — Expediente{% endblock %}
 
 {% block extra_css %}
@@ -51,6 +52,8 @@
     </a>
   </div>
 </div>
+
+{% banner_alergias residente %}
 
 {% if user.puede_exportar %}
 <!-- MODAL: Exportar PDF -->
@@ -425,6 +428,8 @@
   </div>
 </div>
 {% endif %}
+
+{% resumen_antecedentes residente %}
 
 <!-- DIAGNÓSTICOS CIE-10 -->
 <div class="card card-gc mb-3">

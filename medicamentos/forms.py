@@ -149,8 +149,16 @@ class PrescripcionForm(forms.ModelForm):
             'numero_formula': 'Opcional — el número que trae la orden médica o de la EPS, si tiene uno.',
         }
 
+    confirmar_alergia = forms.BooleanField(
+        required=False,
+        label='Confirmo que esta orden médica es correcta pese a la alergia registrada',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
     def __init__(self, *args, residente=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.residente = residente
+        self.conflictos_alergia = []
         if residente is not None:
             self.fields['diagnostico'].queryset = residente.diagnosticos.filter(activo=True)
         self.fields['diagnostico'].required = False
@@ -176,6 +184,20 @@ class PrescripcionForm(forms.ModelForm):
             self.add_error('duracion_dias', 'Indique el número de días.')
         if duracion_tipo == DURACION_FECHA and not cleaned.get('duracion_fecha'):
             self.add_error('duracion_fecha', 'Indique la fecha de fin.')
+
+        # Aviso de alergia: no bloquea para siempre (puede ser una alergia mal
+        # registrada o una decisión médica consciente), pero exige confirmar.
+        medicamento = cleaned.get('medicamento')
+        if self.residente is not None and medicamento is not None:
+            from antecedentes.services import conflictos_alergia
+            self.conflictos_alergia = conflictos_alergia(self.residente, medicamento)
+            if self.conflictos_alergia and not cleaned.get('confirmar_alergia'):
+                sustancias = ', '.join(a.sustancia for a in self.conflictos_alergia)
+                self.add_error(None, (
+                    f'ATENCIÓN: el residente tiene registrada alergia a {sustancias}. '
+                    'Verifique la fórmula con el médico. Si la orden es correcta, marque la '
+                    'confirmación y guarde de nuevo.'
+                ))
 
         return cleaned
 

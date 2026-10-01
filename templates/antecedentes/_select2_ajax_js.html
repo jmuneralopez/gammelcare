@@ -1,0 +1,16 @@
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$('.select2-ajax').each(function () {
+  const $el = $(this);
+  $el.select2({
+    placeholder: $el.data('placeholder') || 'Buscar...',
+    allowClear: true,
+    minimumInputLength: 2,
+    ajax: {
+      url: $el.data('url'), dataType: 'json', delay: 300,
+      data: function (params) { return { term: params.term }; },
+      processResults: function (data) { return { results: data.results }; }
+    }
+  });
+});
+</script>

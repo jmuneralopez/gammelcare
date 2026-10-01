@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load antecedentes_tags %}
 {% block title %}GammelCare — Registrar orden médica{% endblock %}
 
 {% block extra_css %}
@@ -29,6 +30,8 @@
   <strong>Residente:</strong> {{ nombre }}
 </div>
 
+{% banner_alergias residente True %}
+
 <div class="alert alert-warning py-2">
   <i class="bi bi-info-circle-fill me-2"></i>
   Aquí se <strong>transcribe</strong> una fórmula que ya emitió el médico o la EPS, no se crea una nueva.
@@ -37,6 +40,9 @@
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger"><i class="bi bi-exclamation-octagon-fill me-2"></i>{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+  {% endif %}
   {{ form.horas }}
 
   <div class="card card-gc mb-4">
@@ -184,6 +190,16 @@
       </div>
     </div>
   </div>
+
+  {% if form.conflictos_alergia %}
+  <div class="alert alert-danger">
+    <div class="form-check">
+      {{ form.confirmar_alergia }}
+      <label class="form-check-label fw-semibold" for="{{ form.confirmar_alergia.id_for_label }}">{{ form.confirmar_alergia.label }}</label>
+    </div>
+    <small>La confirmación queda en la auditoría con su usuario.</small>
+  </div>
+  {% endif %}
 
   <div class="d-flex gap-2 mb-5">
     <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar orden médica</button>

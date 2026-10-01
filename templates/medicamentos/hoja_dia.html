@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load l10n %}
+{% load antecedentes_tags %}
 {% block title %}GammelCare — Medicamentos de hoy — {{ nombre }}{% endblock %}
 
 {% block extra_css %}
@@ -24,6 +25,8 @@
     <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-boxes me-1"></i>Cajón de medicamentos</a>
   </div>
 </div>
+
+{% banner_alergias residente True %}
 
 <div class="d-flex align-items-center justify-content-between mb-4 p-2" style="background-color:#EBF3FA; border-radius:8px;">
   <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>

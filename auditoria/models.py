@@ -34,6 +34,14 @@ class RegistroAuditoria(models.Model):
     CANCELACION_EXAMEN = 'cancelacion_examen'
     CONSULTA_RESULTADO = 'consulta_resultado'
 
+    # Alergias y antecedentes.
+    ALERGIA_REGISTRADA = 'alergia_registrada'
+    ALERGIA_INACTIVADA = 'alergia_inactivada'
+    SIN_ALERGIAS = 'sin_alergias'
+    ANTECEDENTE_REGISTRADO = 'antecedente_registrado'
+    ANTECEDENTE_INACTIVADO = 'antecedente_inactivado'
+    ORDEN_PESE_A_ALERGIA = 'orden_pese_a_alergia'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -58,6 +66,12 @@ class RegistroAuditoria(models.Model):
         (REVISION_EXAMEN, 'Revisión médica de examen'),
         (CANCELACION_EXAMEN, 'Cancelación de orden de examen'),
         (CONSULTA_RESULTADO, 'Consulta de archivo de resultado'),
+        (ALERGIA_REGISTRADA, 'Registro de alergia'),
+        (ALERGIA_INACTIVADA, 'Inactivación de alergia'),
+        (SIN_ALERGIAS, 'Declaración de sin alergias conocidas'),
+        (ANTECEDENTE_REGISTRADO, 'Registro de antecedente'),
+        (ANTECEDENTE_INACTIVADO, 'Inactivación de antecedente'),
+        (ORDEN_PESE_A_ALERGIA, 'Orden médica registrada pese a alergia'),
     ]
 
     usuario = models.ForeignKey(

@@ -148,10 +148,20 @@ def tratamiento_crear(request, pk):
         registrar_auditoria(
             usuario=request.user,
             accion=RegistroAuditoria.PRESCRIPCION_CREADA,
-            descripcion=f'Tratamiento formulado #{prescripcion.pk} ({prescripcion.medicamento}) '
-                        f'registrado para residente #{residente.pk}',
+            descripcion=f'Orden médica #{prescripcion.pk} ({prescripcion.medicamento}) '
+                        f'registrada para residente #{residente.pk}',
             request=request
         )
+        if form.conflictos_alergia:
+            registrar_auditoria(
+                usuario=request.user,
+                accion=RegistroAuditoria.ORDEN_PESE_A_ALERGIA,
+                descripcion=f'Orden médica #{prescripcion.pk} ({prescripcion.medicamento}) registrada '
+                            f'confirmando la alerta de alergia a '
+                            f'{", ".join(a.sustancia for a in form.conflictos_alergia)} '
+                            f'(residente #{residente.pk})',
+                request=request
+            )
         messages.success(request, 'Orden médica registrada.')
         return redirect('tratamiento_detalle', pk=prescripcion.pk)
 

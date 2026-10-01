@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load l10n %}
+{% load antecedentes_tags %}
 {% block title %}GammelCare — Ronda de medicamentos{% endblock %}
 
 {% block extra_css %}
@@ -72,6 +73,7 @@
         · Hab. {{ bloque.residente.cama_actual.habitacion.numero }} · Cama {{ bloque.residente.cama_actual.codigo }}
       </span>
       <div class="fw-bold" style="color:#1F4E79;">{{ bloque.residente.get_nombre }}</div>
+      {% with alergias=bloque.residente|alergias_texto %}{% if alergias %}<span class="badge text-bg-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Alergias: {{ alergias }}</span>{% endif %}{% endwith %}
     </div>
     <div class="d-flex gap-2">
       {% if not modo_alistamiento and puede_administrar and bloque.filas_json != '[]' %}

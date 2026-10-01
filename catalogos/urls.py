@@ -7,6 +7,10 @@ urlpatterns = [
     path('buscar/eps/', views.buscar_eps, name='buscar_eps'),
     path('buscar/ambulancia/', views.buscar_ambulancia, name='buscar_ambulancia'),
 
+    # Alta rápida desde el formulario del residente
+    path('eps/nueva-rapida/', views.eps_crear_rapido, name='eps_crear_rapido'),
+    path('ambulancia/nueva-rapida/', views.ambulancia_crear_rapido, name='ambulancia_crear_rapido'),
+
     # EPS
     path('eps/', views.eps_lista, name='eps_lista'),
     path('eps/nueva/', views.eps_crear, name='eps_crear'),

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Registrar alergia{% endblock %}
+{% block extra_css %}{% include 'antecedentes/_select2_ajax.html' %}{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4" style="color:#1F4E79;"><i class="bi bi-shield-exclamation me-2"></i>Registrar alergia — {{ nombre }}</h4>
+
+<div class="card card-gc" style="max-width:800px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.tipo.label }}</label>{{ form.tipo }}</div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Medicamento del catálogo</label>{{ form.medicamento }}
+          <small class="text-muted">{{ form.medicamento.help_text }}</small>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">¿A qué es alérgico?</label>{{ form.sustancia }}
+          {% for e in form.sustancia.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          <small class="text-muted">Si eligió el medicamento arriba, puede dejarlo vacío.</small>
+        </div>
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.severidad.label }}</label>{{ form.severidad }}</div>
+        <div class="col-md-6"><label class="form-label fw-semibold">{{ form.reaccion.label }}</label>{{ form.reaccion }}</div>
+        <div class="col-md-6"><label class="form-label fw-semibold">{{ form.fuente.label }}</label>{{ form.fuente }}</div>
+        <div class="col-12"><label class="form-label fw-semibold">{{ form.descripcion_reaccion.label }}</label>{{ form.descripcion_reaccion }}</div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar alergia</button>
+        <a href="{% url 'residente_antecedentes' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}{% include 'antecedentes/_select2_ajax_js.html' %}{% endblock %}

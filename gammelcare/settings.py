@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'catalogos',
     'medicamentos',
     'examenes',
+    'antecedentes',
 ]
 
 MIDDLEWARE = [

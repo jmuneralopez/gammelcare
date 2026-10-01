@@ -1,0 +1,18 @@
+{% if estado == 'alergias' %}
+<div class="alert alert-danger py-2 {% if compacto %}mb-2 small{% else %}mb-3{% endif %} d-flex align-items-center gap-2 flex-wrap" role="alert">
+  <i class="bi bi-exclamation-octagon-fill"></i>
+  <strong>Alergias:</strong>
+  {% for a in alergias %}
+    <span class="badge text-bg-danger">{{ a.sustancia }}{% if a.severidad == 'grave' %} · grave{% endif %}</span>
+  {% endfor %}
+</div>
+{% elif estado == 'sin_alergias' %}
+{% if not compacto %}
+<div class="alert alert-success py-2 mb-3 small"><i class="bi bi-check-circle me-1"></i>Sin alergias conocidas.</div>
+{% endif %}
+{% else %}
+<div class="alert alert-warning py-2 {% if compacto %}mb-2 small{% else %}mb-3{% endif %}">
+  <i class="bi bi-question-circle me-1"></i>Alergias sin registrar: nadie ha confirmado si tiene o no.
+  {% if not compacto %}<a href="{% url 'residente_antecedentes' residente.pk %}" class="alert-link ms-1">Registrarlas</a>{% endif %}
+</div>
+{% endif %}

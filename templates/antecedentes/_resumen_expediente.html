@@ -1,0 +1,24 @@
+<!-- ALERGIAS Y ANTECEDENTES -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-shield-exclamation me-2"></i>Alergias y antecedentes</h6>
+      <a href="{% url 'residente_antecedentes' residente.pk %}" class="btn btn-sm {% if puede_registrar %}btn-gc{% else %}btn-outline-primary{% endif %}">
+        <i class="bi bi-{% if puede_registrar %}pencil-square{% else %}eye{% endif %} me-1"></i>{% if puede_registrar %}Ver y registrar{% else %}Ver detalle{% endif %}
+      </a>
+    </div>
+    <div class="row mt-2 small">
+      <div class="col-md-5">
+        <div class="text-muted">Alergias</div>
+        {% if estado == 'alergias' %}
+          {% for a in alergias %}<span class="badge text-bg-danger me-1">{{ a.sustancia }}</span>{% endfor %}
+        {% elif estado == 'sin_alergias' %}<span class="text-success">Sin alergias conocidas</span>
+        {% else %}<span class="text-warning">Sin registrar</span>{% endif %}
+      </div>
+      <div class="col-md-7">
+        <div class="text-muted">Antecedentes</div>
+        {% for a in antecedentes %}<span class="badge text-bg-light border me-1">{{ a.descripcion }}</span>{% empty %}<span class="text-muted">Sin antecedentes registrados</span>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

@@ -47,6 +47,36 @@ def buscar_ambulancia(request):
     ]})
 
 
+# ── Alta rápida desde formularios (ventana emergente) ───────────
+
+def _alta_rapida(request, modelo, campos):
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    datos = {c: request.POST.get(c, '').strip() for c in campos}
+    if not datos.get('nombre'):
+        return JsonResponse({'errors': {'nombre': ['El nombre es obligatorio.']}}, status=400)
+    existente = modelo.objects.filter(nombre__iexact=datos['nombre'], activo=True).first()
+    if existente:
+        return JsonResponse({'errors': {'nombre': [f'"{existente.nombre}" ya está en la lista.']}}, status=400)
+    obj = modelo.objects.create(**datos)
+    return JsonResponse({'id': obj.pk, 'text': obj.nombre})
+
+
+@login_required
+@administrador_hogar_requerido
+def eps_crear_rapido(request):
+    """Agrega una EPS desde el formulario del residente sin salir de él."""
+    return _alta_rapida(request, EPS, ['nombre', 'codigo', 'telefono'])
+
+
+@login_required
+@administrador_hogar_requerido
+def ambulancia_crear_rapido(request):
+    """Agrega un servicio de ambulancia desde el formulario del residente."""
+    return _alta_rapida(request, ServicioAmbulancia, ['nombre', 'telefono'])
+
+
 # ── CRUD EPS ───────────────────────────────────────────────────
 
 @login_required
