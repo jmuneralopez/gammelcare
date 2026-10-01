@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Ajustar rango del residente{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-rulers me-2"></i>Ajustar rango de este residente</h4>
+{% include 'signos/_encabezado.html' %}
+<p class="text-muted">Úselo cuando la meta de este residente es distinta a la del hogar (por ejemplo, saturación 88 a 92 % en EPOC). Las alertas usarán este rango. El rango anterior queda en el historial.</p>
+<div class="card card-gc mb-3" style="max-width:860px;"><div class="card-body p-4">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.parametro.label }}</label>{{ form.parametro }}</div>
+      <div class="w-100"></div>
+      {% for campo in form %}{% if campo.name in 'critico_min normal_min normal_max critico_max' %}
+      <div class="col-6 col-md-3"><label class="form-label small fw-semibold">{{ campo.label }}</label>{{ campo }}
+        {% for e in campo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      {% endif %}{% endfor %}
+      <div class="col-12"><label class="form-label fw-semibold">Motivo clínico</label>{{ form.motivo }}
+        {% for e in form.motivo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar rango</button>
+      <a href="{% url 'signos_residente' residente.pk %}#rangos" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div></div>
+{% if historial %}
+<div class="card card-gc" style="max-width:860px;"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;">Historial de rangos de este residente</h6>
+  <table class="table table-sm mb-0"><tbody>
+  {% for r in historial %}
+    <tr class="{% if not r.activo %}text-muted{% endif %}">
+      <td>{{ r.get_parametro_display }}</td>
+      <td>{{ r.normal_min|default:"—" }} a {{ r.normal_max|default:"—" }} (críticos {{ r.critico_min|default:"—" }} / {{ r.critico_max|default:"—" }})</td>
+      <td class="small">{{ r.motivo }}</td>
+      <td class="small">{{ r.definido_por.get_full_name|default:r.definido_por.username }}, {{ r.fecha|date:"d/m/Y" }}{% if not r.activo %}<br>Retirado {{ r.fecha_inactivacion|date:"d/m/Y" }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody></table>
+</div></div>
+{% endif %}
+{% endblock %}

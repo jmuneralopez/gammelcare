@@ -3,6 +3,7 @@
 {% load antecedentes_tags %}
 {% load citas_tags %}
 {% load alertas_tags %}
+{% load signos_tags %}
 {% block title %}GammelCare — Expediente{% endblock %}
 
 {% block extra_css %}
@@ -432,6 +433,7 @@
 </div>
 {% endif %}
 
+{% resumen_signos residente %}
 {% resumen_antecedentes residente %}
 
 <!-- DIAGNÓSTICOS CIE-10 -->

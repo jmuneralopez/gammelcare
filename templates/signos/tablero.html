@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load signos_tags %}
+{% block title %}GammelCare — Signos vitales del hogar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Signos vitales del hogar</h4>
+  {% if puede_rango_hogar %}<a href="{% url 'signos_rangos_hogar' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Rangos del hogar</a>{% endif %}
+</div>
+<p class="text-muted small">Última toma de cada residente. <span class="badge text-bg-warning">amarillo</span> fuera de rango, <span class="badge text-bg-danger">rojo</span> crítico. La deposición sale de las notas de enfermería.</p>
+
+<div class="card card-gc">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead style="background-color:#D6E4F0;">
+        <tr>
+          <th class="ps-3">Residente</th><th>Última toma</th><th>PA</th>
+          <th>FC</th><th>FR</th><th>T°</th><th>SpO₂</th><th>Glucosa</th><th>Dolor</th>
+          <th>Sin deposición</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for f in filas %}
+        <tr>
+          <td class="ps-3"><a href="{% url 'signos_residente' f.residente.pk %}" class="fw-semibold text-decoration-none">{{ f.nombre }}</a>
+            {% if f.residente.cama_actual %}<div class="small text-muted">{{ f.residente.cama_actual }}</div>{% endif %}</td>
+          <td class="text-nowrap small">{% if f.control %}{{ f.control.fecha_hora|date:"d/m H:i" }}
+              <div class="{% if f.horas >= 24 %}text-danger fw-semibold{% else %}text-muted{% endif %}">hace {{ f.horas }} h</div>
+            {% else %}<span class="text-danger">Sin registros</span>{% endif %}</td>
+          <td class="text-nowrap">{% with a=f.celdas|dato:'pas' b=f.celdas|dato:'pad' %}{% if a %}<span class="badge {% if a.interpretacion != 'normal' %}{{ a.interpretacion|clase_signo }}{% elif b.interpretacion != 'normal' %}{{ b.interpretacion|clase_signo }}{% else %}text-bg-light border{% endif %} fs-6 fw-normal">{{ a|valor_signo }}/{{ b|valor_signo }}</span>{% else %}—{% endif %}{% endwith %}</td>
+          {% for codigo in 'fc fr temperatura spo2 glucometria dolor'|partir %}
+          <td>{% with d=f.celdas|dato:codigo %}{% if d %}<span class="badge {{ d.interpretacion|clase_signo }} fs-6 fw-normal">{{ d|valor_signo }}</span>{% else %}<span class="text-muted">—</span>{% endif %}{% endwith %}</td>
+          {% endfor %}
+          <td>{% if f.dias_sin_deposicion >= 3 %}<span class="badge text-bg-warning">{{ f.dias_sin_deposicion }} días</span>{% else %}<span class="small text-muted">{{ f.dias_sin_deposicion }} día{{ f.dias_sin_deposicion|pluralize }}</span>{% endif %}</td>
+          <td class="text-end pe-3 text-nowrap">{% if puede_registrar %}<a href="{% url 'signos_control_crear' f.residente.pk %}?siguiente=tablero" class="btn btn-sm btn-gc">Registrar signos vitales</a>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="11" class="text-center text-muted py-4">No hay residentes activos.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

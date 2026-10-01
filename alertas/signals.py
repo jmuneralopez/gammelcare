@@ -31,6 +31,8 @@ def _conectar():
     from citas.models import Cita
     from examenes.models import Examen
     from medicamentos.models import Administracion, IngresoMedicamento, Prescripcion
+    from notas_clinicas.models import NotaClinica
+    from signos.models import ControlSignos, RangoResidente, RangosHogar, RegistroLiquidos
 
     @receiver(post_save, sender=Examen, weak=False, dispatch_uid='alertas_examen')
     def _examen(sender, instance, **kw):
@@ -59,6 +61,24 @@ def _conectar():
     @receiver(post_save, sender=Cita, weak=False, dispatch_uid='alertas_cita')
     def _cita(sender, instance, **kw):
         _programar(instance.residente.hogar, instance.residente, 'cita')
+
+    @receiver(post_save, sender=ControlSignos, weak=False, dispatch_uid='alertas_signos')
+    @receiver(post_save, sender=RangoResidente, weak=False, dispatch_uid='alertas_rango_residente')
+    def _signos(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'signos')
+
+    @receiver(post_save, sender=RangosHogar, weak=False, dispatch_uid='alertas_rangos_hogar')
+    def _rangos_hogar(sender, instance, created=False, **kw):
+        if not created:  # crear la fila con los valores por defecto no cambia nada
+            _programar(instance.hogar, None, 'signos')
+
+    @receiver(post_save, sender=RegistroLiquidos, weak=False, dispatch_uid='alertas_liquidos')
+    def _liquidos(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'liquidos')
+
+    @receiver(post_save, sender=NotaClinica, weak=False, dispatch_uid='alertas_nota')
+    def _nota(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'nota')
 
 
 _conectar()

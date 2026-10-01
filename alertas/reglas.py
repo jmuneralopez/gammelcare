@@ -29,6 +29,12 @@ UMBRALES = {
     'dias_orden_por_terminar': {'defecto': 3, 'etiqueta': 'Días antes del fin de una orden médica para avisar'},
     'minutos_gracia_toma': {'defecto': 60, 'etiqueta': 'Minutos de gracia antes de avisar que una toma no se registró'},
     'horas_cita_sin_cierre': {'defecto': 12, 'etiqueta': 'Horas después de una cita para avisar que no se registró qué pasó'},
+    'horas_signo_fuera_rango': {'defecto': 24, 'etiqueta': 'Horas que se mantiene el aviso de un signo fuera de rango (no crítico)'},
+    'horas_sin_control_signos': {'defecto': 24, 'etiqueta': 'Horas sin tomar signos vitales para avisar'},
+    'dias_sin_deposicion': {'defecto': 3, 'etiqueta': 'Días sin deposición para avisar (según notas de enfermería)'},
+    'horas_sin_diuresis': {'defecto': 24, 'etiqueta': 'Horas sin diuresis para avisar (según notas de enfermería)'},
+    'porcentaje_perdida_peso': {'defecto': 5, 'etiqueta': 'Pérdida de peso (%) en 30 días para avisar'},
+    'ml_balance_negativo': {'defecto': 500, 'etiqueta': 'Balance de líquidos negativo (mL en 24 horas) para avisar'},
 }
 
 
@@ -373,6 +379,141 @@ def cita_sin_cierre(hogar, config, residente=None):
         )
 
 
+# ── Signos vitales, peso, líquidos y eliminación ────────────────────
+
+ROLES_SIGNOS = [Rol.ENFERMERO, Rol.JEFE_ENFERMERIA]
+
+
+def _controles_recientes(hogar, residente):
+    from signos import services as sv
+    for r in _residentes(hogar, residente):
+        control = sv.ultimo_control(r)
+        if control:
+            yield r, control, sv
+
+
+def signo_critico(hogar, config, residente=None):
+    """Se mantiene mientras la última toma del residente tenga un valor
+    crítico (una toma nueva normal la resuelve)."""
+    for r, control, sv in _controles_recientes(hogar, residente):
+        criticos, _ = sv.hallazgos(control)
+        if criticos:
+            yield Candidato(
+                clave=f'signo_critico:{control.pk}', gravedad=CRITICA, residente=r,
+                titulo=f'Signos vitales críticos de {r.get_nombre()}: {"; ".join(criticos)}',
+                mensaje=f'Tomados el {_fecha(control.fecha_hora)} a las {_hora(control.fecha_hora)}. '
+                        'Valore al residente, informe al médico y repita la toma.',
+                url=reverse('signos_residente', args=[r.pk]), texto_accion='Ver signos vitales',
+                roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.ENFERMERO],
+            )
+
+
+def signo_fuera_rango(hogar, config, residente=None):
+    limite = timezone.now() - timedelta(hours=config.umbral('horas_signo_fuera_rango'))
+    for r, control, sv in _controles_recientes(hogar, residente):
+        if control.fecha_hora < limite:
+            continue
+        criticos, fuera = sv.hallazgos(control)
+        if fuera and not criticos:
+            yield Candidato(
+                clave=f'signo_fuera:{control.pk}', gravedad=MEDIA, residente=r,
+                titulo=f'Signos fuera de rango de {r.get_nombre()}: {"; ".join(fuera)}',
+                mensaje=f'Tomados a las {_hora(control.fecha_hora)} del {_fecha(control.fecha_hora)}. Vigile y repita la toma.',
+                url=reverse('signos_residente', args=[r.pk]), texto_accion='Ver signos vitales',
+                roles=ROLES_SIGNOS,
+            )
+
+
+def sin_control_signos(hogar, config, residente=None):
+    from signos import services as sv
+    horas = config.umbral('horas_sin_control_signos')
+    limite = timezone.now() - timedelta(hours=horas)
+    for r in _residentes(hogar, residente):
+        if r.fecha_ingreso > limite:
+            continue
+        control = sv.ultimo_control(r)
+        if control and control.fecha_hora >= limite:
+            continue
+        cuando = (f'desde el {_fecha(control.fecha_hora)} a las {_hora(control.fecha_hora)}' if control
+                  else 'nunca se han registrado')
+        yield Candidato(
+            clave=f'sin_control_signos:{r.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'{r.get_nombre()} lleva más de {horas} horas sin toma de signos vitales',
+            mensaje=f'Última toma: {cuando}.' if control else 'Nunca se han registrado signos vitales.',
+            url=reverse('signos_control_crear', args=[r.pk]), texto_accion='Registrar signos vitales',
+            roles=ROLES_SIGNOS,
+        )
+
+
+def sin_deposicion(hogar, config, residente=None):
+    from signos import services as sv
+    umbral = config.umbral('dias_sin_deposicion')
+    for r in _residentes(hogar, residente):
+        dias, referencia = sv.dias_sin_deposicion(r)
+        if dias < umbral:
+            continue
+        desde = ('la última registrada fue el ' + _fecha(referencia)) if sv.ultima_eliminacion(r, 'deposicion') \
+            else 'no hay ninguna registrada desde su ingreso'
+        yield Candidato(
+            clave=f'sin_deposicion:{r.pk}', gravedad=ALTA if dias >= umbral + 2 else MEDIA, residente=r,
+            titulo=f'Alerta: {dias} días sin deposición — {r.get_nombre()}',
+            mensaje=f'Según las notas de enfermería, {desde}. Valore distensión abdominal, dolor e hidratación e informe al médico.',
+            url=reverse('signos_residente', args=[r.pk]), texto_accion='Ver eliminación',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
+def sin_diuresis(hogar, config, residente=None):
+    from signos import services as sv
+    umbral = config.umbral('horas_sin_diuresis')
+    for r in _residentes(hogar, residente):
+        horas, referencia = sv.horas_sin_diuresis(r)
+        if horas < umbral:
+            continue
+        yield Candidato(
+            clave=f'sin_diuresis:{r.pk}', gravedad=ALTA, residente=r,
+            titulo=f'{r.get_nombre()}: {horas} horas sin diuresis registrada',
+            mensaje='Según las notas de enfermería. Revise si orinó (pañal, sonda) y regístrelo en la nota; si no, informe al médico.',
+            url=reverse('signos_residente', args=[r.pk]), texto_accion='Ver eliminación',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
+def perdida_peso(hogar, config, residente=None):
+    from signos import services as sv
+    umbral = config.umbral('porcentaje_perdida_peso')
+    for r in _residentes(hogar, residente):
+        cambio = sv.cambio_de_peso(r, dias=30)
+        if not cambio or cambio[2] > -umbral:
+            continue
+        actual, referencia, pct = cambio
+        yield Candidato(
+            clave=f'perdida_peso:{r.pk}:{actual.pk}', gravedad=ALTA, residente=r,
+            titulo=f'{r.get_nombre()} perdió {abs(pct):.1f} % de su peso en 30 días',
+            mensaje=f'{referencia.peso} kg el {_fecha(referencia.fecha_hora)} → {actual.peso} kg el {_fecha(actual.fecha_hora)}. '
+                    'Requiere valoración médica y nutricional.',
+            url=reverse('signos_residente', args=[r.pk]) + '?dias=30', texto_accion='Ver evolución del peso',
+            roles=[Rol.MEDICO, Rol.NUTRICIONISTA, Rol.JEFE_ENFERMERIA],
+        )
+
+
+def balance_negativo(hogar, config, residente=None):
+    from signos import services as sv
+    umbral = config.umbral('ml_balance_negativo')
+    ahora = timezone.now()
+    for r in _residentes(hogar, residente):
+        b = sv.balance(r, ahora - timedelta(hours=24), ahora + timedelta(minutes=1))
+        if not b['registros'] or b['balance'] > -umbral:
+            continue
+        yield Candidato(
+            clave=f'balance_negativo:{r.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'Balance de líquidos negativo de {r.get_nombre()}: {b["balance"]} mL en 24 horas',
+            mensaje=f'Ingresos {b["ingresos"]} mL, egresos {b["egresos"]} mL. Ofrezca líquidos si no hay restricción y vigile signos de deshidratación.',
+            url=reverse('signos_residente', args=[r.pk]) + '#liquidos', texto_accion='Ver balance',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -389,6 +530,13 @@ REGLAS = {
     'sin_alergias': (sin_alergias_registradas, 'Residente sin alergias registradas'),
     'cita_proxima': (cita_proxima, 'Cita médica hoy o mañana'),
     'cita_sin_cierre': (cita_sin_cierre, 'Cita pasada sin registrar qué pasó'),
+    'signo_critico': (signo_critico, 'Signos vitales en rango crítico'),
+    'signo_fuera_rango': (signo_fuera_rango, 'Signos vitales fuera de rango'),
+    'sin_control_signos': (sin_control_signos, 'Residente sin toma de signos vitales'),
+    'sin_deposicion': (sin_deposicion, 'Días sin deposición'),
+    'sin_diuresis': (sin_diuresis, 'Horas sin diuresis'),
+    'perdida_peso': (perdida_peso, 'Pérdida de peso'),
+    'balance_negativo': (balance_negativo, 'Balance de líquidos negativo'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -399,4 +547,7 @@ REGLAS_POR_MODELO = {
     'prescripcion': ['orden_por_terminar', 'stock_bajo', 'toma_no_registrada', 'prn_frecuente'],
     'alergias': ['sin_alergias'],
     'cita': ['cita_proxima', 'cita_sin_cierre'],
+    'signos': ['signo_critico', 'signo_fuera_rango', 'sin_control_signos', 'perdida_peso'],
+    'liquidos': ['balance_negativo'],
+    'nota': ['sin_deposicion', 'sin_diuresis'],
 }

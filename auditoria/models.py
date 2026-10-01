@@ -54,6 +54,12 @@ class RegistroAuditoria(models.Model):
     ALERTA_DESCARTADA = 'alerta_descartada'
     CONFIGURACION_ALERTAS = 'configuracion_alertas'
 
+    # Signos vitales.
+    SIGNOS_REGISTRADOS = 'signos_registrados'
+    LIQUIDOS_REGISTRADOS = 'liquidos_registrados'
+    SIGNOS_ANULADOS = 'signos_anulados'
+    RANGO_SIGNOS = 'rango_signos'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -92,6 +98,10 @@ class RegistroAuditoria(models.Model):
         (ALERTA_ATENDIDA, 'Alerta atendida'),
         (ALERTA_DESCARTADA, 'Alerta descartada'),
         (CONFIGURACION_ALERTAS, 'Cambio en la configuración de alertas'),
+        (SIGNOS_REGISTRADOS, 'Registro de signos vitales'),
+        (LIQUIDOS_REGISTRADOS, 'Registro de líquidos'),
+        (SIGNOS_ANULADOS, 'Anulación de signos vitales o líquidos'),
+        (RANGO_SIGNOS, 'Cambio de rangos de signos vitales'),
     ]
 
     usuario = models.ForeignKey(

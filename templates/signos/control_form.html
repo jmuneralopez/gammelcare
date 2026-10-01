@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load l10n signos_tags %}
+{% block title %}GammelCare — Registrar signos vitales{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Registrar signos vitales</h4>
+{% include 'signos/_encabezado.html' %}
+
+<div class="card card-gc" style="max-width:960px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate id="form-signos">
+      {% csrf_token %}
+      <input type="hidden" name="siguiente" value="{{ siguiente }}">
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      <p class="small text-muted">Llene solo lo que tomó. El color de cada casilla indica si el valor está dentro del rango de este residente.</p>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label fw-semibold">{{ form.fecha_hora.label }}</label>{{ form.fecha_hora }}
+          {% for e in form.fecha_hora.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      </div>
+      <hr>
+      <div class="row g-3">
+        {% for nombre in 'pas pad fc fr temperatura spo2'|partir %}{% for campo in form %}{% if campo.name == nombre %}
+        <div class="col-6 col-md-2">
+          <label class="form-label fw-semibold small">{{ campo.label }}</label>{{ campo }}
+          <div class="small text-muted rango" data-param="{{ nombre }}"></div>
+          {% for e in campo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        {% endif %}{% endfor %}{% endfor %}
+      </div>
+      <div class="row g-3 mt-1 align-items-end">
+        <div class="col-md-3"><div class="form-check">{{ form.oxigeno_suplementario }}<label class="form-check-label" for="{{ form.oxigeno_suplementario.id_for_label }}">{{ form.oxigeno_suplementario.label }}</label></div></div>
+        <div class="col-md-2"><label class="form-label small fw-semibold">{{ form.litros_oxigeno.label }}</label>{{ form.litros_oxigeno }}
+          {% for e in form.litros_oxigeno.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      </div>
+      <hr>
+      <div class="row g-3">
+        <div class="col-6 col-md-2"><label class="form-label fw-semibold small">{{ form.glucometria.label }}</label>{{ form.glucometria }}
+          <div class="small text-muted rango" data-param="glucometria"></div>
+          {% for e in form.glucometria.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-6 col-md-3"><label class="form-label fw-semibold small">{{ form.momento_glucometria.label }}</label>{{ form.momento_glucometria }}
+          {% for e in form.momento_glucometria.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-6 col-md-2"><label class="form-label fw-semibold small">{{ form.dolor.label }}</label>{{ form.dolor }}
+          <div class="small text-muted rango" data-param="dolor"></div>
+          {% for e in form.dolor.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-6 col-md-2"><label class="form-label fw-semibold small">{{ form.peso.label }}</label>{{ form.peso }}
+          {% for e in form.peso.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-12"><label class="form-label fw-semibold small">{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar signos vitales</button>
+        <a href="{% if siguiente == 'tablero' %}{% url 'signos_tablero' %}{% else %}{% url 'signos_residente' residente.pk %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{ rangos_json|json_script:"rangos-signos" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const rangos = JSON.parse(document.getElementById('rangos-signos').textContent);
+  function texto(r) {
+    if (r.normal_min !== null && r.normal_max !== null) return 'Normal: ' + r.normal_min + ' a ' + r.normal_max;
+    if (r.normal_min !== null) return 'Normal: ≥ ' + r.normal_min;
+    if (r.normal_max !== null) return 'Normal: ≤ ' + r.normal_max;
+    return '';
+  }
+  function pintar(input, r) {
+    input.classList.remove('border-danger', 'border-warning', 'border-success', 'border-2', 'bg-danger-subtle', 'bg-warning-subtle');
+    const v = parseFloat(String(input.value).replace(',', '.'));
+    if (isNaN(v)) return;
+    input.classList.add('border-2');
+    if ((r.critico_min !== null && v < r.critico_min) || (r.critico_max !== null && v > r.critico_max)) {
+      input.classList.add('border-danger', 'bg-danger-subtle');
+    } else if ((r.normal_min !== null && v < r.normal_min) || (r.normal_max !== null && v > r.normal_max)) {
+      input.classList.add('border-warning', 'bg-warning-subtle');
+    } else {
+      input.classList.add('border-success');
+    }
+  }
+  Object.keys(rangos).forEach(function (codigo) {
+    const input = document.getElementById('id_' + codigo);
+    const ayuda = document.querySelector('.rango[data-param="' + codigo + '"]');
+    if (ayuda) ayuda.textContent = texto(rangos[codigo]);
+    if (!input) return;
+    input.addEventListener('input', function () { pintar(input, rangos[codigo]); });
+    pintar(input, rangos[codigo]);
+  });
+  const o2 = document.getElementById('id_oxigeno_suplementario');
+  const litros = document.getElementById('id_litros_oxigeno');
+  function o2toggle() { litros.disabled = !o2.checked; if (!o2.checked) litros.value = ''; }
+  o2.addEventListener('change', o2toggle); o2toggle();
+})();
+</script>
+{% endblock %}

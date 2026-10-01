@@ -1,0 +1,21 @@
+{% load signos_tags %}
+<!-- SIGNOS VITALES -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Signos vitales</h6>
+      <span class="d-flex gap-2">
+        <a href="{% url 'signos_residente' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-graph-up me-1"></i>Ver signos vitales</a>
+        {% if puede_registrar %}<a href="{% url 'signos_control_crear' residente.pk %}" class="btn btn-sm btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar signos vitales</a>{% endif %}
+      </span>
+    </div>
+    <div class="mt-2 small">
+      {% if control %}
+        <span class="text-muted me-2">{{ control.fecha_hora|date:"d/m/Y H:i" }} (hace {{ horas }} h):</span>
+        {% for codigo, d in lectura.items %}<span class="badge {{ d.interpretacion|clase_signo }} fw-normal me-1">{{ d.parametro.corto }} {{ d|valor_signo }}</span>{% endfor %}
+        {% if control.peso %}<span class="badge text-bg-light border fw-normal">Peso {{ control.peso }} kg</span>{% endif %}
+      {% else %}<span class="text-muted">Sin signos vitales registrados.</span>{% endif %}
+      {% if dias_sin_deposicion >= 3 %}<span class="badge text-bg-warning ms-1">Alerta: {{ dias_sin_deposicion }} días sin deposición</span>{% endif %}
+    </div>
+  </div>
+</div>

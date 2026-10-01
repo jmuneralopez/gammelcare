@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load signos_tags antecedentes_tags %}
+{% block title %}GammelCare — Signos vitales de {{ nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Signos vitales de {{ nombre }}</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+    {% if puede_registrar_liquidos %}<a href="{% url 'signos_liquidos_crear' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-droplet me-1"></i>Registrar líquidos</a>{% endif %}
+    {% if puede_registrar %}<a href="{% url 'signos_control_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar signos vitales</a>{% endif %}
+  </div>
+</div>
+{% banner_alergias residente compacto=True %}
+
+<!-- Resumen -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
+    <div class="card card-gc h-100"><div class="card-body">
+      <h6 class="fw-bold" style="color:#1F4E79;">Última toma {% if ultimo %}<small class="text-muted fw-normal">— {{ ultimo.fecha_hora|date:"d/m/Y H:i" }} por {{ ultimo.registrado_por.get_full_name|default:ultimo.registrado_por.username }}</small>{% endif %}</h6>
+      {% if ultimo %}
+      <div class="d-flex flex-wrap gap-2">
+          {% for codigo, d in ultimo.lectura.items %}
+          <div class="border rounded px-3 py-2 text-center {% if d.interpretacion == 'critico_alto' or d.interpretacion == 'critico_bajo' %}border-danger bg-danger-subtle{% elif d.interpretacion != 'normal' %}border-warning bg-warning-subtle{% endif %}">
+            <div class="small text-muted">{{ d.parametro.corto }}</div>
+            <div class="fs-5 fw-bold">{{ d|valor_signo }}<small class="fw-normal text-muted"> {{ d.parametro.unidad }}</small></div>
+            {% if d.interpretacion != 'normal' %}<div class="small fw-semibold">{{ d.interpretacion|etiqueta_signo }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          {% if ultimo.peso %}<div class="border rounded px-3 py-2 text-center"><div class="small text-muted">Peso</div><div class="fs-5 fw-bold">{{ ultimo.peso }}<small class="fw-normal text-muted"> kg</small></div></div>{% endif %}
+          {% if ultimo.oxigeno_suplementario %}<div class="border rounded px-3 py-2 text-center"><div class="small text-muted">Oxígeno</div><div class="fs-5 fw-bold">{{ ultimo.litros_oxigeno }}<small class="fw-normal text-muted"> L/min</small></div></div>{% endif %}
+      </div>
+      {% else %}<p class="text-muted mb-0">Aún no hay signos vitales registrados.</p>{% endif %}
+      {% if cambio_peso %}{% with a=cambio_peso.0 r=cambio_peso.1 pct=cambio_peso.2 %}
+      <div class="small mt-2 {% if pct <= -5 %}text-danger fw-semibold{% endif %}"><i class="bi bi-speedometer me-1"></i>Peso: {{ r.peso }} kg el {{ r.fecha_hora|date:"d/m" }} → {{ a.peso }} kg el {{ a.fecha_hora|date:"d/m" }} ({{ pct|floatformat:1 }} %)</div>
+      {% endwith %}{% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card card-gc h-100"><div class="card-body">
+      <h6 class="fw-bold" style="color:#1F4E79;">Eliminación <small class="text-muted fw-normal">(notas de enfermería)</small></h6>
+      <div class="small">Última deposición: <strong>{{ ultima_deposicion|date:"d/m/Y H:i" }}</strong>
+        {% if dias_sin_deposicion >= 3 %}<span class="badge text-bg-warning ms-1">Alerta: {{ dias_sin_deposicion }} días sin deposición</span>{% endif %}</div>
+      <div class="small">Última diuresis: <strong>{{ ultima_diuresis|date:"d/m/Y H:i" }}</strong> ({{ horas_sin_diuresis }} h)</div>
+      <div class="d-flex flex-wrap gap-1 mt-2">
+        {% for d in eliminacion %}
+        <div class="text-center border rounded" style="width:2.6rem;" title="{{ d.fecha|date:'d/m' }}: {{ d.notas }} nota(s) de enfermería">
+          <div class="small text-muted" style="font-size:.7rem;">{{ d.fecha|date:"d/m" }}</div>
+          <div style="font-size:.75rem;">{% if not d.notas %}<span class="text-muted">—</span>{% else %}<span class="{% if d.diuresis %}text-success{% else %}text-danger{% endif %}" title="Diuresis">O</span> <span class="{% if d.deposicion %}text-success{% else %}text-danger{% endif %}" title="Deposición">D</span>{% endif %}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="small text-muted mt-1">O = orina (diuresis), D = deposición. Verde: sí; rojo: no; — sin notas ese día.</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Periodo -->
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h5 class="fw-bold mb-0" style="color:#1F4E79;">Evolución</h5>
+  <div class="btn-group">
+    <a href="?dias=1" class="btn btn-sm {% if dias == 1 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Últimas 24 horas</a>
+    <a href="?dias=7" class="btn btn-sm {% if dias == 7 %}btn-gc{% else %}btn-outline-secondary{% endif %}">7 días</a>
+    <a href="?dias=30" class="btn btn-sm {% if dias == 30 %}btn-gc{% else %}btn-outline-secondary{% endif %}">30 días</a>
+    <a href="?dias=90" class="btn btn-sm {% if dias == 90 %}btn-gc{% else %}btn-outline-secondary{% endif %}">3 meses</a>
+  </div>
+</div>
+
+{% if graficas %}
+<div class="row g-3 mb-3">
+  {% for g in graficas %}
+  <div class="col-lg-6"><div class="card card-gc h-100"><div class="card-body">
+    <h6 class="fw-bold small" style="color:#1F4E79;">{{ g.titulo }}</h6>
+    <canvas height="140" data-grafica='{{ g.datos }}'></canvas>
+  </div></div></div>
+  {% endfor %}
+</div>
+<p class="small text-muted">La franja verde es el rango normal de este residente.</p>
+{% endif %}
+
+<!-- Tabla -->
+<div class="card card-gc mb-4">
+  <div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Registros del periodo</h6>
+    {% if controles %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead style="background-color:#D6E4F0;"><tr>
+          <th>Fecha</th><th>PA</th><th>FC</th><th>FR</th><th>T°</th><th>SpO₂</th><th>Glucosa</th><th>Dolor</th><th>Peso</th><th>Registró</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for c in controles %}
+          <tr class="{% if c.anulado %}text-decoration-line-through text-muted{% endif %}">
+            <td class="text-nowrap">{{ c.fecha_hora|date:"d/m H:i" }}</td>
+            <td class="text-nowrap">{% with a=c.lectura|dato:'pas' b=c.lectura|dato:'pad' %}{% if a %}<span class="badge {% if a.interpretacion != 'normal' %}{{ a.interpretacion|clase_signo }}{% else %}{{ b.interpretacion|clase_signo }}{% endif %} fw-normal">{{ c.presion }}</span>{% else %}—{% endif %}{% endwith %}</td>
+            {% for codigo in 'fc fr temperatura spo2 glucometria dolor'|partir %}
+            <td>{% with d=c.lectura|dato:codigo %}{% if d %}<span class="badge {{ d.interpretacion|clase_signo }} fw-normal">{{ d|valor_signo }}</span>{% if codigo == 'spo2' and c.oxigeno_suplementario %}<small class="text-muted"> O₂ {{ c.litros_oxigeno }}L</small>{% endif %}{% if codigo == 'glucometria' %}<small class="text-muted"> {{ c.get_momento_glucometria_display|lower }}</small>{% endif %}{% else %}—{% endif %}{% endwith %}</td>
+            {% endfor %}
+            <td>{{ c.peso|default:"—" }}</td>
+            <td class="small">{{ c.registrado_por.get_full_name|default:c.registrado_por.username }}{% if c.observaciones %}<div class="text-muted">{{ c.observaciones|truncatechars:60 }}</div>{% endif %}
+              {% if c.anulado %}<div class="text-danger" style="text-decoration:none;">Anulado: {{ c.motivo_anulacion }}</div>{% endif %}</td>
+            <td class="text-end">{% if c.puede_anular %}
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#anular-c{{ c.pk }}">Anular registro</button>{% endif %}</td>
+          </tr>
+          {% if c.puede_anular %}
+          <tr class="collapse" id="anular-c{{ c.pk }}"><td colspan="11">
+            <form method="post" action="{% url 'signos_control_anular' c.pk %}" class="d-flex gap-2 align-items-end">{% csrf_token %}
+              <div class="flex-grow-1"><label class="form-label small fw-semibold">Motivo de la anulación</label><input name="motivo" class="form-control form-control-sm" required></div>
+              <button class="btn btn-sm btn-danger">Confirmar anulación</button>
+            </form>
+          </td></tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-muted mb-0">No hay registros en este periodo.</p>{% endif %}
+  </div>
+</div>
+
+<!-- Líquidos -->
+<div class="card card-gc mb-4" id="liquidos">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-droplet me-2"></i>Balance de líquidos</h6>
+      {% if puede_registrar_liquidos %}<a href="{% url 'signos_liquidos_crear' residente.pk %}" class="btn btn-sm btn-outline-primary">Registrar líquidos</a>{% endif %}
+    </div>
+    <div class="row g-2 my-2 small">
+      <div class="col-auto">Hoy — ingresos: <strong>{{ balance_hoy.ingresos }} mL</strong></div>
+      <div class="col-auto">egresos: <strong>{{ balance_hoy.egresos }} mL</strong></div>
+      <div class="col-auto">balance: <strong class="{% if balance_hoy.balance < 0 %}text-danger{% endif %}">{% if balance_hoy.balance > 0 %}+{% endif %}{{ balance_hoy.balance }} mL</strong></div>
+    </div>
+    {% if balances|length > 1 %}<canvas height="90" id="grafica-balance" data-balance='{{ balances_json }}'></canvas>{% endif %}
+    {% if liquidos %}
+    <table class="table table-sm align-middle mb-0 mt-2">
+      <thead><tr><th>Fecha</th><th>Tipo</th><th class="text-end">mL</th><th>Registró</th><th></th></tr></thead>
+      <tbody>
+      {% for l in liquidos %}
+        <tr class="{% if l.anulado %}text-decoration-line-through text-muted{% endif %}">
+          <td class="text-nowrap">{{ l.fecha_hora|date:"d/m H:i" }}</td>
+          <td>{{ l.get_via_display }}{% if l.observaciones %} <span class="text-muted small">· {{ l.observaciones }}</span>{% endif %}{% if l.anulado %}<div class="small text-danger">Anulado: {{ l.motivo_anulacion }}</div>{% endif %}</td>
+          <td class="text-end">{% if l.tipo == 'egreso' %}−{% endif %}{{ l.cantidad_ml }}</td>
+          <td class="small">{{ l.registrado_por.get_full_name|default:l.registrado_por.username }}</td>
+          <td class="text-end">{% if l.puede_anular %}<button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#anular-l{{ l.pk }}">Anular registro</button>{% endif %}</td>
+        </tr>
+        {% if l.puede_anular %}
+        <tr class="collapse" id="anular-l{{ l.pk }}"><td colspan="5">
+          <form method="post" action="{% url 'signos_liquidos_anular' l.pk %}" class="d-flex gap-2 align-items-end">{% csrf_token %}
+            <div class="flex-grow-1"><label class="form-label small fw-semibold">Motivo de la anulación</label><input name="motivo" class="form-control form-control-sm" required></div>
+            <button class="btn btn-sm btn-danger">Confirmar anulación</button>
+          </form>
+        </td></tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="small text-muted mb-0">Sin registros de líquidos desde ayer. Solo se lleva a residentes en control de líquidos (por orden médica o deshidratación).</p>{% endif %}
+  </div>
+</div>
+
+<!-- Rangos -->
+<div class="card card-gc mb-4" id="rangos">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-rulers me-2"></i>Rangos normales que se usan para este residente</h6>
+      {% if puede_rango_residente %}<a href="{% url 'signos_rango_residente' residente.pk %}" class="btn btn-sm btn-outline-primary">Ajustar rango de este residente</a>{% endif %}
+    </div>
+    <table class="table table-sm align-middle mb-0">
+      <tbody>
+      {% for r in rangos %}
+        <tr>
+          <td>{{ r.parametro.nombre }}</td>
+          <td class="fw-semibold">{{ r.texto }} {{ r.parametro.unidad }}</td>
+          <td class="small">{% if r.origen == 'residente' %}<span class="badge text-bg-info">Propio del residente</span> {{ r.regla.motivo|truncatechars:70 }} — {{ r.regla.definido_por.get_full_name|default:r.regla.definido_por.username }}, {{ r.regla.fecha|date:"d/m/Y" }}{% else %}<span class="text-muted">Rango del hogar</span>{% endif %}</td>
+          <td class="text-end text-nowrap">{% if puede_rango_residente %}
+            {% if r.origen == 'residente' %}<form method="post" action="{% url 'signos_rango_quitar' r.regla.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link">Volver al rango del hogar</button></form>
+            {% else %}<a href="{% url 'signos_rango_residente' residente.pk %}?parametro={{ r.parametro.codigo }}" class="btn btn-sm btn-link">Ajustar</a>{% endif %}
+          {% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+document.querySelectorAll('canvas[data-grafica]').forEach(function (canvas) {
+  const g = JSON.parse(canvas.dataset.grafica);
+  const datasets = g.series.map(function (s) {
+    return { label: s.label, data: s.data, borderColor: s.color, backgroundColor: s.color, tension: g.solo_puntos_con_dato ? 0 : 0.2,
+             pointRadius: 3, spanGaps: true };
+  });
+  if (g.rango && (g.rango.min !== null || g.rango.max !== null)) {
+    const vals = g.series[0].data.filter(v => v !== null);
+    const max = g.rango.max !== null ? g.rango.max : Math.max.apply(null, vals.concat([g.rango.min]));
+    const min = g.rango.min !== null ? g.rango.min : Math.min.apply(null, vals.concat([g.rango.max]));
+    datasets.push({ label: 'Máx. normal', data: g.labels.map(() => max), borderColor: 'rgba(79,158,134,0.5)',
+                    borderDash: [4, 4], pointRadius: 0, fill: false });
+    datasets.push({ label: 'Mín. normal', data: g.labels.map(() => min), borderColor: 'rgba(79,158,134,0.5)',
+                    borderDash: [4, 4], pointRadius: 0, backgroundColor: 'rgba(79,158,134,0.12)', fill: '-1' });
+  }
+  new Chart(canvas, { type: 'line', data: { labels: g.labels, datasets: datasets },
+    options: { plugins: { legend: { display: g.series.length > 1 } }, scales: { y: { beginAtZero: false } } } });
+});
+const cb = document.getElementById('grafica-balance');
+if (cb) {
+  const b = JSON.parse(cb.dataset.balance);
+  new Chart(cb, { type: 'bar', data: { labels: b.labels, datasets: [
+      { label: 'Ingresos', data: b.ingresos, backgroundColor: 'rgba(23,104,172,0.6)' },
+      { label: 'Egresos', data: b.egresos, backgroundColor: 'rgba(79,158,134,0.6)' },
+      { label: 'Balance', data: b.balance, type: 'line', borderColor: '#0B3D62', backgroundColor: '#0B3D62' },
+    ] }, options: { scales: { x: { stacked: true }, y: { stacked: false } } } });
+}
+</script>
+{% endblock %}

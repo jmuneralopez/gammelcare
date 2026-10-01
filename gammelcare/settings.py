@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'examenes',
     'antecedentes',
     'citas',
+    'signos',
     'alertas',
 ]
 
