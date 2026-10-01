@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Registro de tratamiento formulado{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px; border: 1px solid #ced4da; border-radius: 6px; padding: 4px 8px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+  .select2-container { width: 100% !important; }
+  .btn-pauta { min-width: 140px; }
+  .hora-chip { background:#EBF3FA; border:1px solid #D6E4F0; border-radius:16px; padding:4px 10px; margin:2px; display:inline-block; font-size:0.85rem; }
+  .hora-chip button { border:none; background:none; color:#c0392b; margin-left:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-clipboard2-plus me-2"></i>Registro de tratamiento formulado
+  </h4>
+  <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+<div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
+  <strong>Residente:</strong> {{ nombre }}
+</div>
+
+<div class="alert alert-warning py-2">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  Aquí se <strong>transcribe</strong> una fórmula que ya emitió el médico o la EPS, no se crea una nueva.
+  Por eso quién la formuló y la fecha son obligatorios.
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.horas }}
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Medicamento y dosis</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Medicamento</label>
+          {{ form.medicamento }}
+          {% if form.medicamento.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.medicamento.errors|join:", " }}</div>{% endif %}
+          <button type="button" id="btn-nuevo-medicamento" class="btn btn-link btn-sm p-0 mt-1">
+            <i class="bi bi-plus-circle me-1"></i>¿No está en la lista? Agregarlo
+          </button>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Cantidad de la dosis</label>
+          {{ form.dosis_cantidad }}
+          <small class="text-muted d-block mt-1">{{ form.dosis_cantidad.help_text }}</small>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Unidad</label>
+          {{ form.dosis_unidad }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Vía de administración</label>
+          {{ form.via_administracion }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Diagnóstico relacionado</label>
+          {{ form.diagnostico }}
+          <small class="text-muted d-block mt-1">Opcional — a qué diagnóstico del residente responde este tratamiento.</small>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Cantidad total formulada</label>
+          {{ form.cantidad_total_formulada }}
+          <small class="text-muted d-block mt-1">{{ form.cantidad_total_formulada.help_text }}</small>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Indicaciones</label>
+          {{ form.indicaciones }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Pauta</h6>
+      <div class="alert alert-light border py-2 mb-3" style="font-size:0.85rem;">
+        <strong>Horarios fijos:</strong> se administra a horas específicas cada día (ej: 8:00 a.m. y 8:00 p.m.).
+        <strong class="ms-2">PRN (por razón necesaria):</strong> no tiene hora fija, se da solo cuando el
+        residente lo necesita, respetando el tiempo mínimo entre tomas y el máximo al día.
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Tipo de pauta</label>
+          {{ form.tipo_pauta }}
+        </div>
+        <div class="col-md-4" id="campo-frecuencia-prn" style="display:none;">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Frecuencia mínima entre tomas (horas)</label>
+          {{ form.frecuencia_minima_horas }}
+          <small class="text-muted d-block mt-1">{{ form.frecuencia_minima_horas.help_text }}</small>
+        </div>
+        <div class="col-md-4" id="campo-maximo-prn" style="display:none;">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Máximo de tomas al día</label>
+          {{ form.dosis_maxima_dia }}
+          <small class="text-muted d-block mt-1">{{ form.dosis_maxima_dia.help_text }}</small>
+        </div>
+      </div>
+
+      <div id="bloque-horarios" class="mt-3">
+        <label class="form-label fw-semibold d-block" style="font-size:0.9rem;">Horarios</label>
+        <small class="text-muted d-block mb-2">Elija una pauta rápida o agregue horas manualmente. Puede quitar y agregar horas antes de guardar.</small>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="08:00">1 vez al día</button>
+          <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="08:00,20:00">Cada 12 h</button>
+          <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="06:00,14:00,22:00">Cada 8 h</button>
+          <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="06:00,12:00,18:00,00:00">Cada 6 h</button>
+          <button type="button" class="btn btn-outline-primary btn-sm btn-pauta" data-horas="07:00,12:30,18:30">Con las comidas</button>
+        </div>
+        <div id="horas-lista" class="mb-2"></div>
+        <div class="d-flex align-items-center gap-2">
+          <input type="time" id="input-hora-manual" class="form-control" style="max-width:150px;">
+          <button type="button" id="btn-agregar-hora" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-plus"></i> Agregar hora
+          </button>
+        </div>
+        {% if form.horas.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.horas.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label fw-semibold d-block" style="font-size:0.9rem;">Días de la semana</label>
+        {{ form.dias_semana_sel }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Duración</h6>
+      <small class="text-muted d-block mb-2">¿Hasta cuándo se debe dar este medicamento?</small>
+      <div class="d-flex flex-wrap gap-4 mb-3">
+        {{ form.duracion_tipo }}
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Fecha de inicio</label>
+          {{ form.fecha_inicio }}
+        </div>
+        <div class="col-md-4" id="campo-duracion-dias" style="display:none;">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Número de días</label>
+          {{ form.duracion_dias }}
+          <small class="text-muted d-block mt-1">Cuántos días desde la fecha de inicio.</small>
+        </div>
+        <div class="col-md-4" id="campo-duracion-fecha" style="display:none;">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Hasta la fecha</label>
+          {{ form.duracion_fecha }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Respaldo de la fórmula (obligatorio)</h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Formulada por</label>
+          {{ form.formulada_por }}
+          {% if form.formulada_por.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.formulada_por.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Fecha de la fórmula</label>
+          {{ form.fecha_formula }}
+          {% if form.fecha_formula.errors %}<div class="text-danger" style="font-size:0.83rem;">{{ form.fecha_formula.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Número de fórmula</label>
+          {{ form.numero_formula }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">Archivo de la fórmula (foto o escaneo)</label>
+          {{ form.archivo_formula }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-5">
+    <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Registrar tratamiento</button>
+    <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+
+<!-- Modal alta rápida de medicamento -->
+<div class="modal fade" id="modalNuevoMedicamento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">Agregar medicamento al catálogo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-medicamento-errores" class="text-danger mb-2" style="font-size:0.85rem;"></div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:0.85rem;">Nombre genérico</label>
+          <input type="text" id="nm_generico" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:0.85rem;">Nombre comercial (opcional)</label>
+          <input type="text" id="nm_comercial" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:0.85rem;">Concentración</label>
+          <input type="text" id="nm_concentracion" class="form-control" placeholder="Ej: 500 mg">
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="nm_refrigeracion" class="form-check-input">
+          <label class="form-check-label" style="font-size:0.85rem;">Requiere refrigeración</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="nm_control" class="form-check-input">
+          <label class="form-check-label" style="font-size:0.85rem;">Control especial</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-gc" id="btn-guardar-medicamento">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+
+  $('#id_medicamento').select2({
+    placeholder: 'Buscar medicamento...',
+    minimumInputLength: 2,
+    ajax: {
+      url: '/medicamentos/buscar/',
+      dataType: 'json',
+      delay: 300,
+      data: function(params) { return { term: params.term }; },
+      processResults: function(data) { return { results: data.results }; }
+    }
+  });
+
+  function toggleCamposPorTipoPauta() {
+    const esPRN = $('#id_tipo_pauta').val() === 'prn';
+    $('#campo-frecuencia-prn, #campo-maximo-prn').toggle(esPRN);
+    $('#bloque-horarios').toggle(!esPRN);
+  }
+  $('#id_tipo_pauta').on('change', toggleCamposPorTipoPauta);
+  toggleCamposPorTipoPauta();
+
+  function toggleCamposPorDuracion() {
+    const tipo = $('input[name="duracion_tipo"]:checked').val();
+    $('#campo-duracion-dias').toggle(tipo === 'dias');
+    $('#campo-duracion-fecha').toggle(tipo === 'fecha');
+  }
+  $('input[name="duracion_tipo"]').on('change', toggleCamposPorDuracion);
+  toggleCamposPorDuracion();
+
+  // ── Horarios (chips editables) ─────────────────────────
+  let horas = [];
+  function renderHoras() {
+    const $lista = $('#horas-lista');
+    $lista.empty();
+    horas.sort();
+    horas.forEach(function(h, idx) {
+      $lista.append(
+        $('<span class="hora-chip"></span>').text(h).append(
+          $('<button type="button">&times;</button>').on('click', function() {
+            horas.splice(idx, 1);
+            renderHoras();
+          })
+        )
+      );
+    });
+    $('#id_horas').val(horas.join(','));
+  }
+
+  $('.btn-pauta').on('click', function() {
+    horas = $(this).data('horas').toString().split(',').filter(function(h) { return h; });
+    renderHoras();
+  });
+
+  $('#btn-agregar-hora').on('click', function() {
+    const val = $('#input-hora-manual').val();
+    if (val && horas.indexOf(val) === -1) {
+      horas.push(val);
+      renderHoras();
+    }
+    $('#input-hora-manual').val('');
+  });
+
+  const horasIniciales = $('#id_horas').val();
+  if (horasIniciales) {
+    horas = horasIniciales.split(',').filter(function(h) { return h; });
+    renderHoras();
+  }
+
+  // ── Alta rápida de medicamento (modal) ─────────────────
+  $('#btn-nuevo-medicamento').on('click', function() {
+    new bootstrap.Modal(document.getElementById('modalNuevoMedicamento')).show();
+  });
+
+  $('#btn-guardar-medicamento').on('click', function() {
+    $('#modal-medicamento-errores').empty();
+    $.ajax({
+      url: '/medicamentos/crear-rapido/',
+      method: 'POST',
+      data: {
+        csrfmiddlewaretoken: '{{ csrf_token }}',
+        nombre_generico: $('#nm_generico').val(),
+        nombre_comercial: $('#nm_comercial').val(),
+        concentracion: $('#nm_concentracion').val(),
+        requiere_refrigeracion: $('#nm_refrigeracion').is(':checked'),
+        control_especial: $('#nm_control').is(':checked'),
+      },
+      success: function(data) {
+        const option = new Option(data.text, data.id, true, true);
+        $('#id_medicamento').append(option).trigger('change');
+        bootstrap.Modal.getInstance(document.getElementById('modalNuevoMedicamento')).hide();
+      },
+      error: function(xhr) {
+        $('#modal-medicamento-errores').text('Revise los datos del medicamento.');
+      }
+    });
+  });
+
+});
+</script>
+{% endblock %}

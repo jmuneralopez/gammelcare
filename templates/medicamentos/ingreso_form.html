@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Ingreso de medicamentos{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px; border: 1px solid #ced4da; border-radius: 6px; padding: 4px 8px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+  .select2-container { width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
+    <i class="bi bi-box-arrow-in-down me-2"></i>
+    {% if es_botiquin %}Ingreso al botiquín del hogar{% else %}Ingreso de medicamentos — {{ nombre }}{% endif %}
+  </h4>
+  {% if es_botiquin %}
+  <a href="{% url 'botiquin_lista' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+  {% else %}
+  <div class="d-flex gap-2">
+    <a href="?precargar=1" class="btn btn-outline-primary"><i class="bi bi-arrow-repeat me-1"></i>Traer tratamientos vigentes</a>
+    <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="alert alert-warning py-2">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  {% if es_botiquin %}
+  Registre aquí lo que compra el hogar para uso compartido entre residentes (no de un residente en particular).
+  {% else %}
+  Registre aquí lo que trae la familia para este residente.
+  {% endif %}
+  El lote y la fecha de vencimiento son obligatorios: con eso el sistema descuenta primero lo que vence más pronto
+  cuando se administre.
+</div>
+
+<form method="post" id="ingreso-form">
+  {% csrf_token %}
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Datos generales</h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">{{ encabezado_form.entregado_por.label }}</label>
+          {{ encabezado_form.entregado_por }}
+          {% if es_botiquin %}<small class="text-muted">Vacío si es compra directa del hogar</small>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">{{ encabezado_form.fecha_ingreso.label }}</label>
+          {{ encabezado_form.fecha_ingreso }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:0.9rem;">{{ encabezado_form.observaciones.label }}</label>
+          {{ encabezado_form.observaciones }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-gc mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3" style="color:#1F4E79;">Medicamentos recibidos</h6>
+
+      {{ formset.management_form }}
+
+      <div class="row g-2 mb-1 d-none d-md-flex" style="font-size:0.8rem;">
+        <div class="col-md-3 text-muted fw-semibold">Medicamento</div>
+        <div class="col-md-2 text-muted fw-semibold">Lote</div>
+        <div class="col-md-2 text-muted fw-semibold">Cantidad</div>
+        <div class="col-md-2 text-muted fw-semibold">Unidad</div>
+        <div class="col-md-2 text-muted fw-semibold">Vencimiento</div>
+        <div class="col-md-1"></div>
+      </div>
+
+      <div id="filas-rows">
+        {% for f in formset %}
+        {% if f.non_field_errors %}<div class="text-danger mb-1" style="font-size:0.83rem;">{{ f.non_field_errors|join:", " }}</div>{% endif %}
+        <div class="row g-2 align-items-start fila-row mb-2 pb-2 border-bottom">
+          <div class="col-md-3">{{ f.medicamento }}</div>
+          <div class="col-md-2">{{ f.lote }}</div>
+          <div class="col-md-2">{{ f.cantidad_ingresada }}</div>
+          <div class="col-md-2">{{ f.unidad }}</div>
+          <div class="col-md-2">{{ f.fecha_vencimiento }}</div>
+          <div class="col-md-1 d-flex align-items-center pt-1">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-fila" title="Quitar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="button" id="btn-agregar-fila" class="btn btn-outline-primary btn-sm mt-1">
+        <i class="bi bi-plus-circle me-1"></i>Agregar otro medicamento
+      </button>
+
+      <div id="fila-empty" style="display:none;">
+        <div class="row g-2 align-items-start fila-row mb-2 pb-2 border-bottom">
+          <div class="col-md-3">{{ formset.empty_form.medicamento }}</div>
+          <div class="col-md-2">{{ formset.empty_form.lote }}</div>
+          <div class="col-md-2">{{ formset.empty_form.cantidad_ingresada }}</div>
+          <div class="col-md-2">{{ formset.empty_form.unidad }}</div>
+          <div class="col-md-2">{{ formset.empty_form.fecha_vencimiento }}</div>
+          <div class="col-md-1 d-flex align-items-center pt-1">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-fila" title="Quitar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-5">
+    <button type="submit" class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Registrar ingreso</button>
+    <a href="{% if es_botiquin %}{% url 'botiquin_lista' %}{% else %}{% url 'ingreso_lista' residente.pk %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+
+  function initSelect2Medicamento(scope) {
+    $(scope).find('.select2-medicamento-inline').select2({
+      placeholder: 'Buscar medicamento...',
+      minimumInputLength: 2,
+      width: '100%',
+      ajax: {
+        url: '/medicamentos/buscar/',
+        dataType: 'json',
+        delay: 300,
+        data: function(params) { return { term: params.term }; },
+        processResults: function(data) { return { results: data.results }; },
+        cache: true
+      }
+    });
+  }
+  initSelect2Medicamento(document);
+
+  const $totalForms = $('#id_filas-TOTAL_FORMS');
+  $('#btn-agregar-fila').on('click', function() {
+    let indice = parseInt($totalForms.val(), 10);
+    const plantilla = $('#fila-empty').html().replace(/__prefix__/g, indice);
+    const $nuevaFila = $(plantilla);
+    $('#filas-rows').append($nuevaFila);
+    initSelect2Medicamento($nuevaFila);
+    $totalForms.val(indice + 1);
+  });
+
+  $(document).on('click', '.btn-quitar-fila', function() {
+    const $fila = $(this).closest('.fila-row');
+    const totalVisibles = $('#filas-rows .fila-row:visible').length;
+    $fila.find('.select2-medicamento-inline').val(null).trigger('change');
+    $fila.find('input').val('');
+    if (totalVisibles > 1) {
+      $fila.hide();
+    }
+  });
+
+});
+</script>
+{% endblock %}

@@ -21,7 +21,7 @@ class Rol(models.Model):
         (SUPERADMIN, 'Superadministrador'),
         (ADMINISTRADOR, 'Administrador del Hogar'),
         (MEDICO, 'Médico'),
-        (ENFERMERO, 'Enfermero/a'),
+        (ENFERMERO, 'Auxiliar de Enfermería'),
         (JEFE_ENFERMERIA, 'Jefe de Enfermería'),
         (FISIOTERAPEUTA, 'Fisioterapeuta'),
         (NUTRICIONISTA, 'Nutricionista'),
@@ -43,10 +43,20 @@ class Rol(models.Model):
     ROLES_EXPORTACION = [ADMINISTRADOR, MEDICO, JEFE_ENFERMERIA]
 
     # Quién puede agregar/quitar diagnósticos de un residente YA existente.
-    # Deliberadamente más estrecho que ROLES_CLINICOS: ni siquiera el
-    # administrador del hogar gestiona diagnósticos, solo perfil médico/
-    # enfermería jefe.
-    ROLES_GESTION_DIAGNOSTICOS = [MEDICO, JEFE_ENFERMERIA]
+    # El administrador del hogar entra aquí (2026-09-17): transcribe
+    # diagnósticos con el mismo criterio de "transcripción de documento
+    # externo" que rige el registro de tratamientos del módulo de
+    # medicamentos (ver plan-modulo-medicamentos.md, sección 4.5).
+    ROLES_GESTION_DIAGNOSTICOS = [ADMINISTRADOR, MEDICO, JEFE_ENFERMERIA]
+
+    # ── Roles del módulo de medicamentos ──────────────────────────
+    # El administrador registra información y custodia existencias, pero
+    # nunca toca al residente; el acto clínico queda solo en manos
+    # clínicas (ver plan-modulo-medicamentos.md, sección 4).
+    ROLES_REGISTRO_TRATAMIENTO = [ADMINISTRADOR, MEDICO, JEFE_ENFERMERIA]
+    ROLES_INGRESO_MEDICAMENTO = [ADMINISTRADOR, JEFE_ENFERMERIA, ENFERMERO]
+    ROLES_ADMINISTRACION = [MEDICO, JEFE_ENFERMERIA, ENFERMERO]
+    ROLES_AJUSTE_INVENTARIO = [ADMINISTRADOR, JEFE_ENFERMERIA]
 
     NOTA_POR_ROL = {
         MEDICO: 'evolucion',

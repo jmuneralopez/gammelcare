@@ -202,6 +202,12 @@
             <i class="bi bi-heart-pulse-fill me-1"></i>Atención a Residentes
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'ronda' %}active{% endif %}"
+             href="{% url 'ronda' %}">
+            <i class="bi bi-clock-history me-1"></i>Ronda de medicamentos
+          </a>
+        </li>
         {% endif %}
 
         {% if user.es_administrativo %}
