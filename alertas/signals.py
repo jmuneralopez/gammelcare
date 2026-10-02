@@ -34,6 +34,7 @@ def _conectar():
     from notas_clinicas.models import NotaClinica
     from signos.models import ControlSignos, RangoResidente, RangosHogar, RegistroLiquidos
     from valoracion.models import ConfiguracionValoracion, Valoracion
+    from plan_atencion.models import PlanAtencion
 
     @receiver(post_save, sender=Examen, weak=False, dispatch_uid='alertas_examen')
     def _examen(sender, instance, **kw):
@@ -89,6 +90,10 @@ def _conectar():
     def _conf_valoracion(sender, instance, created=False, **kw):
         if not created:
             _programar(instance.hogar, None, 'valoracion')
+
+    @receiver(post_save, sender=PlanAtencion, weak=False, dispatch_uid='alertas_plan')
+    def _plan(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'plan')
 
 
 _conectar()

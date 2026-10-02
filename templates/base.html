@@ -224,6 +224,12 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link {% if 'plan-atencion' in request.path %}active{% endif %}"
+             href="{% url 'plan_tablero' %}">
+            <i class="bi bi-journal-check me-1"></i>Planes de atención
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if request.resolver_match.url_name == 'ronda' %}active{% endif %}"
              href="{% url 'ronda' %}">
             <i class="bi bi-clock-history me-1"></i>Ronda de medicamentos

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Planes de atención{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-journal-check me-2"></i>Planes de atención del hogar</h4>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Residente</th><th>Plan vigente</th><th>Próxima revisión</th><th>Objetivos logrados</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td class="ps-3 fw-semibold">{{ f.nombre }}</td>
+      <td>{% if f.vigente %}Versión {{ f.vigente.version }} <span class="small text-muted">desde {{ f.vigente.fecha_activacion|date:"d/m/Y" }}</span>
+          {% else %}<span class="{% if f.falta %}text-danger fw-semibold{% else %}text-muted{% endif %}">Sin plan</span>{% endif %}
+          {% if f.borrador %}<span class="badge text-bg-secondary ms-1">Borrador v{{ f.borrador.version }} en elaboración</span>{% endif %}</td>
+      <td>{% if f.vigente %}<span class="{% if f.vigente.revision_vencida %}text-danger fw-semibold{% endif %}">{{ f.vigente.fecha_revision|date:"d/m/Y" }}{% if f.vigente.revision_vencida %} · vencida{% endif %}</span>{% else %}—{% endif %}</td>
+      <td>{% if f.avance %}<div class="progress" style="height:8px; max-width:140px;"><div class="progress-bar bg-success" style="width:{{ f.avance.porcentaje }}%"></div></div><span class="small">{{ f.avance.logrados }} de {{ f.avance.total }}</span>{% else %}—{% endif %}</td>
+      <td class="text-end pe-3"><a href="{% url 'plan_residente' f.residente.pk %}" class="btn btn-sm btn-outline-primary">{% if f.vigente %}Ver plan{% else %}Abrir{% endif %}</a></td>
+    </tr>
+  {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No hay residentes activos.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

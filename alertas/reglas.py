@@ -565,6 +565,34 @@ def valoracion_vencida(hogar, config, residente=None):
         )
 
 
+# ── Plan de atención ────────────────────────────────────────────────
+
+def plan_atencion(hogar, config, residente=None):
+    """Residente sin plan vigente (después de 30 días del ingreso) o con la
+    revisión del plan vencida."""
+    from plan_atencion import services as ps
+    for r in _residentes(hogar, residente):
+        v = ps.vigente(r)
+        if v is None and ps.falta_plan(r):
+            b = ps.borrador(r)
+            yield Candidato(
+                clave=f'plan_faltante:{r.pk}', gravedad=MEDIA, residente=r,
+                titulo=f'{r.get_nombre()} no tiene plan de atención vigente',
+                mensaje=('Hay un borrador en elaboración: complételo y actívelo.' if b else
+                         'Elabore el plan con el equipo a partir de la valoración geriátrica.'),
+                url=reverse('plan_residente', args=[r.pk]), texto_accion='Abrir plan de atención',
+                roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+            )
+        elif v is not None and v.revision_vencida:
+            yield Candidato(
+                clave=f'plan_revision:{v.pk}', gravedad=MEDIA, residente=r,
+                titulo=f'La revisión del plan de atención de {r.get_nombre()} está vencida (desde el {v.fecha_revision:%d/%m/%Y})',
+                mensaje='Revise con el equipo los objetivos y cree la nueva versión del plan.',
+                url=reverse('plan_detalle', args=[v.pk]), texto_accion='Revisar plan',
+                roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+            )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -590,6 +618,7 @@ REGLAS = {
     'balance_negativo': (balance_negativo, 'Balance de líquidos negativo'),
     'valoracion_resultado': (valoracion_resultado, 'Escala de valoración con resultado de riesgo o deterioro'),
     'valoracion_vencida': (valoracion_vencida, 'Escalas de valoración por aplicar o repetir'),
+    'plan_atencion': (plan_atencion, 'Plan de atención faltante o con revisión vencida'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -604,4 +633,5 @@ REGLAS_POR_MODELO = {
     'liquidos': ['balance_negativo'],
     'nota': ['sin_deposicion', 'sin_diuresis'],
     'valoracion': ['valoracion_resultado', 'valoracion_vencida'],
+    'plan': ['plan_atencion'],
 }

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Plan de atención de {{ nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-journal-check me-2"></i>Plan de atención de {{ nombre }}</h4>
+  {% if puede_elaborar %}
+    {% if borrador %}<a href="{% url 'plan_detalle' borrador.pk %}" class="btn btn-gc">Continuar el borrador v{{ borrador.version }}</a>
+    {% else %}<form method="post" action="{% url 'plan_crear' residente.pk %}">{% csrf_token %}<button class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>{% if vigente %}Revisar plan (nueva versión){% else %}Elaborar plan de atención{% endif %}</button></form>{% endif %}
+  {% endif %}
+</div>
+{% include 'plan_atencion/_encabezado.html' %}
+{% if not planes %}
+<div class="card card-gc"><div class="card-body text-muted">
+  Este residente aún no tiene plan de atención. El plan se elabora entre el equipo después de la valoración geriátrica: cada profesional agrega los objetivos de su área y el médico o el jefe de enfermería lo activan.
+</div></div>
+{% else %}
+<div class="card card-gc"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;">Versiones</h6>
+  <table class="table table-sm align-middle mb-0"><tbody>
+  {% for p in planes %}
+    <tr>
+      <td class="fw-semibold">Versión {{ p.version }}</td>
+      <td>{% if p.estado == 'vigente' %}<span class="badge text-bg-success">Vigente</span>{% elif p.estado == 'borrador' %}<span class="badge text-bg-secondary">Borrador</span>{% else %}<span class="badge text-bg-light border">Reemplazado</span>{% endif %}</td>
+      <td class="small">Elaborado por {{ p.creado_por.get_full_name|default:p.creado_por.username }} ({{ p.fecha_creacion|date:"d/m/Y" }}){% if p.activado_por %} · activado por {{ p.activado_por.get_full_name|default:p.activado_por.username }} ({{ p.fecha_activacion|date:"d/m/Y" }}){% endif %}{% if p.fecha_reemplazo %} · reemplazado el {{ p.fecha_reemplazo|date:"d/m/Y" }}{% endif %}</td>
+      <td class="text-end"><a href="{% url 'plan_detalle' p.pk %}" class="btn btn-sm btn-outline-secondary">Ver plan</a></td>
+    </tr>
+  {% endfor %}
+  </tbody></table>
+</div></div>
+{% endif %}
+{% endblock %}

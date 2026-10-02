@@ -1,0 +1,16 @@
+<!-- PLAN DE ATENCIÓN -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-journal-check me-2"></i>Plan de atención</h6>
+      <a href="{% url 'plan_residente' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye me-1"></i>{% if vigente %}Ver plan de atención{% else %}Abrir plan de atención{% endif %}</a>
+    </div>
+    <div class="mt-2 small">
+      {% if vigente %}
+        Versión {{ vigente.version }} · próxima revisión <span class="{% if vigente.revision_vencida %}text-danger fw-semibold{% endif %}">{{ vigente.fecha_revision|date:"d/m/Y" }}</span>{% if avance %} · {{ avance.logrados }} de {{ avance.total }} objetivos logrados{% endif %}
+        <ul class="mb-0 mt-1 ps-3">{% for o in objetivos %}<li>{{ o.get_area_display }}: {{ o.meta|truncatechars:90 }}</li>{% endfor %}</ul>
+      {% else %}<span class="{% if falta %}text-danger{% else %}text-muted{% endif %}">Sin plan de atención vigente.</span>{% endif %}
+      {% if borrador %}<span class="badge text-bg-secondary ms-1">Borrador v{{ borrador.version }} en elaboración</span>{% endif %}
+    </div>
+  </div>
+</div>

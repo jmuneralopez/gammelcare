@@ -5,6 +5,7 @@
 {% load alertas_tags %}
 {% load signos_tags %}
 {% load valoracion_tags %}
+{% load plan_atencion_tags %}
 {% block title %}GammelCare — Expediente{% endblock %}
 
 {% block extra_css %}
@@ -437,6 +438,7 @@
 {% resumen_signos residente %}
 {% resumen_antecedentes residente %}
 {% resumen_valoracion residente %}
+{% resumen_plan residente %}
 
 <!-- DIAGNÓSTICOS CIE-10 -->
 <div class="card card-gc mb-3">

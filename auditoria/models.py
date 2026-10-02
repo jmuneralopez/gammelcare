@@ -65,6 +65,9 @@ class RegistroAuditoria(models.Model):
     VALORACION_ANULADA = 'valoracion_anulada'
     CONFIGURACION_VALORACION = 'configuracion_valoracion'
 
+    # Plan de atención.
+    PLAN_ATENCION = 'plan_atencion'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -110,6 +113,7 @@ class RegistroAuditoria(models.Model):
         (VALORACION_REGISTRADA, 'Aplicación de escala de valoración geriátrica'),
         (VALORACION_ANULADA, 'Anulación de escala de valoración geriátrica'),
         (CONFIGURACION_VALORACION, 'Cambio de escalas exigidas y periodicidad'),
+        (PLAN_ATENCION, 'Plan de atención (creación, activación u objetivo nuevo)'),
     ]
 
     usuario = models.ForeignKey(

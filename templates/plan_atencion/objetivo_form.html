@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {% if objetivo %}Corregir objetivo{% else %}Agregar objetivo{% endif %}{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-bullseye me-2"></i>{% if objetivo %}Corregir objetivo{% else %}Agregar objetivo{% endif %} — plan v{{ plan.version }}</h4>
+{% include 'plan_atencion/_encabezado.html' %}
+{% if plan.estado == 'vigente' and not objetivo %}<div class="alert alert-info small">El plan está vigente: el objetivo se agrega de inmediato y ya no se podrá corregir (solo registrarle seguimiento).</div>{% endif %}
+<div class="card card-gc" style="max-width:900px;"><div class="card-body p-4">
+  <form method="post" novalidate>{% csrf_token %}{{ form.origen }}
+    {% if form.origen.value %}<div class="small text-muted mb-2">Sugerido por: {{ form.origen.value }}. Revise y ajuste antes de guardar.</div>{% endif %}
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.area.label }}</label>{{ form.area }}</div>
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.responsable.label }}</label>{{ form.responsable }}</div>
+      <div class="col-12"><label class="form-label fw-semibold">{{ form.necesidad.label }}</label>{{ form.necesidad }}{% for e in form.necesidad.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-12"><label class="form-label fw-semibold">{{ form.meta.label }}</label>{{ form.meta }}{% for e in form.meta.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-12"><label class="form-label fw-semibold">{{ form.intervenciones.label }}</label>{{ form.intervenciones }}{% for e in form.intervenciones.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.frecuencia.label }}</label>{{ form.frecuencia }}</div>
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.fecha_meta.label }}</label>{{ form.fecha_meta }}{% for e in form.fecha_meta.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    </div>
+    <div class="d-flex gap-2 mt-4"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>{% if objetivo %}Guardar corrección{% else %}Agregar objetivo{% endif %}</button>
+      <a href="{% url 'plan_detalle' plan.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+  </form>
+</div></div>
+{% endblock %}

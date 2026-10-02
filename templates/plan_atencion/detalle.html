@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Plan de atención{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-journal-check me-2"></i>Plan de atención — versión {{ plan.version }}
+    {% if plan.estado == 'vigente' %}<span class="badge text-bg-success fs-6">Vigente</span>{% elif plan.estado == 'borrador' %}<span class="badge text-bg-secondary fs-6">Borrador</span>{% else %}<span class="badge text-bg-light border fs-6">Reemplazado</span>{% endif %}</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if plan.estado == 'vigente' and puede_elaborar %}
+      {% if borrador %}<a href="{% url 'plan_detalle' borrador.pk %}" class="btn btn-outline-primary">Continuar la revisión (borrador v{{ borrador.version }})</a>
+      {% else %}<form method="post" action="{% url 'plan_crear' residente.pk %}">{% csrf_token %}<button class="btn btn-outline-primary"><i class="bi bi-arrow-repeat me-1"></i>Revisar plan</button></form>{% endif %}
+    {% endif %}
+    {% if plan.estado == 'reemplazado' %}<a href="{% url 'plan_residente' residente.pk %}" class="btn btn-outline-secondary">Ir al plan vigente</a>{% endif %}
+  </div>
+</div>
+{% include 'plan_atencion/_encabezado.html' %}
+
+{% if plan.estado == 'borrador' %}
+<div class="alert alert-secondary d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <span><i class="bi bi-pencil-square me-1"></i>Borrador: cada profesional agrega los objetivos de su área. Cuando esté completo, el médico o el jefe de enfermería lo activan{% if plan.anterior %} y reemplaza a la versión {{ plan.anterior.version }}{% endif %}.</span>
+  <span class="d-flex gap-2">
+    {% if puede_activar %}<form method="post" action="{% url 'plan_activar' plan.pk %}">{% csrf_token %}<button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Activar plan</button></form>{% endif %}
+    {% if puede_elaborar %}<form method="post" action="{% url 'plan_descartar' plan.pk %}" onsubmit="return confirm('¿Descartar este borrador?');">{% csrf_token %}<button class="btn btn-outline-danger">Descartar borrador</button></form>{% endif %}
+  </span>
+</div>
+{% elif plan.revision_vencida %}
+<div class="alert alert-warning"><i class="bi bi-calendar-x me-1"></i>La revisión de este plan estaba prevista para el {{ plan.fecha_revision|date:"d/m/Y" }}. Use <strong>Revisar plan</strong>.</div>
+{% endif %}
+
+<div class="card card-gc mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <h6 class="fw-bold mb-2" style="color:#1F4E79;">Situación actual del residente</h6>
+    {% if plan.editable and puede_elaborar %}<a href="{% url 'plan_editar' plan.pk %}" class="btn btn-sm btn-outline-primary">Escribir situación y datos del plan</a>{% endif %}
+  </div>
+  {% if plan.resumen %}<p class="mb-2">{{ plan.resumen|linebreaksbr }}</p>{% else %}<p class="text-muted mb-2">Sin escribir todavía.</p>{% endif %}
+  <div class="row small">
+    {% if plan.participantes %}<div class="col-md-6"><span class="text-muted">Participaron:</span> {{ plan.participantes }}</div>{% endif %}
+    {% if plan.acuerdos_familia %}<div class="col-md-6"><span class="text-muted">Acuerdos con la familia:</span> {{ plan.acuerdos_familia }}</div>{% endif %}
+    <div class="col-md-6"><span class="text-muted">Próxima revisión:</span> {{ plan.fecha_revision|date:"d/m/Y" }}</div>
+    {% if avance %}<div class="col-md-6"><span class="text-muted">Objetivos logrados:</span> {{ avance.logrados }} de {{ avance.total }} ({{ avance.porcentaje }} %)</div>{% endif %}
+  </div>
+</div></div>
+
+{% if sugerencias and puede_elaborar %}
+<div class="card card-gc mb-3 border-info"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;"><i class="bi bi-lightbulb me-1"></i>Objetivos sugeridos según la valoración</h6>
+  {% for s in sugerencias %}
+  <div class="d-flex justify-content-between align-items-center gap-2 py-1 {% if not forloop.last %}border-bottom{% endif %}">
+    <span class="small"><strong>{{ s.origen }}</strong> — {{ s.meta }}</span>
+    <a href="{% url 'plan_objetivo_crear' plan.pk %}?sugerencia={{ s.clave }}" class="btn btn-sm btn-outline-info text-nowrap">Revisar y agregar</a>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="fw-bold mb-0" style="color:#1F4E79;">Objetivos</h5>
+  {% if puede_elaborar and plan.estado != 'reemplazado' %}<a href="{% url 'plan_objetivo_crear' plan.pk %}" class="btn btn-sm btn-gc"><i class="bi bi-plus-circle me-1"></i>Agregar objetivo</a>{% endif %}
+</div>
+{% for area, objetivos in areas %}
+  <h6 class="fw-bold mt-3 text-uppercase small" style="color:#4F9E86; letter-spacing:.5px;">{{ area }}</h6>
+  {% for o in objetivos %}
+  <div class="card card-gc mb-2" id="objetivo-{{ o.pk }}"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div style="flex:1; min-width:0;">
+        <div class="fw-semibold">{{ o.meta }}</div>
+        <div class="small text-muted mt-1"><strong>Necesidad:</strong> {{ o.necesidad }}</div>
+        <div class="small mt-1"><strong>Intervenciones:</strong> {{ o.intervenciones|linebreaksbr }}</div>
+        <div class="small mt-1 text-muted">Responsable: {{ o.get_responsable_display }}{% if o.frecuencia %} · {{ o.frecuencia }}{% endif %} · evaluar el {{ o.fecha_meta|date:"d/m/Y" }}{% if o.origen %} · sugerido por {{ o.origen }}{% endif %}</div>
+      </div>
+      <div class="text-end">
+        {% if o.estado == 'logrado' %}<span class="badge text-bg-success">Logrado</span>{% elif o.estado == 'parcial' %}<span class="badge text-bg-info">Parcialmente logrado</span>{% elif o.estado == 'no_logrado' %}<span class="badge text-bg-danger">No logrado</span>{% elif o.estado == 'suspendido' %}<span class="badge text-bg-secondary">Suspendido</span>{% else %}<span class="badge text-bg-primary">En curso</span>{% endif %}
+        {% if o.vencido and plan.estado == 'vigente' %}<div class="small text-danger mt-1">Fecha para evaluar vencida</div>{% endif %}
+        {% if plan.editable and puede_elaborar %}<div class="mt-2 d-flex gap-1 justify-content-end">
+          <a href="{% url 'plan_objetivo_editar' o.pk %}" class="btn btn-sm btn-outline-secondary">Corregir</a>
+          <form method="post" action="{% url 'plan_objetivo_quitar' o.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Quitar</button></form>
+        </div>{% endif %}
+      </div>
+    </div>
+    {% if o.seguimientos.all %}
+    <div class="mt-2 border-top pt-2">
+      {% for s in o.seguimientos.all %}<div class="small"><span class="text-muted">{{ s.fecha|date:"d/m/Y H:i" }} · {{ s.registrado_por.get_full_name|default:s.registrado_por.username }} · {{ s.get_estado_display }}:</span> {{ s.nota }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% if puede_seguimiento %}
+    <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="collapse" data-bs-target="#seg-{{ o.pk }}">Registrar seguimiento</button>
+    <form id="seg-{{ o.pk }}" class="collapse mt-2" method="post" action="{% url 'plan_seguimiento' o.pk %}">{% csrf_token %}
+      <div class="row g-2">
+        <div class="col-md-4"><label class="form-label small fw-semibold">Estado del objetivo</label>
+          <select name="estado" class="form-select form-select-sm">{% for v, t in seguimiento_form.fields.estado.choices %}{% if v %}<option value="{{ v }}" {% if v == o.estado %}selected{% endif %}>{{ t }}</option>{% endif %}{% endfor %}</select></div>
+        <div class="col-md-8"><label class="form-label small fw-semibold">Qué se observó</label>{{ seguimiento_form.nota }}</div>
+      </div>
+      <button class="btn btn-sm btn-primary mt-2">Guardar seguimiento</button>
+    </form>
+    {% endif %}
+  </div></div>
+  {% endfor %}
+{% empty %}
+  <div class="card card-gc"><div class="card-body text-muted">Sin objetivos todavía.</div></div>
+{% endfor %}
+{% endblock %}

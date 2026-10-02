@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'citas',
     'signos',
     'valoracion',
+    'plan_atencion',
     'alertas',
 ]
 

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Datos del plan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-journal-check me-2"></i>Situación y datos del plan (versión {{ plan.version }})</h4>
+{% include 'plan_atencion/_encabezado.html' %}
+<div class="card card-gc" style="max-width:900px;"><div class="card-body p-4">
+  <form method="post" novalidate>{% csrf_token %}
+    <div class="d-flex justify-content-between align-items-end"><label class="form-label fw-semibold mb-1">{{ form.resumen.label }}</label>
+      <button type="button" class="btn btn-sm btn-link" id="usar-sugerido">Traer lo registrado (alergias, antecedentes, escalas, peso)</button></div>
+    {{ form.resumen }}
+    <div class="small text-muted mb-3">{{ form.resumen.help_text }}</div>
+    <label class="form-label fw-semibold">{{ form.participantes.label }}</label>{{ form.participantes }}
+    <label class="form-label fw-semibold mt-3">{{ form.acuerdos_familia.label }}</label>{{ form.acuerdos_familia }}
+    <div class="row mt-3"><div class="col-md-4"><label class="form-label fw-semibold">{{ form.fecha_revision.label }}</label>{{ form.fecha_revision }}
+      {% for e in form.fecha_revision.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div></div>
+    <div class="d-flex gap-2 mt-4"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar</button>
+      <a href="{% url 'plan_detalle' plan.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+  </form>
+</div></div>
+{{ sugerencia_resumen|json_script:"resumen-sugerido" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('usar-sugerido').addEventListener('click', function () {
+  const t = document.getElementById('id_resumen');
+  const s = JSON.parse(document.getElementById('resumen-sugerido').textContent);
+  t.value = t.value.trim() ? t.value.trim() + '\n\n' + s : s;
+});
+</script>
+{% endblock %}
