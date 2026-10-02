@@ -16,9 +16,7 @@
       <span class="badge {{ v.nivel|clase_nivel }} fs-6">{{ v.interpretacion }}</span>
       <div class="small mt-3">Aplicada el <strong>{{ v.fecha|date:"d/m/Y" }}</strong> por {{ v.registrado_por.get_full_name|default:v.registrado_por.username }}</div>
       {% if v.educacion %}<div class="small">Nivel educativo considerado: {{ v.educacion }}</div>{% endif %}
-      {% if v.cuidador_evaluado %}<div class="small">Cuidador evaluado: {{ v.cuidador_evaluado }}</div>{% endif %}
       {% if v.observaciones %}<div class="small mt-2"><div class="text-muted">Observaciones</div>{{ v.observaciones|linebreaksbr }}</div>{% endif %}
-      {% if escala.modo == 'puntaje' %}<div class="small text-muted mt-2">Escala con licencia: solo se registró el puntaje total.</div>{% endif %}
       {% if puede_anular %}
       <button class="btn btn-sm btn-outline-secondary mt-3" data-bs-toggle="collapse" data-bs-target="#anular">Anular valoración</button>
       <form id="anular" class="collapse mt-2" method="post" action="{% url 'valoracion_anular' v.pk %}">{% csrf_token %}
@@ -30,7 +28,6 @@
   </div>
   <div class="col-lg-8">
     {% if grafica %}<div class="card card-gc mb-3"><div class="card-body"><h6 class="fw-bold small" style="color:#1F4E79;">Evolución de {{ escala.corto }}</h6><canvas height="110" data-grafica='{{ grafica }}'></canvas></div></div>{% endif %}
-    {% if escala.modo == 'items' %}
     <div class="card card-gc"><div class="card-body">
       <h6 class="fw-bold" style="color:#1F4E79;">Respuestas</h6>
       <table class="table table-sm mb-0"><tbody>
@@ -40,7 +37,6 @@
       {% endfor %}
       </tbody></table>
     </div></div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

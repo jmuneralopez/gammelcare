@@ -1,14 +1,15 @@
 """Definición de las escalas de la valoración geriátrica integral.
 
-Dos modos:
-- 'items': la escala completa se aplica en pantalla, ítem por ítem, y el
-  sistema suma. Solo escalas de uso libre (dominio público o de uso
-  clínico libre ampliamente difundido): Barthel, Lawton y Brody, Pfeiffer,
-  Yesavage (GDS-15), Tinetti y Norton.
-- 'puntaje': se registra solo el puntaje total obtenido con el formato
-  oficial, porque sus ítems tienen derechos de autor y su uso en software
-  comercial requiere licencia: Minimental (MMSE), Braden, MNA-SF y Zarit.
-  Si el hogar o GammelCare obtiene la licencia, se pueden pasar a 'items'.
+Solo escalas de uso libre, que no exigen licencia para usarlas en un
+software comercial (decisión de Juan Carlos, 2026-10-01): Katz, Lawton y
+Brody, Pfeiffer, Yesavage (GDS-15), Tinetti y Norton. Todas se aplican
+completas en pantalla, ítem por ítem, y el sistema suma.
+
+Quedan fuera por derechos de autor: Barthel (su publicación original solo
+autoriza el uso libre no comercial), Minimental (MMSE), Braden, MNA y
+Zarit. Katz reemplaza a Barthel para las actividades básicas, Norton a
+Braden para el riesgo de lesiones por presión; el estado nutricional se
+vigila con el peso (alerta de pérdida en signos vitales).
 
 Cada escala trae sus bandas de interpretación (de menor a mayor puntaje)
 con un nivel de color: 'ok', 'leve', 'moderado', 'grave'. `alerta=True`
@@ -45,7 +46,7 @@ class Escala:
     corto: str
     dominio: str
     que_mide: str
-    modo: str  # 'items' | 'puntaje'
+    modo: str  # siempre 'items' (se conserva por si en el futuro se registra solo el puntaje)
     minimo: int
     maximo: int
     bandas: tuple
@@ -54,7 +55,6 @@ class Escala:
     instrucciones: str = ''
     periodicidad_meses: int = 6  # sugerida; 0 = no exigida por defecto
     cuenta_errores: bool = False  # Pfeiffer: el puntaje es el número de errores
-    nota_licencia: str = ''
     deterioro_alerta: int = 0  # caída de puntos frente a la anterior que genera alerta
     mayor_es_mejor: bool = True
     extra: dict = field(default_factory=dict)
@@ -69,41 +69,29 @@ class Escala:
 SI_NO = ((1, 'Sí'), (0, 'No'))
 NO_SI = ((0, 'Sí'), (1, 'No'))
 
-# ── Barthel ─────────────────────────────────────────────────────────
-BARTHEL = Escala(
-    codigo='barthel', nombre='Índice de Barthel', corto='Barthel', dominio='Funcional',
-    que_mide='Actividades básicas de la vida diaria (comer, asearse, vestirse, continencia, movilidad).',
-    modo='items', minimo=0, maximo=100, periodicidad_meses=6, deterioro_alerta=20,
-    roles=(Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.FISIOTERAPEUTA, Rol.TERAPEUTA_OCUPACIONAL),
-    instrucciones='Puntúe lo que el residente HACE habitualmente (no lo que podría hacer), según observación directa y lo que informa el personal.',
+# ── Katz ────────────────────────────────────────────────────────────
+KATZ = Escala(
+    codigo='katz', nombre='Índice de Katz', corto='Katz', dominio='Funcional',
+    que_mide='Actividades básicas de la vida diaria: bañarse, vestirse, uso del sanitario, trasladarse, continencia y alimentarse.',
+    modo='items', minimo=0, maximo=6, periodicidad_meses=6, deterioro_alerta=2,
+    roles=(Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.ENFERMERO, Rol.FISIOTERAPEUTA, Rol.TERAPEUTA_OCUPACIONAL),
+    instrucciones='Marque lo que el residente HACE habitualmente, según observación directa y lo que informa el personal. Independiente = sin supervisión, dirección ni ayuda de otra persona.',
     items=(
-        Item('comer', 'Comer', ((10, 'Independiente: come solo en un tiempo razonable'),
-                                (5, 'Necesita ayuda para cortar, untar, etc.'), (0, 'Dependiente'))),
-        Item('banarse', 'Bañarse', ((5, 'Independiente: entra y sale solo de la ducha o bañera'), (0, 'Dependiente'))),
-        Item('vestirse', 'Vestirse', ((10, 'Independiente: se pone y quita la ropa, abotona, se ata los zapatos'),
-                                      (5, 'Necesita ayuda, pero hace al menos la mitad sin ayuda'), (0, 'Dependiente'))),
-        Item('arreglarse', 'Arreglarse (lavarse cara y manos, peinarse, afeitarse)',
-             ((5, 'Independiente'), (0, 'Dependiente'))),
-        Item('deposicion', 'Deposición (valorar la semana anterior)',
-             ((10, 'Continente'), (5, 'Accidente ocasional (máximo uno por semana) o necesita ayuda con enemas o supositorios'),
-              (0, 'Incontinente'))),
-        Item('miccion', 'Micción (valorar la semana anterior)',
-             ((10, 'Continente, o maneja solo su sonda'), (5, 'Accidente ocasional (máximo uno en 24 horas)'),
-              (0, 'Incontinente o necesita ayuda con la sonda'))),
-        Item('retrete', 'Uso del sanitario', ((10, 'Independiente: entra, sale, se limpia y se viste solo'),
-                                              (5, 'Necesita alguna ayuda'), (0, 'Dependiente'))),
-        Item('traslado', 'Trasladarse (silla – cama)', ((15, 'Independiente'), (10, 'Mínima ayuda física o supervisión'),
-                                                        (5, 'Gran ayuda, pero puede mantenerse sentado solo'), (0, 'Dependiente'))),
-        Item('deambular', 'Deambulación', ((15, 'Camina solo 50 metros (puede usar bastón o caminador, no de ruedas)'),
-                                           (10, 'Camina 50 metros con ayuda o supervisión'),
-                                           (5, 'Se desplaza solo en silla de ruedas 50 metros'), (0, 'Dependiente / inmóvil'))),
-        Item('escaleras', 'Subir y bajar escaleras', ((10, 'Independiente'), (5, 'Necesita ayuda física o supervisión'),
-                                                      (0, 'Incapaz'))),
+        Item('banarse', 'Bañarse', ((1, 'Independiente: se baña solo, o solo necesita ayuda en una parte (espalda, zona genital o una extremidad)'),
+                                    (0, 'Dependiente: necesita ayuda para bañar más de una parte, para entrar o salir de la ducha, o hay que bañarlo'))),
+        Item('vestirse', 'Vestirse', ((1, 'Independiente: saca la ropa y se viste solo, incluidos botones y cremalleras (puede necesitar ayuda para atarse los zapatos)'),
+                                      (0, 'Dependiente: necesita ayuda para vestirse o hay que vestirlo'))),
+        Item('sanitario', 'Uso del sanitario', ((1, 'Independiente: va al sanitario, se sienta, se levanta, se arregla la ropa y se limpia solo'),
+                                                (0, 'Dependiente: necesita ayuda para ir o usar el sanitario, o usa pato o bacinilla'))),
+        Item('trasladarse', 'Trasladarse', ((1, 'Independiente: entra y sale de la cama o la silla solo (puede usar ayudas como caminador o barandas)'),
+                                            (0, 'Dependiente: necesita ayuda para pasar de la cama a la silla, o hay que trasladarlo'))),
+        Item('continencia', 'Continencia', ((1, 'Independiente: controla completamente la orina y la deposición'),
+                                            (0, 'Dependiente: incontinencia urinaria o fecal, parcial o total'))),
+        Item('alimentarse', 'Alimentarse', ((1, 'Independiente: lleva la comida del plato a la boca solo (otra persona puede servirla o picarla)'),
+                                            (0, 'Dependiente: necesita ayuda parcial o total para comer, o se alimenta por sonda'))),
     ),
-    # Barthel da múltiplos de 5: 0-15 total, 20-35 grave, 40-55 moderada, 60-95 leve, 100 independiente.
-    bandas=(Banda(0, 19, 'Dependencia total', GRAVE), Banda(20, 39, 'Dependencia grave', GRAVE),
-            Banda(40, 59, 'Dependencia moderada', MODERADO), Banda(60, 99, 'Dependencia leve', LEVE),
-            Banda(100, 100, 'Independiente', OK)),
+    bandas=(Banda(0, 2, 'Dependencia grave', GRAVE, alerta=True), Banda(3, 4, 'Dependencia moderada', MODERADO),
+            Banda(5, 5, 'Dependencia leve', LEVE), Banda(6, 6, 'Independiente', OK)),
 )
 
 # ── Lawton y Brody ──────────────────────────────────────────────────
@@ -265,48 +253,7 @@ NORTON = Escala(
             Banda(13, 14, 'Riesgo medio', MODERADO), Banda(15, 20, 'Riesgo mínimo', OK)),
 )
 
-# ── Escalas con licencia: solo puntaje ──────────────────────────────
-_LICENCIA = ('Escala con derechos de autor: aplíquela con el formato oficial en papel y registre aquí solo el '
-             'puntaje total. Adjunte o guarde el formato físico según la política del hogar.')
-
-MMSE = Escala(
-    codigo='mmse', nombre='Minimental (MMSE)', corto='MMSE', dominio='Cognitivo',
-    que_mide='Función cognitiva global (0 a 30).', modo='puntaje', minimo=0, maximo=30, periodicidad_meses=0,
-    mayor_es_mejor=True, deterioro_alerta=3,
-    roles=(Rol.MEDICO, Rol.PSICOLOGO, Rol.TERAPEUTA_OCUPACIONAL),
-    nota_licencia=_LICENCIA,
-    bandas=(Banda(0, 9, 'Deterioro cognitivo grave', GRAVE, alerta=True), Banda(10, 18, 'Deterioro cognitivo moderado', MODERADO, alerta=True),
-            Banda(19, 23, 'Deterioro cognitivo leve', LEVE), Banda(24, 30, 'Sin deterioro cognitivo', OK)),
-)
-BRADEN = Escala(
-    codigo='braden', nombre='Escala de Braden', corto='Braden', dominio='Piel (lesiones por presión)',
-    que_mide='Riesgo de lesiones por presión (6 a 23).', modo='puntaje', minimo=6, maximo=23, periodicidad_meses=0,
-    roles=(Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.ENFERMERO),
-    nota_licencia=_LICENCIA,
-    bandas=(Banda(6, 9, 'Riesgo muy alto de lesiones por presión', GRAVE, alerta=True),
-            Banda(10, 12, 'Riesgo alto de lesiones por presión', GRAVE, alerta=True),
-            Banda(13, 14, 'Riesgo moderado', MODERADO), Banda(15, 18, 'Riesgo bajo', LEVE),
-            Banda(19, 23, 'Sin riesgo', OK)),
-)
-MNA_SF = Escala(
-    codigo='mna_sf', nombre='Mini Nutritional Assessment, forma corta (MNA-SF)', corto='MNA-SF', dominio='Nutricional',
-    que_mide='Tamizaje de desnutrición (0 a 14).', modo='puntaje', minimo=0, maximo=14, periodicidad_meses=3,
-    roles=(Rol.MEDICO, Rol.NUTRICIONISTA, Rol.JEFE_ENFERMERIA),
-    nota_licencia=_LICENCIA,
-    bandas=(Banda(0, 7, 'Desnutrición', GRAVE, alerta=True), Banda(8, 11, 'Riesgo de desnutrición', MODERADO),
-            Banda(12, 14, 'Estado nutricional normal', OK)),
-)
-ZARIT = Escala(
-    codigo='zarit', nombre='Escala de sobrecarga del cuidador de Zarit', corto='Zarit', dominio='Cuidador',
-    que_mide='Sobrecarga del cuidador principal (familiar). 22 a 110 en la versión de 1 a 5 por ítem.',
-    modo='puntaje', minimo=22, maximo=110, periodicidad_meses=0, mayor_es_mejor=False,
-    roles=(Rol.TRABAJO_SOCIAL, Rol.PSICOLOGO, Rol.MEDICO),
-    nota_licencia=_LICENCIA + ' Se aplica al cuidador o familiar principal, no al residente.',
-    bandas=(Banda(22, 46, 'Sin sobrecarga', OK), Banda(47, 55, 'Sobrecarga leve', MODERADO),
-            Banda(56, 110, 'Sobrecarga intensa', GRAVE)),
-)
-
-ESCALAS = [BARTHEL, LAWTON, PFEIFFER, MMSE, YESAVAGE, TINETTI, NORTON, BRADEN, MNA_SF, ZARIT]
+ESCALAS = [KATZ, LAWTON, PFEIFFER, YESAVAGE, TINETTI, NORTON]
 POR_CODIGO = {e.codigo: e for e in ESCALAS}
 CODIGOS = [e.codigo for e in ESCALAS]
 

@@ -64,40 +64,6 @@ class ItemsForm(_BaseValoracionForm):
         return salida
 
 
-class PuntajeForm(_BaseValoracionForm):
-    puntaje = forms.IntegerField(label='Puntaje total',
-                                 widget=forms.NumberInput(attrs={'class': 'form-control', 'style': 'max-width:140px'}))
-    formato_oficial = forms.BooleanField(
-        label='Apliqué la escala con el formato oficial y este es el puntaje total que obtuve.',
-        error_messages={'required': 'Confirme que aplicó la escala con el formato oficial.'},
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-    )
-    cuidador = forms.CharField(label='Cuidador o familiar evaluado', required=False, max_length=120,
-                               widget=forms.TextInput(attrs={'class': 'form-control',
-                                                             'placeholder': 'Ej.: Marta Gómez (hija)'}))
-
-    def __init__(self, *args, escala=None, **kwargs):
-        super().__init__(*args, escala=escala, **kwargs)
-        self.fields['puntaje'].min_value = escala.minimo
-        self.fields['puntaje'].max_value = escala.maximo
-        self.fields['puntaje'].help_text = f'Entre {escala.minimo} y {escala.maximo}.'
-        self.fields['puntaje'].widget.attrs.update({'min': escala.minimo, 'max': escala.maximo})
-        if escala.codigo != 'zarit':
-            del self.fields['cuidador']
-
-    def clean_puntaje(self):
-        v = self.cleaned_data['puntaje']
-        if not self.escala.minimo <= v <= self.escala.maximo:
-            raise forms.ValidationError(f'El puntaje de {self.escala.corto} va de {self.escala.minimo} a {self.escala.maximo}.')
-        return v
-
-    def clean_cuidador(self):
-        v = self.cleaned_data.get('cuidador', '').strip()
-        if not v:
-            raise forms.ValidationError('Indique a quién se le aplicó la escala.')
-        return v
-
-
 class AnularForm(forms.Form):
     motivo = forms.CharField(label='Motivo de la anulación', widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}))
 

@@ -13,7 +13,6 @@
   <div class="row g-3">
     <div class="col-lg-8">
       {% if escala.instrucciones %}<div class="alert alert-light border small"><i class="bi bi-info-circle me-1"></i>{{ escala.instrucciones }}</div>{% endif %}
-      {% if escala.modo == 'items' %}
         {% for grupo, item, campo in form.campos_items %}
           {% ifchanged grupo %}{% if grupo %}<h6 class="fw-bold mt-3" style="color:#1F4E79;">{{ grupo }}</h6>{% endif %}{% endifchanged %}
           <div class="card card-gc mb-2 {% if campo.errors %}border-danger{% endif %}"><div class="card-body py-2">
@@ -25,18 +24,6 @@
           </div></div>
         {% endfor %}
         {% if form.educacion %}<div class="card card-gc mb-2"><div class="card-body"><label class="form-label fw-semibold">{{ form.educacion.label }}</label>{{ form.educacion }}</div></div>{% endif %}
-      {% else %}
-        <div class="alert alert-warning small"><i class="bi bi-c-circle me-1"></i>{{ escala.nota_licencia }}</div>
-        <div class="card card-gc"><div class="card-body">
-          <label class="form-label fw-semibold">{{ form.puntaje.label }}</label>{{ form.puntaje }}
-          <div class="small text-muted">{{ form.puntaje.help_text }}</div>
-          {% for e in form.puntaje.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          {% if form.cuidador %}<label class="form-label fw-semibold mt-3">{{ form.cuidador.label }}</label>{{ form.cuidador }}
-            {% for e in form.cuidador.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endif %}
-          <div class="form-check mt-3">{{ form.formato_oficial }}<label class="form-check-label" for="{{ form.formato_oficial.id_for_label }}">{{ form.formato_oficial.label }}</label></div>
-          {% for e in form.formato_oficial.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div></div>
-      {% endif %}
       <div class="card card-gc mt-2"><div class="card-body">
         <div class="row g-3">
           <div class="col-md-4"><label class="form-label fw-semibold">{{ form.fecha.label }}</label>{{ form.fecha }}
@@ -80,11 +67,6 @@
   }
   function calcular() {
     const campos = Object.keys(puntos);
-    if (!campos.length) {
-      const p = document.getElementById('id_puntaje');
-      const v = parseInt(p && p.value, 10);
-      mostrar(isNaN(v) ? null : v, 0); return;
-    }
     let total = 0, faltan = 0;
     campos.forEach(function (nombre) {
       const marcado = document.querySelector('input[name="' + nombre + '"]:checked');

@@ -6,7 +6,7 @@
 <form method="post" novalidate style="max-width:760px;">{% csrf_token %}
   <div class="card card-gc"><table class="table table-sm align-middle mb-0"><tbody>
   {% for e, campo in form.filas %}
-    <tr><td class="ps-3"><div class="fw-semibold">{{ e.nombre }}</div><div class="small text-muted">{{ e.dominio }}{% if e.modo == 'puntaje' %} · solo puntaje (licencia){% endif %}</div></td>
+    <tr><td class="ps-3"><div class="fw-semibold">{{ e.nombre }}</div><div class="small text-muted">{{ e.dominio }}</div></td>
       <td style="width:160px;"><div class="d-flex align-items-center gap-2">{{ campo }}<span class="small">meses</span></div>{% for er in campo.errors %}<div class="text-danger small">{{ er }}</div>{% endfor %}</td></tr>
   {% endfor %}
   </tbody></table></div>

@@ -18,22 +18,20 @@ def sumar_meses(fecha, meses):
 
 
 def vigentes(residente, escala=None):
-    qs = Valoracion.objects.filter(residente=residente, anulada=False)
+    # Solo escalas vigentes en el catálogo (por si quedaron registros de prueba de escalas retiradas).
+    qs = Valoracion.objects.filter(residente=residente, anulada=False, escala__in=E.CODIGOS)
     return qs.filter(escala=escala) if escala else qs
 
 
-def registrar(residente, escala, usuario, fecha, respuestas=None, puntaje=None, educacion='',
-              observaciones='', cuidador=''):
-    """Crea la valoración calculando el puntaje (modo 'items') o tomando el
-    puntaje digitado (modo 'puntaje')."""
-    if escala.modo == 'items':
-        puntos = {k: v['puntos'] for k, v in respuestas.items()}
-        puntaje = E.calcular(escala, puntos, educacion or 'media')
+def registrar(residente, escala, usuario, fecha, respuestas, educacion='', observaciones=''):
+    """Crea la valoración calculando el puntaje a partir de las respuestas."""
+    puntos = {k: v['puntos'] for k, v in respuestas.items()}
+    puntaje = E.calcular(escala, puntos, educacion or 'media')
     banda = escala.interpretar(puntaje)
     return Valoracion.objects.create(
-        residente=residente, escala=escala.codigo, fecha=fecha, respuestas=respuestas or {},
+        residente=residente, escala=escala.codigo, fecha=fecha, respuestas=respuestas,
         educacion=educacion, puntaje=puntaje, interpretacion=banda.texto, nivel=banda.nivel,
-        observaciones=observaciones, cuidador_evaluado=cuidador, registrado_por=usuario,
+        observaciones=observaciones, registrado_por=usuario,
     )
 
 

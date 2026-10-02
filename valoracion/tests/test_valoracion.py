@@ -57,8 +57,9 @@ def test_bandas_cubren_todo_el_rango_sin_huecos(escala):
 
 
 def test_interpretaciones_conocidas():
-    assert E.BARTHEL.interpretar(100).texto == 'Independiente'
-    assert E.BARTHEL.interpretar(45).texto == 'Dependencia moderada'
+    assert E.KATZ.interpretar(6).texto == 'Independiente'
+    assert E.KATZ.interpretar(4).texto == 'Dependencia moderada'
+    assert E.KATZ.interpretar(2).alerta
     assert E.TINETTI.interpretar(18).alerta and not E.TINETTI.interpretar(19).alerta
     assert E.NORTON.interpretar(12).alerta and not E.NORTON.interpretar(13).alerta
     assert E.YESAVAGE.interpretar(6).texto == 'Probable depresión'
@@ -75,13 +76,18 @@ def test_pfeiffer_ajusta_por_nivel_educativo():
 
 # ── Aplicar ─────────────────────────────────────────────────────────
 
-def test_fisio_aplica_barthel_y_queda_inmutable(client, residente, usuarios):
+def test_solo_escalas_sin_licencia():
+    assert set(E.CODIGOS) == {'katz', 'lawton', 'pfeiffer', 'yesavage', 'tinetti', 'norton'}
+    assert all(e.modo == 'items' for e in E.ESCALAS)
+
+
+def test_fisio_aplica_katz_y_queda_inmutable(client, residente, usuarios):
     client.force_login(usuarios['fisio'])
-    r = client.post(reverse('valoracion_aplicar', args=[residente.pk, 'barthel']), _post_items(E.BARTHEL, _mejor))
+    r = client.post(reverse('valoracion_aplicar', args=[residente.pk, 'katz']), _post_items(E.KATZ, _mejor))
     v = Valoracion.objects.get()
     assert r.url == reverse('valoracion_detalle', args=[v.pk])
-    assert (v.puntaje, v.interpretacion, v.nivel) == (100, 'Independiente', E.OK)
-    assert v.respuestas['comer']['texto'].startswith('Independiente') and v.verificar_integridad()
+    assert (v.puntaje, v.interpretacion, v.nivel) == (6, 'Independiente', E.OK)
+    assert v.respuestas['banarse']['texto'].startswith('Independiente') and v.verificar_integridad()
     assert RegistroAuditoria.objects.filter(accion=RegistroAuditoria.VALORACION_REGISTRADA).exists()
     v.puntaje = 50
     with pytest.raises(ValueError):
@@ -100,39 +106,14 @@ def test_faltan_items(client, residente, usuarios):
 
 
 def test_rol_sin_permiso_para_la_escala(client, residente, usuarios, psicologo):
-    client.force_login(usuarios['auxiliar'])  # aplica Norton, no Barthel
-    client.post(reverse('valoracion_aplicar', args=[residente.pk, 'barthel']), _post_items(E.BARTHEL, _mejor))
+    client.force_login(usuarios['auxiliar'])  # aplica Norton y Katz, no Tinetti
+    client.post(reverse('valoracion_aplicar', args=[residente.pk, 'tinetti']), _post_items(E.TINETTI, _mejor))
     assert not Valoracion.objects.exists()
     client.post(reverse('valoracion_aplicar', args=[residente.pk, 'norton']), _post_items(E.NORTON, _mejor))
     assert Valoracion.objects.filter(escala='norton').count() == 1
     client.force_login(psicologo)
     client.post(reverse('valoracion_aplicar', args=[residente.pk, 'yesavage']), _post_items(E.YESAVAGE, _mejor))
     assert Valoracion.objects.filter(escala='yesavage').count() == 1
-
-
-def test_escala_con_licencia_solo_puntaje(client, residente, usuarios):
-    client.force_login(usuarios['jefe'])
-    url = reverse('valoracion_aplicar', args=[residente.pk, 'braden'])
-    html = client.get(url).content.decode()
-    assert 'derechos de autor' in html
-    base = {'fecha': timezone.localdate().isoformat(), 'observaciones': ''}
-    r = client.post(url, {**base, 'puntaje': 11})
-    assert 'formato_oficial' in r.context['form'].errors
-    r = client.post(url, {**base, 'puntaje': 30, 'formato_oficial': 'on'})
-    assert 'puntaje' in r.context['form'].errors
-    client.post(url, {**base, 'puntaje': 11, 'formato_oficial': 'on'})
-    v = Valoracion.objects.get()
-    assert v.interpretacion == 'Riesgo alto de lesiones por presión' and v.respuestas == {}
-
-
-def test_zarit_pide_cuidador(client, residente, usuarios):
-    client.force_login(usuarios['social'])
-    url = reverse('valoracion_aplicar', args=[residente.pk, 'zarit'])
-    base = {'fecha': timezone.localdate().isoformat(), 'observaciones': '', 'puntaje': 60, 'formato_oficial': 'on'}
-    r = client.post(url, base)
-    assert 'cuidador' in r.context['form'].errors
-    client.post(url, {**base, 'cuidador': 'Marta (hija)'})
-    assert Valoracion.objects.get().cuidador_evaluado == 'Marta (hija)'
 
 
 def test_fecha_futura_o_muy_antigua(client, residente, usuarios):
@@ -144,7 +125,7 @@ def test_fecha_futura_o_muy_antigua(client, residente, usuarios):
 
 
 def test_anulacion(client, residente, usuarios):
-    v = services.registrar(residente, E.NORTON, usuarios['auxiliar'], timezone.localdate(), puntaje=None,
+    v = services.registrar(residente, E.NORTON, usuarios['auxiliar'], timezone.localdate(),
                            respuestas={i.codigo: {'puntos': 4, 'opcion': 0, 'texto': 'x'} for i in E.NORTON.items})
     client.force_login(usuarios['fisio'])
     client.post(reverse('valoracion_anular', args=[v.pk]), {'motivo': 'x'})
@@ -160,10 +141,7 @@ def test_anulacion(client, residente, usuarios):
 # ── Estado, vencimientos y alertas ──────────────────────────────────
 
 def _registrar(residente, usuario, escala, puntaje, dias_atras=0):
-    v = services.registrar(residente, escala, usuario, timezone.localdate() - timedelta(days=dias_atras),
-                           respuestas={}, puntaje=puntaje) if escala.modo == 'puntaje' else None
-    if v is None:
-        v = Valoracion.objects.create(residente=residente, escala=escala.codigo, puntaje=puntaje,
+    v = Valoracion.objects.create(residente=residente, escala=escala.codigo, puntaje=puntaje,
                                       fecha=timezone.localdate() - timedelta(days=dias_atras),
                                       interpretacion=escala.interpretar(puntaje).texto,
                                       nivel=escala.interpretar(puntaje).nivel, registrado_por=usuario)
@@ -172,15 +150,15 @@ def _registrar(residente, usuario, escala, puntaje, dias_atras=0):
 
 def test_vencimiento_segun_periodicidad(residente, usuarios):
     _antiguo(residente, 400)
-    _registrar(residente, usuarios['medico'], E.BARTHEL, 80, dias_atras=200)
+    _registrar(residente, usuarios['medico'], E.KATZ, 4, dias_atras=200)
     estado = {f['escala'].codigo: f for f in services.estado_por_escala(residente)}
-    assert estado['barthel']['vencida'] and estado['pfeiffer']['vencida'] and estado['pfeiffer']['nunca']
+    assert estado['katz']['vencida'] and estado['pfeiffer']['vencida'] and estado['pfeiffer']['nunca']
     assert not estado['lawton']['exigida'] and not estado['lawton']['vencida']
     config = ConfiguracionValoracion.para_hogar(residente.hogar)
-    config.periodicidad = {'barthel': 12}
+    config.periodicidad = {'katz': 12}
     config.save()
     estado = {f['escala'].codigo: f for f in services.estado_por_escala(residente)}
-    assert not estado['barthel']['vencida']
+    assert not estado['katz']['vencida']
 
 
 def test_recien_ingresado_tiene_gracia(residente):
@@ -191,7 +169,7 @@ def test_alerta_vencidas_agrupada(hogar, residente, usuarios):
     _antiguo(residente, 30)
     motor.evaluar_hogar(hogar)
     a = _activas(hogar, 'valoracion_vencida').get()
-    assert 'Barthel' in a.titulo and 'Norton' in a.titulo and a.gravedad == Alerta.INFORMATIVA
+    assert 'Katz' in a.titulo and 'Norton' in a.titulo and a.gravedad == Alerta.INFORMATIVA
 
 
 def test_alerta_resultado_de_riesgo(hogar, residente, usuarios, django_capture_on_commit_callbacks):
@@ -201,12 +179,12 @@ def test_alerta_resultado_de_riesgo(hogar, residente, usuarios, django_capture_o
     assert 'Riesgo alto de caídas' in a.titulo and a.es_para(usuarios['fisio']) and a.es_para(usuarios['medico'])
 
 
-def test_alerta_deterioro_barthel(hogar, residente, usuarios):
-    _registrar(residente, usuarios['fisio'], E.BARTHEL, 85, dias_atras=90)
-    _registrar(residente, usuarios['fisio'], E.BARTHEL, 60)
+def test_alerta_deterioro_katz(hogar, residente, usuarios):
+    _registrar(residente, usuarios['fisio'], E.KATZ, 6, dias_atras=90)
+    _registrar(residente, usuarios['fisio'], E.KATZ, 4)
     motor.evaluar_hogar(hogar)
     a = _activas(hogar, 'valoracion_resultado').get()
-    assert 'empeoró' in a.titulo and '25 puntos' in a.mensaje
+    assert 'empeoró' in a.titulo and '2 puntos' in a.mensaje
 
 
 def test_resultado_antiguo_no_alerta(hogar, residente, usuarios):
@@ -218,9 +196,9 @@ def test_resultado_antiguo_no_alerta(hogar, residente, usuarios):
 # ── Pantallas y permisos ────────────────────────────────────────────
 
 def test_paginas_renderizan(client, residente, usuarios):
-    v1 = _registrar(residente, usuarios['medico'], E.BARTHEL, 70, dias_atras=100)
+    v1 = _registrar(residente, usuarios['medico'], E.KATZ, 5, dias_atras=100)
     client.force_login(usuarios['medico'])
-    client.post(reverse('valoracion_aplicar', args=[residente.pk, 'barthel']), _post_items(E.BARTHEL, _peor))
+    client.post(reverse('valoracion_aplicar', args=[residente.pk, 'katz']), _post_items(E.KATZ, _peor))
     v2 = Valoracion.objects.exclude(pk=v1.pk).get()
     urls = [reverse('valoracion_tablero'), reverse('valoracion_residente', args=[residente.pk]),
             reverse('valoracion_detalle', args=[v2.pk]), reverse('valoracion_configuracion'),

@@ -11,7 +11,7 @@ from residentes.models import Residente
 
 from . import escalas as E
 from . import services
-from .forms import AnularForm, ConfiguracionForm, ItemsForm, PuntajeForm
+from .forms import AnularForm, ConfiguracionForm, ItemsForm
 from .models import ConfiguracionValoracion, Valoracion
 from .permisos import (aplicar_requerido, configurar_requerido, puede_anular,
                        puede_aplicar, puede_configurar, ver_requerido)
@@ -65,16 +65,11 @@ def aplicar(request, pk, codigo):
     if not puede_aplicar(request.user, escala):
         messages.error(request, f'Su rol no aplica la escala {escala.corto}.')
         return redirect('valoracion_residente', pk=residente.pk)
-    Form = ItemsForm if escala.modo == 'items' else PuntajeForm
-    form = Form(request.POST or None, escala=escala)
+    form = ItemsForm(request.POST or None, escala=escala)
     if request.method == 'POST' and form.is_valid():
         d = form.cleaned_data
-        if escala.modo == 'items':
-            v = services.registrar(residente, escala, request.user, d['fecha'], respuestas=form.respuestas(),
-                                   educacion=d.get('educacion', ''), observaciones=d['observaciones'])
-        else:
-            v = services.registrar(residente, escala, request.user, d['fecha'], puntaje=d['puntaje'],
-                                   observaciones=d['observaciones'], cuidador=d.get('cuidador', ''))
+        v = services.registrar(residente, escala, request.user, d['fecha'], respuestas=form.respuestas(),
+                               educacion=d.get('educacion', ''), observaciones=d['observaciones'])
         _auditar(request, RegistroAuditoria.VALORACION_REGISTRADA,
                  f'{escala.corto} aplicada al residente #{residente.pk}: {v.puntaje} ({v.interpretacion})')
         nivel = messages.warning if v.nivel in (E.MODERADO, E.GRAVE) else messages.success

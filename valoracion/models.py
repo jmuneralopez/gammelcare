@@ -27,7 +27,6 @@ class Valoracion(models.Model):
     interpretacion = models.CharField(max_length=120)
     nivel = models.CharField(max_length=10)
     observaciones = models.TextField('Observaciones', blank=True)
-    cuidador_evaluado = models.CharField('Cuidador evaluado', max_length=120, blank=True)
     registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
     fecha_registro = models.DateTimeField(default=timezone.now, editable=False)
     hash_integridad = models.CharField(max_length=64, editable=False, blank=True)
@@ -60,7 +59,7 @@ class Valoracion(models.Model):
     def calcular_hash(self):
         partes = [str(self.residente_id), self.escala, self.fecha.isoformat(),
                   json.dumps(self.respuestas, sort_keys=True), self.educacion, str(self.puntaje),
-                  self.observaciones, self.cuidador_evaluado, str(self.registrado_por_id)]
+                  self.observaciones, str(self.registrado_por_id)]
         return hashlib.sha256('|'.join(partes).encode('utf-8')).hexdigest()
 
     def verificar_integridad(self):
