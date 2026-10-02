@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load valoracion_tags %}
+{% block title %}GammelCare — Valoración geriátrica del hogar{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-pulse me-2"></i>Valoración geriátrica del hogar</h4>
+  {% if puede_configurar %}<a href="{% url 'valoracion_configuracion' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Escalas exigidas y periodicidad</a>{% endif %}
+</div>
+<p class="text-muted small">Último resultado de las escalas que exige el hogar. <span class="badge text-bg-danger">Vencida</span> = ya pasó la fecha en que debía repetirse (o nunca se aplicó, después de 15 días del ingreso).</p>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Residente</th>{% for e in exigidas %}<th>{{ e.corto }}<div class="small fw-normal text-muted">{{ e.dominio }}</div></th>{% endfor %}<th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td class="ps-3"><a href="{% url 'valoracion_residente' f.residente.pk %}" class="fw-semibold text-decoration-none">{{ f.nombre }}</a>
+        {% if f.vencidas %}<div><span class="badge text-bg-danger">{{ f.vencidas }} vencida{{ f.vencidas|pluralize }}</span></div>{% endif %}</td>
+      {% for c in f.celdas %}
+      <td>{% if c.ultima %}<a href="{% url 'valoracion_detalle' c.ultima.pk %}" class="badge {{ c.ultima.nivel|clase_nivel }} text-decoration-none fs-6 fw-normal" title="{{ c.ultima.interpretacion }}">{{ c.ultima.puntaje }}</a>
+          <div class="small {% if c.vencida %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ c.ultima.fecha|date:"d/m/y" }}{% if c.vencida %} · vencida{% endif %}</div>
+        {% else %}<span class="small {% if c.vencida %}text-danger fw-semibold{% else %}text-muted{% endif %}">{% if c.vencida %}Nunca aplicada{% else %}Pendiente{% endif %}</span>{% endif %}</td>
+      {% endfor %}
+      <td class="text-end pe-3"><a href="{% url 'valoracion_residente' f.residente.pk %}" class="btn btn-sm btn-outline-primary">Ver valoración</a></td>
+    </tr>
+  {% empty %}<tr><td colspan="20" class="text-center text-muted py-4">No hay residentes activos.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

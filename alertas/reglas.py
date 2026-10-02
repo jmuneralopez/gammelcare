@@ -514,6 +514,57 @@ def balance_negativo(hogar, config, residente=None):
         )
 
 
+# ── Valoración geriátrica ───────────────────────────────────────────
+
+DIAS_AVISO_RESULTADO = 7
+
+
+def valoracion_resultado(hogar, config, residente=None):
+    """Resultado de riesgo o deterioro marcado en la última aplicación de
+    cada escala; el aviso dura una semana desde la aplicación."""
+    from valoracion import services as vs
+    desde = timezone.localdate() - timedelta(days=DIAS_AVISO_RESULTADO)
+    for r in _residentes(hogar, residente):
+        for f in vs.estado_por_escala(r):
+            v, e = f['ultima'], f['escala']
+            if not v or v.fecha < desde:
+                continue
+            banda = e.interpretar(v.puntaje)
+            empeoro = (e.deterioro_alerta and f['cambio'] is not None and f['cambio'] <= -e.deterioro_alerta)
+            if not (banda and banda.alerta) and not empeoro:
+                continue
+            partes = []
+            if empeoro:
+                partes.append(f'empeoró {abs(f["cambio"])} puntos frente a la anterior ({f["anterior"].puntaje} el {f["anterior"].fecha:%d/%m/%Y})')
+            titulo = (f'{e.corto} de {r.get_nombre()}: {v.puntaje} — {v.interpretacion}'
+                      + (' (empeoró)' if empeoro else ''))
+            yield Candidato(
+                clave=f'valoracion_resultado:{v.pk}', gravedad=ALTA, residente=r, titulo=titulo,
+                mensaje=(f'Aplicada el {v.fecha:%d/%m/%Y}. ' + ('; '.join(partes) + '. ' if partes else '')
+                         + 'Considérelo en el plan de atención del residente.'),
+                url=reverse('valoracion_detalle', args=[v.pk]), texto_accion='Ver resultado',
+                roles=sorted(set(e.roles) | {Rol.MEDICO}),
+            )
+
+
+def valoracion_vencida(hogar, config, residente=None):
+    from valoracion import services as vs
+    from valoracion.models import ConfiguracionValoracion
+    cv = ConfiguracionValoracion.para_hogar(hogar)
+    for r in _residentes(hogar, residente):
+        vencidas = vs.vencidas(r, cv)
+        if not vencidas:
+            continue
+        nombres = ', '.join(f['escala'].corto for f in vencidas)
+        yield Candidato(
+            clave=f'valoracion_vencida:{r.pk}', gravedad=INFORMATIVA, residente=r,
+            titulo=f'{r.get_nombre()}: escalas por aplicar o repetir — {nombres}',
+            mensaje='Según la periodicidad que exige el hogar.',
+            url=reverse('valoracion_residente', args=[r.pk]), texto_accion='Ver valoración geriátrica',
+            roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+        )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -537,6 +588,8 @@ REGLAS = {
     'sin_diuresis': (sin_diuresis, 'Horas sin diuresis'),
     'perdida_peso': (perdida_peso, 'Pérdida de peso'),
     'balance_negativo': (balance_negativo, 'Balance de líquidos negativo'),
+    'valoracion_resultado': (valoracion_resultado, 'Escala de valoración con resultado de riesgo o deterioro'),
+    'valoracion_vencida': (valoracion_vencida, 'Escalas de valoración por aplicar o repetir'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -550,4 +603,5 @@ REGLAS_POR_MODELO = {
     'signos': ['signo_critico', 'signo_fuera_rango', 'sin_control_signos', 'perdida_peso'],
     'liquidos': ['balance_negativo'],
     'nota': ['sin_deposicion', 'sin_diuresis'],
+    'valoracion': ['valoracion_resultado', 'valoracion_vencida'],
 }

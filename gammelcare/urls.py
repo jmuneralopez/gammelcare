@@ -16,6 +16,7 @@ urlpatterns = [
     path('antecedentes/', include('antecedentes.urls')),
     path('citas/', include('citas.urls')),
     path('signos/', include('signos.urls')),
+    path('valoracion/', include('valoracion.urls')),
     path('alertas/', include('alertas.urls')),
     path('', lambda request: redirect('login'), name='home'),
 ]

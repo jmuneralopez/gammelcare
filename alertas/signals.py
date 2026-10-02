@@ -33,6 +33,7 @@ def _conectar():
     from medicamentos.models import Administracion, IngresoMedicamento, Prescripcion
     from notas_clinicas.models import NotaClinica
     from signos.models import ControlSignos, RangoResidente, RangosHogar, RegistroLiquidos
+    from valoracion.models import ConfiguracionValoracion, Valoracion
 
     @receiver(post_save, sender=Examen, weak=False, dispatch_uid='alertas_examen')
     def _examen(sender, instance, **kw):
@@ -79,6 +80,15 @@ def _conectar():
     @receiver(post_save, sender=NotaClinica, weak=False, dispatch_uid='alertas_nota')
     def _nota(sender, instance, **kw):
         _programar(instance.residente.hogar, instance.residente, 'nota')
+
+    @receiver(post_save, sender=Valoracion, weak=False, dispatch_uid='alertas_valoracion')
+    def _valoracion(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'valoracion')
+
+    @receiver(post_save, sender=ConfiguracionValoracion, weak=False, dispatch_uid='alertas_conf_valoracion')
+    def _conf_valoracion(sender, instance, created=False, **kw):
+        if not created:
+            _programar(instance.hogar, None, 'valoracion')
 
 
 _conectar()

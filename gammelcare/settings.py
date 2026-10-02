@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'antecedentes',
     'citas',
     'signos',
+    'valoracion',
     'alertas',
 ]
 

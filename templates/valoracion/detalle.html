@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load valoracion_tags %}
+{% block title %}GammelCare — {{ escala.corto }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-pulse me-2"></i>{{ escala.nombre }}</h4>
+  {% if puede_aplicar %}<a href="{% url 'valoracion_aplicar' residente.pk escala.codigo %}" class="btn btn-outline-primary">Aplicar {{ escala.corto }} de nuevo</a>{% endif %}
+</div>
+{% include 'valoracion/_encabezado.html' %}
+{% if v.anulada %}<div class="alert alert-danger">Valoración anulada por {{ v.anulada_por.get_full_name|default:v.anulada_por.username }} el {{ v.fecha_anulacion|date:"d/m/Y H:i" }}: {{ v.motivo_anulacion }}</div>{% endif %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card card-gc h-100"><div class="card-body">
+      <div class="text-muted small">Resultado</div>
+      <div class="display-6 fw-bold {% if v.anulada %}text-decoration-line-through{% endif %}">{{ v.puntaje }} <small class="fs-6 text-muted">/ {{ escala.maximo }}</small></div>
+      <span class="badge {{ v.nivel|clase_nivel }} fs-6">{{ v.interpretacion }}</span>
+      <div class="small mt-3">Aplicada el <strong>{{ v.fecha|date:"d/m/Y" }}</strong> por {{ v.registrado_por.get_full_name|default:v.registrado_por.username }}</div>
+      {% if v.educacion %}<div class="small">Nivel educativo considerado: {{ v.educacion }}</div>{% endif %}
+      {% if v.cuidador_evaluado %}<div class="small">Cuidador evaluado: {{ v.cuidador_evaluado }}</div>{% endif %}
+      {% if v.observaciones %}<div class="small mt-2"><div class="text-muted">Observaciones</div>{{ v.observaciones|linebreaksbr }}</div>{% endif %}
+      {% if escala.modo == 'puntaje' %}<div class="small text-muted mt-2">Escala con licencia: solo se registró el puntaje total.</div>{% endif %}
+      {% if puede_anular %}
+      <button class="btn btn-sm btn-outline-secondary mt-3" data-bs-toggle="collapse" data-bs-target="#anular">Anular valoración</button>
+      <form id="anular" class="collapse mt-2" method="post" action="{% url 'valoracion_anular' v.pk %}">{% csrf_token %}
+        <label class="form-label small fw-semibold">Motivo de la anulación</label>{{ anular_form.motivo }}
+        <button class="btn btn-sm btn-danger mt-2">Confirmar anulación</button>
+      </form>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-8">
+    {% if grafica %}<div class="card card-gc mb-3"><div class="card-body"><h6 class="fw-bold small" style="color:#1F4E79;">Evolución de {{ escala.corto }}</h6><canvas height="110" data-grafica='{{ grafica }}'></canvas></div></div>{% endif %}
+    {% if escala.modo == 'items' %}
+    <div class="card card-gc"><div class="card-body">
+      <h6 class="fw-bold" style="color:#1F4E79;">Respuestas</h6>
+      <table class="table table-sm mb-0"><tbody>
+      {% for grupo, pregunta, texto, puntos in v.respuestas_legibles %}
+        {% ifchanged grupo %}{% if grupo %}<tr><th colspan="3" class="pt-3">{{ grupo }}</th></tr>{% endif %}{% endifchanged %}
+        <tr><td>{{ pregunta }}</td><td class="small">{{ texto }}</td><td class="text-end fw-semibold">{{ puntos }}</td></tr>
+      {% endfor %}
+      </tbody></table>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if grafica %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+document.querySelectorAll('canvas[data-grafica]').forEach(function (c) {
+  const g = JSON.parse(c.dataset.grafica);
+  new Chart(c, {type: 'line', data: {labels: g.labels, datasets: [{data: g.valores, borderColor: '#0B3D62', backgroundColor: '#0B3D62', tension: 0}]},
+    options: {plugins: {legend: {display: false}}, scales: {y: {min: g.min, max: g.max}}}});
+});
+</script>
+{% endif %}
+{% endblock %}

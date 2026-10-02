@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load valoracion_tags antecedentes_tags %}
+{% block title %}GammelCare — Valoración geriátrica de {{ nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-pulse me-2"></i>Valoración geriátrica de {{ nombre }}</h4>
+  <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+</div>
+{% banner_alergias residente compacto=True %}
+{% if vencidas %}<div class="alert alert-warning"><i class="bi bi-calendar-x me-2"></i>Escalas por aplicar o repetir: {% for f in vencidas %}<strong>{{ f.escala.corto }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.</div>{% endif %}
+
+<div class="card card-gc"><div class="table-responsive"><table class="table align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Escala</th><th>Último resultado</th><th>Cambio</th><th>Anteriores</th><th>Próxima</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr class="{% if not f.exigida and not f.ultima %}text-muted{% endif %}">
+      <td class="ps-3"><div class="fw-semibold">{{ f.escala.nombre }}</div><div class="small text-muted">{{ f.escala.dominio }} · {{ f.escala.que_mide }}</div></td>
+      <td>{% if f.ultima %}<a href="{% url 'valoracion_detalle' f.ultima.pk %}" class="badge {{ f.ultima.nivel|clase_nivel }} fs-6 fw-normal text-decoration-none">{{ f.ultima.puntaje }}</a>
+          <div class="small">{{ f.ultima.interpretacion }}</div><div class="small text-muted">{{ f.ultima.fecha|date:"d/m/Y" }}</div>
+        {% else %}<span class="small">Sin aplicar</span>{% endif %}</td>
+      <td>{% if f.cambio is not None %}{% if f.cambio > 0 %}<span class="text-success small"><i class="bi bi-arrow-up"></i> mejoró</span>{% elif f.cambio < 0 %}<span class="text-danger small fw-semibold"><i class="bi bi-arrow-down"></i> empeoró</span>{% else %}<span class="small text-muted">igual</span>{% endif %}{% endif %}</td>
+      <td class="small text-muted">{% for h in f.historial %}{% if not forloop.first %}{{ h.puntaje }} <span style="font-size:.7rem">({{ h.fecha|date:"m/y" }})</span>{% if not forloop.last %} · {% endif %}{% endif %}{% endfor %}</td>
+      <td class="small text-nowrap">{% if f.exigida %}{% if f.vencida %}<span class="text-danger fw-semibold">Vencida ({{ f.proxima|date:"d/m/Y" }})</span>{% else %}{{ f.proxima|date:"d/m/Y" }}{% endif %}<div class="text-muted">cada {{ f.meses }} mes{{ f.meses|pluralize:"es" }}</div>{% else %}<span class="text-muted">No exigida</span>{% endif %}</td>
+      <td class="text-end pe-3">{% if f.puede_aplicar %}<a href="{% url 'valoracion_aplicar' residente.pk f.escala.codigo %}" class="btn btn-sm {% if f.vencida %}btn-gc{% else %}btn-outline-primary{% endif %} text-nowrap">Aplicar {{ f.escala.corto }}</a>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+<p class="small text-muted mt-2">Cada profesional ve el botón de las escalas que le corresponden. Las escalas marcadas como de solo puntaje (Minimental, Braden, MNA-SF, Zarit) se aplican con su formato oficial y aquí se registra el total.</p>
+{% endblock %}

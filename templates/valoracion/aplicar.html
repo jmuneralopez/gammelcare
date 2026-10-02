@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Aplicar {{ escala.corto }}{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1" style="color:#1F4E79;"><i class="bi bi-clipboard2-pulse me-2"></i>Aplicar {{ escala.nombre }}</h4>
+<p class="text-muted">{{ escala.que_mide }}</p>
+{% include 'valoracion/_encabezado.html' %}
+{% if anterior %}<p class="small">Resultado anterior: <strong>{{ anterior.puntaje }}</strong> — {{ anterior.interpretacion }} ({{ anterior.fecha|date:"d/m/Y" }}).</p>{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  {% if form.errors and not form.non_field_errors %}<div class="alert alert-danger">Faltan respuestas o hay datos por corregir. Revise lo marcado en rojo.</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-lg-8">
+      {% if escala.instrucciones %}<div class="alert alert-light border small"><i class="bi bi-info-circle me-1"></i>{{ escala.instrucciones }}</div>{% endif %}
+      {% if escala.modo == 'items' %}
+        {% for grupo, item, campo in form.campos_items %}
+          {% ifchanged grupo %}{% if grupo %}<h6 class="fw-bold mt-3" style="color:#1F4E79;">{{ grupo }}</h6>{% endif %}{% endifchanged %}
+          <div class="card card-gc mb-2 {% if campo.errors %}border-danger{% endif %}"><div class="card-body py-2">
+            <div class="fw-semibold mb-1">{{ forloop.counter }}. {{ item.pregunta }}</div>
+            {% for opcion in campo %}
+              <div class="form-check">{{ opcion.tag }}<label class="form-check-label" for="{{ opcion.id_for_label }}">{{ opcion.choice_label }}</label></div>
+            {% endfor %}
+            {% for e in campo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div></div>
+        {% endfor %}
+        {% if form.educacion %}<div class="card card-gc mb-2"><div class="card-body"><label class="form-label fw-semibold">{{ form.educacion.label }}</label>{{ form.educacion }}</div></div>{% endif %}
+      {% else %}
+        <div class="alert alert-warning small"><i class="bi bi-c-circle me-1"></i>{{ escala.nota_licencia }}</div>
+        <div class="card card-gc"><div class="card-body">
+          <label class="form-label fw-semibold">{{ form.puntaje.label }}</label>{{ form.puntaje }}
+          <div class="small text-muted">{{ form.puntaje.help_text }}</div>
+          {% for e in form.puntaje.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          {% if form.cuidador %}<label class="form-label fw-semibold mt-3">{{ form.cuidador.label }}</label>{{ form.cuidador }}
+            {% for e in form.cuidador.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endif %}
+          <div class="form-check mt-3">{{ form.formato_oficial }}<label class="form-check-label" for="{{ form.formato_oficial.id_for_label }}">{{ form.formato_oficial.label }}</label></div>
+          {% for e in form.formato_oficial.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div></div>
+      {% endif %}
+      <div class="card card-gc mt-2"><div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label fw-semibold">{{ form.fecha.label }}</label>{{ form.fecha }}
+            {% for e in form.fecha.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="col-12"><label class="form-label fw-semibold">{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card card-gc sticky-top" style="top:1rem;"><div class="card-body">
+        <div class="text-muted small">Puntaje</div>
+        <div class="display-6 fw-bold" id="total">—</div>
+        <div id="interpretacion" class="fw-semibold"></div>
+        <div class="small text-muted" id="faltan"></div>
+        <hr>
+        <div class="small text-muted mb-1">Interpretación ({{ escala.minimo }} a {{ escala.maximo }}{% if escala.cuenta_errores %}, cuenta errores{% endif %})</div>
+        <ul class="small ps-3 mb-3">{% for b in escala.bandas %}{% if b.minimo <= b.maximo %}<li>{{ b.minimo }}{% if b.maximo != b.minimo %}–{{ b.maximo }}{% endif %}: {{ b.texto }}</li>{% endif %}{% endfor %}</ul>
+        <button type="submit" class="btn btn-gc w-100"><i class="bi bi-check-circle me-1"></i>Guardar {{ escala.corto }}</button>
+        <a href="{% url 'valoracion_residente' residente.pk %}" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+      </div></div>
+    </div>
+  </div>
+</form>
+{{ bandas_json|json_script:"bandas" }}{{ puntos_json|json_script:"puntos" }}{{ ajustes_json|json_script:"ajustes" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const bandas = JSON.parse(document.getElementById('bandas').textContent);
+  const puntos = JSON.parse(document.getElementById('puntos').textContent);
+  const ajustes = JSON.parse(document.getElementById('ajustes').textContent);
+  const min = {{ escala.minimo }}, max = {{ escala.maximo }};
+  const colores = {ok: 'text-success', leve: 'text-info', moderado: 'text-warning', grave: 'text-danger'};
+  function mostrar(total, faltan) {
+    const t = document.getElementById('total'), i = document.getElementById('interpretacion');
+    if (total === null) { t.textContent = '—'; i.textContent = ''; return; }
+    t.textContent = total;
+    const b = bandas.find(b => total >= b.min && total <= b.max);
+    i.className = 'fw-semibold ' + (b ? colores[b.nivel] : '');
+    i.textContent = b ? b.texto + (faltan ? ' (parcial)' : '') : '';
+  }
+  function calcular() {
+    const campos = Object.keys(puntos);
+    if (!campos.length) {
+      const p = document.getElementById('id_puntaje');
+      const v = parseInt(p && p.value, 10);
+      mostrar(isNaN(v) ? null : v, 0); return;
+    }
+    let total = 0, faltan = 0;
+    campos.forEach(function (nombre) {
+      const marcado = document.querySelector('input[name="' + nombre + '"]:checked');
+      if (marcado) total += puntos[nombre][parseInt(marcado.value, 10)]; else faltan += 1;
+    });
+    const edu = document.getElementById('id_educacion');
+    if (edu && ajustes[edu.value] !== undefined) total = Math.max(min, Math.min(max, total + ajustes[edu.value]));
+    document.getElementById('faltan').textContent = faltan ? ('Faltan ' + faltan + ' ítem(s) por responder') : 'Todos los ítems respondidos';
+    mostrar(faltan === campos.length ? null : total, faltan);
+  }
+  document.querySelectorAll('input, select').forEach(el => el.addEventListener('change', calcular));
+  document.querySelectorAll('input[type=number]').forEach(el => el.addEventListener('input', calcular));
+  calcular();
+})();
+</script>
+{% endblock %}

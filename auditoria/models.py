@@ -60,6 +60,11 @@ class RegistroAuditoria(models.Model):
     SIGNOS_ANULADOS = 'signos_anulados'
     RANGO_SIGNOS = 'rango_signos'
 
+    # Valoración geriátrica.
+    VALORACION_REGISTRADA = 'valoracion_registrada'
+    VALORACION_ANULADA = 'valoracion_anulada'
+    CONFIGURACION_VALORACION = 'configuracion_valoracion'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -102,6 +107,9 @@ class RegistroAuditoria(models.Model):
         (LIQUIDOS_REGISTRADOS, 'Registro de líquidos'),
         (SIGNOS_ANULADOS, 'Anulación de signos vitales o líquidos'),
         (RANGO_SIGNOS, 'Cambio de rangos de signos vitales'),
+        (VALORACION_REGISTRADA, 'Aplicación de escala de valoración geriátrica'),
+        (VALORACION_ANULADA, 'Anulación de escala de valoración geriátrica'),
+        (CONFIGURACION_VALORACION, 'Cambio de escalas exigidas y periodicidad'),
     ]
 
     usuario = models.ForeignKey(

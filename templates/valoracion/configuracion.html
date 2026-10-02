@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Escalas exigidas{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-sliders me-2"></i>Escalas exigidas y periodicidad</h4>
+<p class="text-muted">Cada cuántos meses debe repetirse cada escala en todos los residentes. Ponga 0 si el hogar no la exige (se puede aplicar igual cuando se necesite). Las vencidas aparecen en el tablero y generan una alerta.</p>
+<form method="post" novalidate style="max-width:760px;">{% csrf_token %}
+  <div class="card card-gc"><table class="table table-sm align-middle mb-0"><tbody>
+  {% for e, campo in form.filas %}
+    <tr><td class="ps-3"><div class="fw-semibold">{{ e.nombre }}</div><div class="small text-muted">{{ e.dominio }}{% if e.modo == 'puntaje' %} · solo puntaje (licencia){% endif %}</div></td>
+      <td style="width:160px;"><div class="d-flex align-items-center gap-2">{{ campo }}<span class="small">meses</span></div>{% for er in campo.errors %}<div class="text-danger small">{{ er }}</div>{% endfor %}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+  <div class="d-flex gap-2 mt-3"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar periodicidad</button>
+    <a href="{% url 'valoracion_tablero' %}" class="btn btn-outline-secondary">Volver</a></div>
+</form>
+{% endblock %}

@@ -218,6 +218,12 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link {% if 'valoracion' in request.path %}active{% endif %}"
+             href="{% url 'valoracion_tablero' %}">
+            <i class="bi bi-clipboard2-pulse me-1"></i>Valoración geriátrica
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if request.resolver_match.url_name == 'ronda' %}active{% endif %}"
              href="{% url 'ronda' %}">
             <i class="bi bi-clock-history me-1"></i>Ronda de medicamentos
