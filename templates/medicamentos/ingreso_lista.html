@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load medicamentos_tags %}
 {% block title %}GammelCare — {% if es_botiquin %}Botiquín{% else %}Cajón de medicamentos de {{ nombre }}{% endif %}{% endblock %}
 
 {% block extra_css %}
@@ -17,13 +18,18 @@
     <i class="bi bi-boxes me-2"></i>
     {% if es_botiquin %}Botiquín{% else %}Cajón de medicamentos de {{ nombre }}{% endif %}
   </h4>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     {% if es_botiquin %}
+    <a href="{% url 'vencimientos' %}" class="btn btn-outline-primary"><i class="bi bi-hourglass-split me-1"></i>Vencimientos</a>
+    <a href="{% url 'historial_hogar' %}" class="btn btn-outline-primary"><i class="bi bi-clock-history me-1"></i>Historial de suministros</a>
+    {% if user|puede_configurar_medicamentos %}<a href="{% url 'medicamentos_configuracion' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Configuración</a>{% endif %}
     {% if puede_registrar_ingreso %}
     <a href="{% url 'ingreso_botiquin_crear' %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Agregar al botiquín</a>
     {% endif %}
     {% else %}
     <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-capsule me-1"></i>Órdenes médicas</a>
+    <a href="{% url 'acta_recepcion' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i>Acta de recepción</a>
+    {% if puede_descartar %}<a href="{% url 'medicamentos_devolver' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-up-right me-1"></i>Devolver a la familia</a>{% endif %}
     {% if puede_registrar_ingreso %}
     <a href="{% url 'ingreso_crear' residente.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Guardar en el cajón</a>
     {% endif %}

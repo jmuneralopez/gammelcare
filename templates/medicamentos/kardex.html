@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load antecedentes_tags %}
+{% block title %}GammelCare — Kardex de {{ nombre }}{% endblock %}
+{% block extra_css %}{% include 'medicamentos/_imprimir.html' %}
+<style>
+  .kardex th, .kardex td { padding: 2px 3px; text-align: center; font-size: .72rem; border: 1px solid #dfe7ee; }
+  .kardex td.med { text-align: left; white-space: nowrap; font-size: .78rem; }
+  .k-ok { background: #e3f2ec; color: #1f6b52; font-weight: 600; }
+  .k-no { background: #fde2e1; color: #a02622; font-weight: 700; }
+  .k-sin { background: #fff3cd; color: #8a6100; }
+  .k-prn { background: #e7f0fb; color: #124a76; font-weight: 600; }
+  .k-hoy { outline: 2px solid #1768AC; }
+  @media print { @page { size: landscape; margin: 8mm; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">Kardex de medicamentos — {{ nombre }}</h4>
+  <div class="d-flex gap-2 no-imprimir">
+    <a href="?mes={{ mes_anterior }}" class="btn btn-sm btn-outline-secondary">Mes anterior</a>
+    <a href="?mes={{ mes_siguiente }}" class="btn btn-sm btn-outline-secondary">Mes siguiente</a>
+    <button type="button" class="btn btn-sm btn-gc" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir Kardex</button>
+  </div>
+</div>
+<div class="mb-2"><strong>{{ mes_titulo|date:"F \d\e Y"|capfirst }}</strong> · {{ residente.hogar.nombre }}{% if residente.cama_actual %} · {{ residente.cama_actual.habitacion.departamento.nombre }}, hab. {{ residente.cama_actual.habitacion.numero }}, cama {{ residente.cama_actual.codigo }}{% endif %}</div>
+{% banner_alergias residente compacto=True %}
+{% if filas %}
+<div class="table-responsive"><table class="kardex w-100">
+  <thead><tr><th class="text-start">Medicamento y dosis</th><th>Hora</th>{% for d in dias %}<th class="{% if d == hoy %}k-hoy{% endif %}">{{ d.day }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td class="med">{{ f.p.medicamento }} · {{ f.p.dosis_cantidad|floatformat:"-2" }} {{ f.p.get_dosis_unidad_display }} · {{ f.p.get_via_administracion_display }}{% if f.p.estado == 'suspendida' %} <span class="text-danger">(suspendida)</span>{% endif %}</td>
+      <td>{{ f.hora }}</td>
+      {% for c in f.celdas %}
+        {% if c.tipo == 'ok' %}<td class="k-ok" title="{{ c.titulo }}">{{ c.iniciales }}</td>
+        {% elif c.tipo == 'no' %}<td class="k-no" title="{{ c.titulo }}">✕</td>
+        {% elif c.tipo == 'sin_registro' %}<td class="k-sin" title="Sin registro">?</td>
+        {% elif c.tipo == 'prn' %}<td class="k-prn">{{ c.n }}</td>
+        {% elif c.tipo == 'futuro' %}<td>·</td>
+        {% else %}<td style="background:#f6f6f6;"></td>{% endif %}
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="small mt-2"><span class="k-ok px-1">AB</span> suministrado (iniciales de quien lo registró) · <span class="k-no px-1">✕</span> no suministrado (pase el cursor para ver el motivo) · <span class="k-sin px-1">?</span> sin registro · <span class="k-prn px-1">2</span> dosis "si es necesario" del día · gris: la orden no aplicaba ese día.</p>
+{% else %}<div class="card card-gc"><div class="card-body text-muted">Sin órdenes médicas en este mes.</div></div>{% endif %}
+<div class="d-flex justify-content-between mt-4 small"><span>Impreso: {% now "d/m/Y H:i" %} por {{ user.get_full_name|default:user.username }}</span><span>Revisó: ____________________________</span></div>
+{% endblock %}

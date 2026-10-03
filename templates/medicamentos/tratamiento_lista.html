@@ -6,10 +6,13 @@
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
     <i class="bi bi-capsule me-2"></i>Órdenes médicas — {{ nombre }}
   </h4>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="{% url 'hoja_dia' residente.pk %}" class="btn btn-outline-primary">
       <i class="bi bi-calendar-check me-1"></i>Medicamentos de hoy
     </a>
+    <a href="{% url 'historial_residente' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-clock-history me-1"></i>Historial</a>
+    <a href="{% url 'kardex' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-grid-3x3 me-1"></i>Kardex</a>
+    <a href="{% url 'hoja_tratamiento' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i>Hoja de tratamiento</a>
     {% if puede_registrar_tratamiento %}
     <a href="{% url 'tratamiento_crear' residente.pk %}" class="btn btn-gc">
       <i class="bi bi-plus-circle me-1"></i>Registrar orden médica

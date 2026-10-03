@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import consultas, views
 
 urlpatterns = [
     # Catálogo
@@ -20,6 +20,17 @@ urlpatterns = [
     path('botiquin/', views.botiquin_lista, name='botiquin_lista'),
     path('lote/<int:pk>/descartar/', views.lote_descartar, name='lote_descartar'),
     path('prestamo/<int:pk>/repuesto/', views.prestamo_marcar_repuesto, name='prestamo_marcar_repuesto'),
+
+    # Consulta, impresión y configuración
+    path('historial/', consultas.historial_hogar, name='historial_hogar'),
+    path('residente/<int:pk>/historial/', consultas.historial_residente, name='historial_residente'),
+    path('residente/<int:pk>/kardex/', consultas.kardex, name='kardex'),
+    path('residente/<int:pk>/hoja-tratamiento/', consultas.hoja_tratamiento, name='hoja_tratamiento'),
+    path('residente/<int:pk>/devolver/', consultas.devolver, name='medicamentos_devolver'),
+    path('residente/<int:pk>/acta-devolucion/', consultas.acta_devolucion, name='acta_devolucion'),
+    path('residente/<int:pk>/acta-recepcion/', consultas.acta_recepcion, name='acta_recepcion'),
+    path('vencimientos/', consultas.vencimientos, name='vencimientos'),
+    path('configuracion/', consultas.configuracion, name='medicamentos_configuracion'),
 
     # Ronda por franja horaria (todo el hogar de un vistazo)
     path('ronda/', views.ronda, name='ronda'),

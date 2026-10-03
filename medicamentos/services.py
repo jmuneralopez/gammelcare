@@ -389,3 +389,55 @@ def marcar_prestamo_repuesto(administracion, usuario):
     administracion.repuesto_marcado_por = usuario
     administracion.save(update_fields=['repuesto', 'fecha_reposicion', 'repuesto_marcado_por'])
     return administracion
+
+
+@transaction.atomic
+def devolver_lote(lote, usuario, entregado_a, motivo=''):
+    """Devuelve a la familia todo el saldo de un lote del cajón de un
+    residente (egreso, orden suspendida, cambio de presentación). Queda el
+    movimiento en el libro y el lote en estado DEVUELTO; no se borra."""
+    lote = IngresoMedicamento.objects.select_for_update().get(pk=lote.pk)
+    if lote.residente_id is None:
+        raise ValueError('Los lotes del botiquín no se devuelven a una familia.')
+    if lote.estado in (IngresoMedicamento.DESCARTADO, IngresoMedicamento.DEVUELTO) or lote.cantidad_disponible <= 0:
+        raise ValueError(f'El lote {lote.lote} no tiene saldo para devolver.')
+    if not entregado_a.strip():
+        raise ValueError('Escriba a quién se le entrega.')
+    saldo = lote.cantidad_disponible
+    lote.cantidad_disponible = 0
+    lote.estado = IngresoMedicamento.DEVUELTO
+    lote.save(update_fields=['cantidad_disponible', 'estado'])
+    MovimientoInventario.objects.create(
+        ingreso=lote, tipo=MovimientoInventario.DEVOLUCION_FAMILIA, cantidad=-saldo,
+        motivo=f'Entregado a: {entregado_a.strip()}' + (f'. {motivo.strip()}' if motivo.strip() else ''),
+        usuario=usuario,
+    )
+    return lote, saldo
+
+
+def tomas_de_hoy(residente):
+    """Resumen de 'Medicamentos de hoy' para tarjetas e indicadores:
+    pendientes, atrasadas (la hora ya pasó), suministradas y no suministradas."""
+    filas, _prn = hoja_del_dia(residente)
+    ahora = timezone.now()
+    resumen = {'pendientes': 0, 'atrasadas': 0, 'suministradas': 0, 'no_suministradas': 0, 'total': len(filas)}
+    for f in filas:
+        if f['pendiente']:
+            resumen['pendientes'] += 1
+            if f['fecha_programada'] < ahora:
+                resumen['atrasadas'] += 1
+        elif f['administracion'].estado == Administracion.ADMINISTRADO:
+            resumen['suministradas'] += 1
+        else:
+            resumen['no_suministradas'] += 1
+    return resumen
+
+
+def suministros_recientes(residente, horas=12):
+    """Suministros y no suministros registrados en las últimas horas (para la
+    nota de enfermería del turno), sin anulados."""
+    desde = timezone.now() - timedelta(hours=horas)
+    return (Administracion.objects
+            .filter(residente=residente, anulada=False, fecha_administracion__gte=desde)
+            .select_related('prescripcion__medicamento', 'administrada_por')
+            .order_by('fecha_administracion'))

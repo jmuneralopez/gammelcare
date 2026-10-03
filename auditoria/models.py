@@ -68,6 +68,10 @@ class RegistroAuditoria(models.Model):
     # Plan de atención.
     PLAN_ATENCION = 'plan_atencion'
 
+    # Medicamentos (consultas y configuración).
+    DEVOLUCION_MEDICAMENTOS = 'devolucion_medicamentos'
+    CONFIGURACION_MEDICAMENTOS = 'configuracion_medicamentos'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -114,6 +118,8 @@ class RegistroAuditoria(models.Model):
         (VALORACION_ANULADA, 'Anulación de escala de valoración geriátrica'),
         (CONFIGURACION_VALORACION, 'Cambio de escalas exigidas y periodicidad'),
         (PLAN_ATENCION, 'Plan de atención (creación, activación u objetivo nuevo)'),
+        (DEVOLUCION_MEDICAMENTOS, 'Devolución de medicamentos a la familia'),
+        (CONFIGURACION_MEDICAMENTOS, 'Cambio en la configuración de medicamentos'),
     ]
 
     usuario = models.ForeignKey(

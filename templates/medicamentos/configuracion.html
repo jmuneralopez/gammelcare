@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Configuración de medicamentos{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-sliders me-2"></i>Configuración de medicamentos</h4>
+<p class="text-muted">Los avisos de medicamento por agotarse y de tomas sin registrar se ajustan en <a href="{% url 'alertas_configuracion' %}">Configurar alertas</a>.</p>
+<form method="post" novalidate style="max-width:720px;">{% csrf_token %}
+  <div class="card card-gc mb-3"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Semáforo de vencimiento</h6>
+    {% for f in form %}{% if f.name in 'dias_semaforo_verde dias_semaforo_amarillo' %}
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2"><label class="small" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}</div>
+    {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endif %}{% endfor %}
+  </div></div>
+  <div class="card card-gc mb-3"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Horas estándar</h6>
+    <p class="small text-muted">Se sugieren al registrar una orden médica ("con el desayuno", "en la noche").</p>
+    {% for f in form.campos_horas %}<div class="d-flex justify-content-between align-items-center gap-2 mb-2"><label class="small" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}</div>{% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endfor %}
+  </div></div>
+  <div class="card card-gc mb-3"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Ronda y anulaciones</h6>
+    {% for f in form %}{% if f.name in 'ventana_ronda_horas minutos_anulacion' %}
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2"><label class="small" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}</div>
+    {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endif %}{% endfor %}
+  </div></div>
+  <button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar configuración</button>
+</form>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% if hoy.total %}
+<a href="{% url 'hoja_dia' residente.pk %}" class="d-flex justify-content-between align-items-center gap-2 small text-decoration-none border rounded px-2 py-1 mb-2 {% if hoy.atrasadas %}border-danger text-danger{% elif hoy.pendientes %}text-primary{% else %}text-success{% endif %}" title="Medicamentos de hoy: {{ hoy.suministradas }} suministradas, {{ hoy.no_suministradas }} no suministradas, {{ hoy.pendientes }} por registrar">
+  <span class="text-nowrap"><i class="bi bi-capsule me-1"></i>Medicamentos</span>
+  <span class="text-nowrap">{% if hoy.atrasadas %}<span class="badge text-bg-danger">{{ hoy.atrasadas }} atrasada{{ hoy.atrasadas|pluralize }}</span>{% elif hoy.pendientes %}{{ hoy.pendientes }} por suministrar hoy{% else %}<i class="bi bi-check-circle me-1"></i>Todo registrado{% endif %}</span>
+</a>
+{% endif %}

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load medicamentos_tags %}
 {% block title %}GammelCare — Nueva Nota Clínica{% endblock %}
 
 {% block content %}
@@ -69,6 +70,7 @@
         </div>
       </div>
 
+      {% medicamentos_del_turno residente %}
       <div class="mb-4">
         <label class="form-label fw-semibold">{{ form.contenido.label }}</label>
         {{ form.contenido }}

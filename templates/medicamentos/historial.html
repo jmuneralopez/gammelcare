@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Historial de suministros{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clock-history me-2"></i>Historial de suministros{% if nombre %} de {{ nombre }}{% endif %}</h4>
+  <div class="d-flex gap-2">
+    {% if residente %}<a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">Expediente</a>
+    <a href="{% url 'kardex' residente.pk %}" class="btn btn-outline-primary">Kardex del mes</a>{% endif %}
+    {% if puede_exportar %}<a href="?{{ query_csv }}{% if query_csv %}&{% endif %}formato=csv" class="btn btn-outline-success"><i class="bi bi-filetype-csv me-1"></i>Descargar en Excel (CSV)</a>{% endif %}
+  </div>
+</div>
+<form method="get" class="card card-gc mb-3"><div class="card-body py-2 d-flex gap-2 flex-wrap align-items-end">
+  <div><label class="form-label small mb-0">Desde</label><input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}" class="form-control form-control-sm"></div>
+  <div><label class="form-label small mb-0">Hasta</label><input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}" class="form-control form-control-sm"></div>
+  <div><label class="form-label small mb-0">Medicamento</label><select name="medicamento" class="form-select form-select-sm"><option value="">Todos</option>{% for m in medicamentos %}<option value="{{ m.pk }}" {% if m.pk == medicamento %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  <div><label class="form-label small mb-0">Estado</label><select name="estado" class="form-select form-select-sm">
+    <option value="">Todos</option>
+    <option value="suministrado" {% if estado == 'suministrado' %}selected{% endif %}>Suministrados</option>
+    <option value="no_suministrado" {% if estado == 'no_suministrado' %}selected{% endif %}>No suministrados</option>
+    <option value="botiquin" {% if estado == 'botiquin' %}selected{% endif %}>Del botiquín</option>
+    <option value="anulado" {% if estado == 'anulado' %}selected{% endif %}>Anulados</option>
+  </select></div>
+  <button class="btn btn-sm btn-outline-primary">Filtrar</button>
+</div></form>
+<p class="small text-muted">{{ registros|length }} registro{{ registros|length|pluralize }} · {{ totales.suministrados }} suministrados · {{ totales.no_suministrados }} no suministrados · {{ totales.anulados }} anulados{% if recortado %} · se muestran los 500 más recientes; use la descarga para ver todo{% endif %}</p>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Registrado</th><th>Programado</th>{% if not residente %}<th>Residente</th>{% endif %}<th>Medicamento</th><th>Resultado</th><th>Registró</th></tr></thead>
+  <tbody>
+  {% for a in registros %}
+    <tr class="{% if a.anulada %}text-muted text-decoration-line-through{% endif %}">
+      <td class="ps-3 text-nowrap">{{ a.fecha_administracion|date:"d/m/Y H:i" }}</td>
+      <td class="text-nowrap small">{% if a.horario_id %}{{ a.fecha_programada|date:"d/m H:i" }}{% else %}Si es necesario{% endif %}</td>
+      {% if not residente %}<td><a href="{% url 'historial_residente' a.residente.pk %}">{{ a.residente.get_nombre }}</a></td>{% endif %}
+      <td>{{ a.prescripcion.medicamento }}</td>
+      <td>{% if a.anulada %}<span class="badge text-bg-secondary">Anulado</span> <span class="small">{{ a.motivo_anulacion }}</span>
+          {% elif a.estado == 'administrado' %}<span class="badge text-bg-success">Suministrado</span> <span class="small">{{ a.cantidad_administrada }}{% if a.motivo_uso_botiquin %} · del botiquín ({{ a.get_motivo_uso_botiquin_display|lower }}){% endif %}</span>
+          {% else %}<span class="badge text-bg-danger">No suministrado</span> <span class="small">{{ a.get_motivo_no_administracion_display }}</span>{% endif %}
+          {% if a.observacion %}<div class="small text-muted">{{ a.observacion }}</div>{% endif %}</td>
+      <td class="small">{{ a.administrada_por.get_full_name|default:a.administrada_por.username }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">Sin registros en este periodo.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

@@ -23,6 +23,7 @@
   <div class="d-flex gap-2">
     <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-outline-primary"><i class="bi bi-capsule me-1"></i>Órdenes médicas</a>
     <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-boxes me-1"></i>Cajón de medicamentos</a>
+    <a href="{% url 'historial_residente' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-clock-history me-1"></i>Historial</a>
   </div>
 </div>
 

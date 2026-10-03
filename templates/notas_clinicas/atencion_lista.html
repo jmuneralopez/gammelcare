@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load medicamentos_tags %}
 {% block title %}GammelCare — Atención a Residentes{% endblock %}
 
 {% block content %}
@@ -71,6 +72,8 @@
             <i class="bi bi-hospital me-1"></i>{{ item.obj.eps }}
           {% endif %}
         </div>
+
+        {% indicador_medicamentos item.obj %}
 
         <!-- Acciones clínicas -->
         <div class="d-flex gap-2">

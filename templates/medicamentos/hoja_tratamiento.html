@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load antecedentes_tags %}
+{% block title %}GammelCare — Hoja de tratamiento de {{ nombre }}{% endblock %}
+{% block extra_css %}{% include 'medicamentos/_imprimir.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">Hoja de tratamiento — {{ nombre }}</h4>
+  <div class="d-flex gap-2 no-imprimir">
+    <a href="{% url 'tratamiento_lista' residente.pk %}" class="btn btn-sm btn-outline-secondary">Órdenes médicas</a>
+    <button type="button" class="btn btn-sm btn-gc" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir hoja de tratamiento</button>
+  </div>
+</div>
+<div class="small mb-2">{{ residente.hogar.nombre }} · Documento: {{ residente.get_documento }} · Nacimiento: {{ residente.fecha_nacimiento|date:"d/m/Y" }}{% if residente.cama_actual %} · {{ residente.cama_actual.habitacion.departamento.nombre }}, hab. {{ residente.cama_actual.habitacion.numero }}, cama {{ residente.cama_actual.codigo }}{% endif %}{% if residente.eps %} · EPS: {{ residente.eps }}{% endif %}</div>
+{% banner_alergias residente %}
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Medicamento</th><th>Dosis y vía</th><th>Horario</th><th>Desde / hasta</th><th>Indicaciones</th><th>Formulado por</th></tr></thead>
+  <tbody>
+  {% for p in ordenes %}
+    <tr>
+      <td class="ps-3 fw-semibold">{{ p.medicamento }}{% if p.medicamento.control_especial %} <span class="badge text-bg-warning">Control especial</span>{% endif %}</td>
+      <td>{{ p.dosis_cantidad|floatformat:"-2" }} {{ p.get_dosis_unidad_display }} · {{ p.get_via_administracion_display }}</td>
+      <td>{% if p.es_prn %}Si es necesario{% if p.frecuencia_minima_horas %}, cada {{ p.frecuencia_minima_horas }} h como mínimo{% endif %}{% if p.dosis_maxima_dia %}, máximo {{ p.dosis_maxima_dia }} al día{% endif %}{% else %}{% for h in p.horarios.all %}{{ h.hora|time:"H:i" }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if p.dias_semana != 'LMXJVSD' %} ({{ p.dias_semana }}){% endif %}{% endif %}</td>
+      <td class="text-nowrap">{{ p.fecha_inicio|date:"d/m/Y" }} — {{ p.fecha_fin|date:"d/m/Y"|default:"indefinido" }}</td>
+      <td class="small">{{ p.indicaciones }}{% if p.diagnostico %}<div class="text-muted">Dx: {{ p.diagnostico }}</div>{% endif %}</td>
+      <td class="small">{{ p.formulada_por }}<div class="text-muted">{{ p.fecha_formula|date:"d/m/Y" }}</div></td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">Sin órdenes médicas activas.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+<div class="d-flex justify-content-between mt-4 small"><span>Impreso: {{ hoy|date:"d/m/Y H:i" }} por {{ user.get_full_name|default:user.username }}</span><span>Revisó: ____________________________</span></div>
+{% endblock %}

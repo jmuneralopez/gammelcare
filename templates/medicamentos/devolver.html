@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load antecedentes_tags %}
+{% block title %}GammelCare — Devolver medicamentos a la familia{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-box-arrow-up-right me-2"></i>Devolver medicamentos a la familia — {{ nombre }}</h4>
+<p class="text-muted">Se usa cuando el residente egresa, cuando se suspende una orden y la familia se lleva el medicamento, o cuando cambia la presentación. Se devuelve todo el saldo de cada lote elegido y queda el registro; al terminar se imprime el acta para la firma de quien recibe.</p>
+<div class="card card-gc" style="max-width:900px;"><div class="card-body p-4">
+  <form method="post" novalidate>{% csrf_token %}
+    {% if form.lotes.errors %}<div class="alert alert-danger">{{ form.lotes.errors|join:" " }}</div>{% endif %}
+    {% if lotes %}
+    <div class="d-flex justify-content-between align-items-center mb-1"><label class="form-label fw-semibold mb-0">{{ form.lotes.label }}</label>
+      <button type="button" class="btn btn-sm btn-link" onclick="document.querySelectorAll('input[name=lotes]').forEach(c => c.checked = true)">Marcar todos (egreso)</button></div>
+    <table class="table table-sm align-middle">
+      <thead><tr><th></th><th>Medicamento</th><th>Lote</th><th>Vence</th><th class="text-end">Saldo</th></tr></thead>
+      <tbody>
+      {% for l in lotes %}
+        <tr><td><input type="checkbox" class="form-check-input" name="lotes" value="{{ l.pk }}" id="lote-{{ l.pk }}" {% if l.pk|stringformat:"s" in form.lotes.value %}checked{% endif %}></td>
+          <td><label for="lote-{{ l.pk }}">{{ l.medicamento }}</label></td><td>{{ l.lote }}</td><td>{{ l.fecha_vencimiento|date:"d/m/Y" }}</td>
+          <td class="text-end">{{ l.cantidad_disponible|floatformat:"-2" }} {{ l.get_unidad_display|lower }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.entregado_a.label }}</label>{{ form.entregado_a }}{% for e in form.entregado_a.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label fw-semibold">{{ form.motivo.label }}</label>{{ form.motivo }}</div>
+    </div>
+    <div class="d-flex gap-2 mt-4"><button class="btn btn-gc" onclick="return confirm('¿Confirma la devolución? El saldo de los lotes elegidos queda en cero.');"><i class="bi bi-check-circle me-1"></i>Devolver y generar acta</button>
+      <a href="{% url 'ingreso_lista' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+    {% else %}<p class="text-muted mb-0">El cajón no tiene lotes con saldo para devolver.</p>{% endif %}
+  </form>
+</div></div>
+{% endblock %}
