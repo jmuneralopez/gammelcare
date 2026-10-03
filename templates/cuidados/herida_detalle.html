@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — {{ herida.nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bandaid me-2"></i>{{ herida.nombre }}</h4>
+  <div class="d-flex gap-2">
+    {% if puede_heridas %}<a href="{% url 'cuidados_seguimiento_crear' herida.pk %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar seguimiento</a>{% endif %}
+    {% if puede_cerrar %}<button class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#cerrar">Cerrar herida</button>{% endif %}
+  </div>
+</div>
+{% include 'cuidados/_encabezado.html' %}
+{% if puede_cerrar %}
+<div class="collapse mb-3" id="cerrar"><form method="post" action="{% url 'cuidados_herida_cerrar' herida.pk %}" class="card card-gc"><div class="card-body row g-2 align-items-end">{% csrf_token %}
+  <div class="col-md-4"><label class="form-label fw-semibold">{{ form_cerrar.motivo.label }}</label>{{ form_cerrar.motivo }}</div>
+  <div class="col-md-6"><label class="form-label fw-semibold">{{ form_cerrar.nota.label }}</label>{{ form_cerrar.nota }}</div>
+  <div class="col-md-2"><button class="btn btn-danger w-100">Cerrar herida</button></div>
+</div></form></div>
+{% endif %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card card-gc h-100"><div class="card-body small">
+    <div class="mb-1"><span class="text-muted">Tipo:</span> {{ herida.get_tipo_display }}</div>
+    <div class="mb-1"><span class="text-muted">Ubicación:</span> {{ herida.get_ubicacion_display }}{% if herida.ubicacion_detalle %} — {{ herida.ubicacion_detalle }}{% endif %}</div>
+    {% if herida.es_lpp %}<div class="mb-1"><span class="text-muted">Estadio al detectarla:</span> {{ herida.get_estadio_inicial_display }}</div>
+    <div class="mb-1"><span class="text-muted">Estadio actual:</span> <strong>{{ herida.estadio_actual }}</strong></div>{% endif %}
+    <div class="mb-1"><span class="text-muted">Origen:</span> {{ herida.get_origen_display }}</div>
+    <div class="mb-1"><span class="text-muted">Detectada:</span> {{ herida.fecha_deteccion|date:"d/m/Y" }} · registró {{ herida.registrado_por.get_full_name|default:herida.registrado_por.username }}</div>
+    {% if herida.descripcion %}<div class="mt-2">{{ herida.descripcion|linebreaksbr }}</div>{% endif %}
+    <div class="mt-2">{% if herida.activa %}<span class="badge text-bg-danger">Activa</span>{% else %}<span class="badge text-bg-secondary">Cerrada el {{ herida.fecha_cierre|date:"d/m/Y" }}: {{ herida.get_motivo_cierre_display|lower }}</span> {{ herida.nota_cierre }}{% endif %}</div>
+  </div></div></div>
+  <div class="col-lg-7"><div class="card card-gc h-100"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Evolución del tamaño</h6>
+    {% if evolucion %}<p class="small mb-1">De {{ evolucion.primero }} cm² a {{ evolucion.ultimo }} cm²{% if evolucion.porcentaje is not None %}: <strong class="{% if evolucion.porcentaje <= 0 %}text-success{% else %}text-danger{% endif %}">{% if evolucion.porcentaje <= 0 %}redujo {{ evolucion.porcentaje|stringformat:"d"|cut:"-" }} %{% else %}aumentó {{ evolucion.porcentaje }} %{% endif %}</strong>{% endif %}.</p>{% endif %}
+    {% if grafica|length >= 2 %}<canvas id="grafica-area" height="120"></canvas>{% else %}<p class="small text-muted mb-0">La gráfica aparece cuando haya dos seguimientos con largo y ancho.</p>{% endif %}
+  </div></div></div>
+</div>
+
+<h6 class="fw-bold" style="color:#1F4E79;">Seguimientos y curaciones</h6>
+{% for s in seguimientos %}
+<div class="card card-gc mb-2 {% if s.anulado %}opacity-50{% endif %}"><div class="card-body py-2">
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <strong class="{% if s.anulado %}text-decoration-line-through{% endif %}">{{ s.fecha_hora|date:"d/m/Y H:i" }}</strong>
+    <span class="small text-muted">{{ s.registrado_por.get_full_name|default:s.registrado_por.username }}
+      {% if s.puede_anular %} · <a href="#" class="text-danger" data-bs-toggle="collapse" data-bs-target="#anular-s{{ s.pk }}">Anular</a>{% endif %}</span>
+  </div>
+  <div class="row g-2 mt-1">
+    <div class="{% if s.foto %}col-md-9{% else %}col-12{% endif %} small">
+      {% if s.area_cm2 %}<span class="badge text-bg-light border me-1">{{ s.largo_cm }} × {{ s.ancho_cm }}{% if s.profundidad_cm %} × {{ s.profundidad_cm }}{% endif %} cm · {{ s.area_cm2 }} cm²</span>{% endif %}
+      {% if s.estadio %}<span class="badge text-bg-light border me-1">{{ s.get_estadio_display|truncatewords:2 }}</span>{% endif %}
+      {% if s.lecho %}<span class="badge text-bg-light border me-1">{{ s.get_lecho_display }}</span>{% endif %}
+      <span class="badge text-bg-light border me-1">Secreción: {{ s.get_exudado_display|lower }}</span>
+      <span class="badge text-bg-light border me-1">Piel alrededor: {{ s.get_piel_alrededor_display|lower }}</span>
+      {% if s.dolor is not None %}<span class="badge text-bg-light border me-1">Dolor {{ s.dolor }}/10</span>{% endif %}
+      {% if s.signos_infeccion %}<span class="badge text-bg-danger me-1">Signos de infección</span>{% endif %}
+      {% if s.curacion %}<div class="mt-1"><span class="text-muted">Curación:</span> {{ s.curacion|linebreaksbr }}</div>{% endif %}
+      {% if s.proxima_curacion %}<div><span class="text-muted">Próxima curación:</span> {{ s.proxima_curacion|date:"d/m/Y" }}</div>{% endif %}
+      {% if s.observaciones %}<div>{{ s.observaciones|linebreaksbr }}</div>{% endif %}
+      {% if s.anulado %}<div class="text-danger">Anulado: {{ s.motivo_anulacion }}</div>{% endif %}
+    </div>
+    {% if s.foto %}<div class="col-md-3"><a href="{% url 'cuidados_foto' s.pk %}" target="_blank"><img src="{% url 'cuidados_foto' s.pk %}" alt="Foto de la herida del {{ s.fecha_hora|date:'d/m/Y' }}" class="img-fluid rounded border" loading="lazy"></a></div>{% endif %}
+  </div>
+  {% if s.puede_anular %}<div class="collapse mt-2" id="anular-s{{ s.pk }}"><form method="post" action="{% url 'cuidados_seguimiento_anular' s.pk %}" class="d-flex gap-2">{% csrf_token %}
+    <input name="motivo" class="form-control form-control-sm" placeholder="Motivo de la anulación" required><button class="btn btn-sm btn-danger text-nowrap">Anular seguimiento</button></form></div>{% endif %}
+</div></div>
+{% empty %}<div class="card card-gc"><div class="card-body text-muted small">Aún no hay seguimientos. {% if puede_heridas %}Registre la primera valoración con medidas y foto.{% endif %}</div></div>{% endfor %}
+{% endblock %}
+{% block extra_js %}
+{% if grafica|length >= 2 %}
+{{ grafica|json_script:"datos-area" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+  const puntos = JSON.parse(document.getElementById('datos-area').textContent);
+  new Chart(document.getElementById('grafica-area'), {
+    type: 'line',
+    data: { labels: puntos.map(p => p.x), datasets: [{ label: 'Área (cm²)', data: puntos.map(p => p.y), borderColor: '#1768AC', backgroundColor: '#1768AC', tension: 0.2 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'cm²' } } } }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -226,6 +226,12 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link {% if '/cuidados/' in request.path %}active{% endif %}"
+             href="{% url 'cuidados_planilla' %}">
+            <i class="bi bi-clipboard2-check me-1"></i>Cuidados del turno
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if 'valoracion' in request.path %}active{% endif %}"
              href="{% url 'valoracion_tablero' %}">
             <i class="bi bi-clipboard2-pulse me-1"></i>Valoración geriátrica

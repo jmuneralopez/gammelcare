@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Plan de cuidados{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-list-check me-2"></i>Plan de cuidados</h4>
+{% include 'cuidados/_encabezado.html' %}
+{% if nuevo and form.instance.cambios_posicion %}<div class="alert alert-info small">Se marcaron los cambios de posición porque la última escala de Norton fue {{ norton.puntaje }} ({{ norton.interpretacion|lower }}). Ajústelo si es necesario.</div>
+{% elif riesgo_norton and not form.instance.cambios_posicion %}<div class="alert alert-warning small">La última escala de Norton fue {{ norton.puntaje }} ({{ norton.interpretacion|lower }}): considere activar los cambios de posición.</div>{% endif %}
+<p class="text-muted small">Lo que marque aquí son las columnas que verán las auxiliares en <strong>Cuidados del turno</strong> para este residente.</p>
+<form method="post" novalidate class="card card-gc" style="max-width:760px;"><div class="card-body p-4">{% csrf_token %}
+  <div class="row g-3 align-items-center">
+    <div class="col-sm-7"><div class="form-check form-switch">{{ form.cambios_posicion }}<label class="form-check-label fw-semibold" for="{{ form.cambios_posicion.id_for_label }}">{{ form.cambios_posicion.label }}</label></div>
+      <div class="small text-muted">{{ form.cambios_posicion.help_text }}</div></div>
+    <div class="col-sm-5">{{ form.intervalo_posicion_horas }}</div>
+    <div class="col-sm-7"><div class="form-check form-switch">{{ form.usa_panal }}<label class="form-check-label fw-semibold" for="{{ form.usa_panal.id_for_label }}">{{ form.usa_panal.label }}</label></div></div>
+    <div class="col-sm-5"></div>
+    <div class="col-sm-7"><label class="fw-semibold" for="{{ form.banio.id_for_label }}">{{ form.banio.label }}</label></div>
+    <div class="col-sm-5">{{ form.banio }}</div>
+    <div class="col-sm-7"><div class="form-check form-switch">{{ form.higiene_oral }}<label class="form-check-label fw-semibold" for="{{ form.higiene_oral.id_for_label }}">{{ form.higiene_oral.label }}</label></div></div>
+    <div class="col-sm-5"></div>
+    <div class="col-12"><div class="form-check form-switch">{{ form.movilizacion }}<label class="form-check-label fw-semibold" for="{{ form.movilizacion.id_for_label }}">{{ form.movilizacion.label }}</label></div></div>
+    <div class="col-12"><label class="form-label fw-semibold" for="{{ form.indicaciones.id_for_label }}">{{ form.indicaciones.label }}</label>{{ form.indicaciones }}<div class="small text-muted">{{ form.indicaciones.help_text }}</div></div>
+  </div>
+  <div class="d-flex gap-2 mt-4"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar plan de cuidados</button>
+    <a href="{% url 'cuidados_residente' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+</div></form>
+{% endblock %}

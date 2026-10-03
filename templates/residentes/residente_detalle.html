@@ -4,6 +4,7 @@
 {% load citas_tags %}
 {% load alertas_tags %}
 {% load signos_tags %}
+{% load cuidados_tags %}
 {% load valoracion_tags %}
 {% load plan_atencion_tags %}
 {% load medicamentos_tags %}
@@ -88,6 +89,10 @@
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="signos" id="sec_signos" checked>
             <label class="form-check-label" for="sec_signos">Signos vitales (últimas 10 tomas)</label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="cuidados" id="sec_cuidados" checked>
+            <label class="form-check-label" for="sec_cuidados">Plan de cuidados y heridas activas</label>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="valoracion" id="sec_valoracion" checked>
@@ -465,6 +470,7 @@
 {% endif %}
 
 {% resumen_signos residente %}
+{% resumen_cuidados residente %}
 {% resumen_antecedentes residente %}
 {% resumen_valoracion residente %}
 {% resumen_plan residente %}

@@ -1,0 +1,18 @@
+{% load cuidados_tags %}
+<!-- CUIDADOS Y HERIDAS -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-check me-2"></i>Cuidados y heridas</h6>
+      <span class="d-flex gap-2">
+        <a href="{% url 'cuidados_residente' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-list-check me-1"></i>Ver cuidados y heridas</a>
+        {% if puede_heridas %}<a href="{% url 'cuidados_herida_crear' residente.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-bandaid me-1"></i>Registrar herida</a>{% endif %}
+      </span>
+    </div>
+    <div class="mt-2 small">
+      {% if heridas %}{% for h in heridas %}<a href="{% url 'cuidados_herida_detalle' h.pk %}" class="badge text-bg-danger text-decoration-none me-1">{{ h.nombre }}{% if h.estadio_actual %} · {{ h.estadio_actual }}{% endif %}</a>{% endfor %}{% endif %}
+      {% for c in celdas %}<span class="badge {% if c.pendiente %}text-bg-warning{% else %}text-bg-light border{% endif %} fw-normal me-1"><i class="bi {{ c.tipo|icono_cuidado }} me-1"></i>{{ nombres|get_item:c.tipo }}: {% if c.ultimo %}{{ c.ultimo.fecha_hora|date:"H:i" }} ({{ c.minutos|hace }}){% else %}sin registros{% endif %}</span>{% endfor %}
+      {% if not plan_guardado %}<span class="text-muted">Sin plan de cuidados definido.</span>{% endif %}
+    </div>
+  </div>
+</div>

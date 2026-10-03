@@ -28,6 +28,7 @@ def _secciones():
     from alertas import permisos as al
     from antecedentes import permisos as an
     from citas import permisos as ci
+    from cuidados import permisos as cu
     from examenes import permisos as ex
     from plan_atencion import permisos as pa
     from signos import permisos as si
@@ -151,6 +152,38 @@ def _secciones():
              'Un "?" es una toma que pasó sin registro: revísela con quien estaba de turno.'],
         ),
         Seccion(
+            'cuidados', 'Cuidados del turno',
+            'La planilla de cuidados diarios de todos los residentes: cambios de posición, cambio de pañal, baño, '
+            'higiene oral y movilización. Cada residente muestra solo los cuidados de su plan.',
+            [
+                ('Ver la planilla y los cuidados de cada residente', cu.ROLES_VER),
+                ('Registrar un cuidado con un toque (hora actual) o con otra hora y una observación', cu.ROLES_CUIDADOS),
+                ('Definir el plan de cuidados de un residente (qué cuidados y cada cuánto)', cu.ROLES_PLAN),
+                ('Anular un cuidado propio dentro de las 24 horas, con motivo', cu.ROLES_CUIDADOS),
+                ('Anular cualquier cuidado, con motivo', cu.ROLES_ANULAR_SIEMPRE),
+            ],
+            ['El botón de cambio de posición propone la siguiente posición de la rotación (derecho, boca arriba, '
+             'izquierdo, semisentado); la flecha muestra las demás.',
+             'En amarillo aparece lo pendiente: el cambio de posición atrasado, el baño (más de 24 horas, o 48 si es '
+             'día de por medio), la higiene oral (más de 12 horas) o el pañal sin cambio en 4 horas. Un cambio de posición atrasado genera una alerta.',
+             'La diuresis y la deposición se siguen registrando en la nota de enfermería.',
+             'Si la escala de Norton marca riesgo, el sistema sugiere los cambios de posición en el plan.'],
+        ),
+        Seccion(
+            'heridas', 'Heridas y lesiones por presión',
+            'Cada herida con su tipo, ubicación y estadio, y sus seguimientos: medidas, aspecto, curación hecha y foto. '
+            'La gráfica muestra si el tamaño baja.',
+            [
+                ('Ver heridas, seguimientos y fotos', cu.ROLES_VER),
+                ('Registrar una herida y sus seguimientos o curaciones', cu.ROLES_HERIDAS),
+                ('Cerrar una herida (cicatrizó, egreso, fallecimiento o error)', cu.ROLES_CERRAR_HERIDA),
+                ('Anular un seguimiento propio dentro de las 24 horas, con motivo', cu.ROLES_HERIDAS),
+            ],
+            ['Tome las fotos siempre a la misma distancia y con una regla al lado.',
+             'Una lesión por presión que aparece en el hogar es un evento adverso: avisa al jefe de enfermería y al médico.',
+             'Marcar signos de infección genera una alerta para el médico.'],
+        ),
+        Seccion(
             'examenes', 'Exámenes médicos',
             'Órdenes de laboratorio, imágenes y otros exámenes; sus resultados (archivo y valores) y la revisión del médico.',
             [
@@ -228,6 +261,8 @@ PANTALLAS = {
     'cajon': ['ingreso_lista', 'ingreso_crear', 'medicamentos_devolver', 'acta_devolucion', 'acta_recepcion'],
     'botiquin': ['botiquin_lista', 'ingreso_botiquin_crear', 'vencimientos', 'medicamentos_configuracion'],
     'historial_med': ['historial_hogar', 'historial_residente', 'kardex'],
+    'cuidados': ['cuidados_planilla', 'cuidados_residente', 'cuidados_plan'],
+    'heridas': ['cuidados_heridas', 'cuidados_herida_crear', 'cuidados_herida_detalle', 'cuidados_seguimiento_crear'],
     'examenes': ['examenes_bandeja', 'examenes_residente', 'examen_crear', 'examenes_tendencias', 'examen_detalle',
                  'examen_editar', 'examen_resultado', 'examen_adenda', 'examen_revisar', 'examen_cancelar',
                  'valor_corregir'],

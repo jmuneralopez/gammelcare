@@ -106,6 +106,8 @@ def test_orden_de_examen_sin_resultado(hogar, residente, usuarios):
 # ── Medicamentos ────────────────────────────────────────────────────
 
 def test_toma_no_registrada_y_se_resuelve_al_suministrar(hogar, residente, medicamento, usuarios):
+    if timezone.localtime().hour < 2:
+        pytest.skip('Entre las 00:00 y las 02:00 no hay una toma de hoy con más de una hora de atraso.')
     hace_2h = (timezone.localtime() - timedelta(hours=2)).time().replace(second=0, microsecond=0)
     p = _orden(residente, medicamento, usuarios['medico'], horas=[hace_2h])
     _lote(residente=residente, medicamento=medicamento, usuario=usuarios['jefe'])

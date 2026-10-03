@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Heridas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bandaid me-2"></i>Heridas</h4>
+  <a href="{% url 'cuidados_planilla' %}" class="btn btn-outline-primary">Cuidados del turno</a>
+</div>
+<div class="d-flex gap-2 flex-wrap mb-3">
+  <span class="badge text-bg-light border fs-6 fw-normal">{{ filas|length }} herida{{ filas|length|pluralize }} activa{{ filas|length|pluralize }}</span>
+  <span class="badge text-bg-light border fs-6 fw-normal">{{ lpp }} {% if lpp == 1 %}lesión{% else %}lesiones{% endif %} por presión ({{ lpp_hogar }} aparecida{{ lpp_hogar|pluralize }} en el hogar)</span>
+  {% if infectadas %}<span class="badge text-bg-danger fs-6 fw-normal">{{ infectadas }} con signos de infección</span>{% endif %}
+</div>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Residente</th><th>Herida</th><th>Estadio</th><th>Detectada</th><th>Último seguimiento</th><th>Próxima curación</th><th></th></tr></thead>
+  <tbody>{% for f in filas %}
+    <tr>
+      <td class="ps-3"><a href="{% url 'cuidados_residente' f.herida.residente_id %}#heridas" class="fw-semibold text-decoration-none">{{ f.nombre }}</a>
+        {% with c=f.herida.residente.cama_actual %}{% if c %}<div class="small text-muted">Hab. {{ c.habitacion.numero }} · cama {{ c.codigo }}</div>{% endif %}{% endwith %}</td>
+      <td>{{ f.herida.nombre }}{% if f.herida.es_lpp and f.herida.origen == 'hogar' %} <span class="badge text-bg-warning">En el hogar</span>{% endif %}</td>
+      <td>{{ f.herida.estadio_actual|default:"—" }}</td>
+      <td class="text-nowrap">{{ f.herida.fecha_deteccion|date:"d/m/Y" }}</td>
+      <td class="small">{% if f.ultimo %}{{ f.ultimo.fecha_hora|date:"d/m H:i" }} <span class="{% if f.dias >= 3 %}text-danger fw-semibold{% else %}text-muted{% endif %}">({% if f.dias == 0 %}hoy{% else %}hace {{ f.dias }} día{{ f.dias|pluralize }}{% endif %})</span>{% if f.ultimo.area_cm2 %} · {{ f.ultimo.area_cm2 }} cm²{% endif %}{% if f.ultimo.signos_infeccion %} <span class="badge text-bg-danger">Infección</span>{% endif %}{% else %}<span class="text-danger">Sin seguimiento</span>{% endif %}</td>
+      <td class="small {% if f.curacion_vencida %}text-danger fw-semibold{% endif %}">{{ f.ultimo.proxima_curacion|date:"d/m/Y"|default:"—" }}</td>
+      <td class="text-end pe-3"><a href="{% url 'cuidados_herida_detalle' f.herida.pk %}" class="btn btn-sm btn-outline-primary">Ver herida</a></td>
+    </tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No hay heridas activas.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

@@ -72,6 +72,14 @@ class RegistroAuditoria(models.Model):
     DEVOLUCION_MEDICAMENTOS = 'devolucion_medicamentos'
     CONFIGURACION_MEDICAMENTOS = 'configuracion_medicamentos'
 
+    # Cuidados diarios y heridas.
+    PLAN_CUIDADOS = 'plan_cuidados'
+    CUIDADO_ANULADO = 'cuidado_anulado'
+    HERIDA_REGISTRADA = 'herida_registrada'
+    HERIDA_SEGUIMIENTO = 'herida_seguimiento'
+    HERIDA_CERRADA = 'herida_cerrada'
+    CONSULTA_FOTO_HERIDA = 'consulta_foto_herida'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -120,6 +128,12 @@ class RegistroAuditoria(models.Model):
         (PLAN_ATENCION, 'Plan de atención (creación, activación u objetivo nuevo)'),
         (DEVOLUCION_MEDICAMENTOS, 'Devolución de medicamentos a la familia'),
         (CONFIGURACION_MEDICAMENTOS, 'Cambio en la configuración de medicamentos'),
+        (PLAN_CUIDADOS, 'Cambio del plan de cuidados de un residente'),
+        (CUIDADO_ANULADO, 'Anulación de un cuidado o de un seguimiento de herida'),
+        (HERIDA_REGISTRADA, 'Registro de herida o lesión por presión'),
+        (HERIDA_SEGUIMIENTO, 'Seguimiento o curación de herida'),
+        (HERIDA_CERRADA, 'Cierre de herida'),
+        (CONSULTA_FOTO_HERIDA, 'Consulta de foto de herida'),
     ]
 
     usuario = models.ForeignKey(

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load cuidados_tags %}
+{% block title %}GammelCare — Cuidados del turno{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-check me-2"></i>Cuidados del turno</h4>
+  <a href="{% url 'cuidados_heridas' %}" class="btn btn-outline-primary"><i class="bi bi-bandaid me-1"></i>Heridas</a>
+</div>
+<p class="text-muted small mb-2">Turno de la <strong>{{ turno|lower }}</strong> ({{ inicio|date:"H:i" }} a {{ fin|date:"H:i" }}). Toque el botón del cuidado para registrarlo con la hora actual; la flecha muestra las demás opciones. En amarillo: lo que está pendiente o atrasado.</p>
+<form method="get" class="d-flex gap-2 mb-3 flex-wrap">
+  <input type="search" name="q" value="{{ q }}" class="form-control" style="max-width:320px;" placeholder="Buscar por nombre, habitación o cama">
+  <button class="btn btn-outline-secondary">Buscar</button>
+  <a href="?ver={% if ver == 'pendientes' %}{% else %}pendientes{% endif %}" class="btn {% if ver == 'pendientes' %}btn-warning{% else %}btn-outline-warning{% endif %}">Solo con pendientes ({{ total_pendientes }})</a>
+</form>
+{% for f in filas %}
+<div class="card card-gc mb-3" id="res-{{ f.residente.pk }}">
+  <div class="card-body py-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <div>
+        <a href="{% url 'cuidados_residente' f.residente.pk %}" class="fw-bold text-decoration-none" style="color:#1F4E79;">{{ f.nombre }}</a>
+        {% if f.residente.cama_actual %}<span class="small text-muted ms-1">{{ f.residente.cama_actual.habitacion.departamento.nombre }} · hab. {{ f.residente.cama_actual.habitacion.numero }} · cama {{ f.residente.cama_actual.codigo }}</span>{% endif %}
+        {% if f.heridas %}<a href="{% url 'cuidados_residente' f.residente.pk %}#heridas" class="badge text-bg-danger text-decoration-none ms-1"><i class="bi bi-bandaid"></i> {{ f.heridas }} herida{{ f.heridas|pluralize }}</a>{% endif %}
+      </div>
+      {% if not f.plan.pk %}<a href="{% url 'cuidados_residente' f.residente.pk %}" class="small text-muted">Sin plan de cuidados: se muestran los cuidados básicos</a>{% elif f.plan.indicaciones %}<span class="small text-muted"><i class="bi bi-info-circle me-1"></i>{{ f.plan.indicaciones|truncatechars:90 }}</span>{% endif %}
+    </div>
+    <div class="row g-2">
+      {% for tipo, c in f.celdas.items %}
+      <div class="col-12 col-sm-6 col-lg-4 col-xl">{% include 'cuidados/_boton_cuidado.html' with c=c residente=f.residente volver=request.get_full_path %}</div>
+      {% empty %}<div class="col small text-muted">No tiene cuidados en su plan.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% empty %}
+<div class="card card-gc"><div class="card-body text-muted">No hay residentes {% if q or ver %}que coincidan{% else %}activos{% endif %}.</div></div>
+{% endfor %}
+{% endblock %}

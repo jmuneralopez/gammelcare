@@ -35,6 +35,7 @@ def _conectar():
     from signos.models import ControlSignos, RangoResidente, RangosHogar, RegistroLiquidos
     from valoracion.models import ConfiguracionValoracion, Valoracion
     from plan_atencion.models import PlanAtencion
+    from cuidados.models import Herida, PlanCuidados, RegistroCuidado, SeguimientoHerida
 
     @receiver(post_save, sender=Examen, weak=False, dispatch_uid='alertas_examen')
     def _examen(sender, instance, **kw):
@@ -94,6 +95,23 @@ def _conectar():
     @receiver(post_save, sender=PlanAtencion, weak=False, dispatch_uid='alertas_plan')
     def _plan(sender, instance, **kw):
         _programar(instance.residente.hogar, instance.residente, 'plan')
+
+
+    @receiver(post_save, sender=RegistroCuidado, weak=False, dispatch_uid='alertas_cuidado')
+    def _cuidado(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'cuidado')
+
+    @receiver(post_save, sender=PlanCuidados, weak=False, dispatch_uid='alertas_plan_cuidados')
+    def _plan_cuidados(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'plan_cuidados')
+
+    @receiver(post_save, sender=Herida, weak=False, dispatch_uid='alertas_herida')
+    def _herida(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'herida')
+
+    @receiver(post_save, sender=SeguimientoHerida, weak=False, dispatch_uid='alertas_seguimiento_herida')
+    def _seguimiento_herida(sender, instance, **kw):
+        _programar(instance.herida.residente.hogar, instance.herida.residente, 'herida')
 
 
 _conectar()

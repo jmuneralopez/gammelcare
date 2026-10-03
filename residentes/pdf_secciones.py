@@ -247,6 +247,52 @@ def citas(residente, kit):
     return story
 
 
+# ── Cuidados y heridas ──────────────────────────────────────────
+
+def cuidados(residente, kit):
+    from cuidados.models import Herida, PlanCuidados, TIPOS_CUIDADO
+
+    heridas = list(residente.heridas.filter(estado=Herida.ACTIVA))
+    try:
+        plan = residente.plan_cuidados
+    except PlanCuidados.DoesNotExist:
+        plan = None
+    if not heridas and plan is None:
+        return []
+    story = [Paragraph(' Cuidados y heridas', kit.seccion)]
+    if plan is not None:
+        nombres = dict(TIPOS_CUIDADO)
+        partes = []
+        for t in plan.tipos():
+            texto = nombres[t]
+            if t == 'posicion':
+                texto += f' ({plan.get_intervalo_posicion_horas_display().lower()})'
+            if t == 'banio':
+                texto += f' ({plan.get_banio_display().lower()})'
+            partes.append(texto)
+        story.append(Paragraph('Plan de cuidados:', kit.label))
+        story.append(_p(', '.join(partes) or 'Sin cuidados marcados.', kit.body))
+        if plan.indicaciones:
+            story.append(_p(plan.indicaciones, kit.body))
+    if heridas:
+        filas = []
+        for h in heridas:
+            s = h.ultimo_seguimiento()
+            ultimo = '—'
+            if s:
+                ultimo = _fecha(s.fecha_hora, con_hora=True)
+                if s.area_cm2 is not None:
+                    ultimo += f' · {s.largo_cm} × {s.ancho_cm} cm'
+                if s.signos_infeccion:
+                    ultimo += ' · signos de infección'
+                if s.curacion:
+                    ultimo += f' · {s.curacion}'
+            filas.append([h.nombre, h.estadio_actual or '—', f'{_fecha(h.fecha_deteccion)} ({h.get_origen_display().lower()})', ultimo])
+        story.append(tabla(kit, ['Herida', 'Estadio', 'Detectada', 'Último seguimiento y curación'], filas,
+                           [1.9, 0.9, 1.6, 2.6]))
+    return story
+
+
 SECCIONES = {
     'alergias': ('Alergias y antecedentes', alergias),
     'medicamentos': ('Medicamentos (órdenes activas)', medicamentos),
@@ -255,4 +301,5 @@ SECCIONES = {
     'plan': ('Plan de atención vigente', plan),
     'examenes_clinicos': ('Exámenes (últimos 10)', examenes),
     'citas': ('Citas médicas', citas),
+    'cuidados': ('Cuidados y heridas', cuidados),
 }

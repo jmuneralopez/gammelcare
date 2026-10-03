@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load cuidados_tags %}
+{% block title %}GammelCare — Cuidados de {{ nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clipboard2-check me-2"></i>Cuidados y heridas — {{ nombre }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+    <a href="{% url 'cuidados_planilla' %}" class="btn btn-outline-primary">Cuidados del turno</a>
+  </div>
+</div>
+{% load antecedentes_tags %}{% banner_alergias residente compacto=True %}
+
+<div class="card card-gc mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="fw-bold mb-0" style="color:#1F4E79;">Plan de cuidados</h6>
+    {% if puede_plan %}<a href="{% url 'cuidados_plan' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i>{% if plan.pk %}Cambiar plan de cuidados{% else %}Definir plan de cuidados{% endif %}</a>{% endif %}
+  </div>
+  {% if not plan.pk %}<div class="alert alert-light border small mb-2">Aún no tiene plan de cuidados: se muestran los cuidados básicos{% if plan.cambios_posicion %} y los cambios de posición que sugiere su escala de Norton{% endif %}. {% if puede_plan %}Defínalo para ajustar la planilla.{% else %}Lo define el médico o el jefe de enfermería.{% endif %}</div>{% endif %}
+  {% if riesgo_norton and not plan.cambios_posicion %}<div class="alert alert-warning small mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Norton {{ norton.puntaje }} ({{ norton.fecha|date:"d/m/Y" }}): riesgo de lesiones por presión y no tiene cambios de posición en su plan.</div>{% endif %}
+  <div class="small">
+    {% if plan.cambios_posicion %}<span class="badge text-bg-primary me-1">Cambios de posición {{ plan.get_intervalo_posicion_horas_display|lower }}</span>{% endif %}
+    {% if plan.usa_panal %}<span class="badge text-bg-light border me-1">Usa pañal</span>{% endif %}
+    {% if plan.banio != 'no_aplica' %}<span class="badge text-bg-light border me-1">Baño: {{ plan.get_banio_display|lower }}</span>{% endif %}
+    {% if plan.higiene_oral %}<span class="badge text-bg-light border me-1">Higiene oral</span>{% endif %}
+    {% if plan.movilizacion %}<span class="badge text-bg-light border me-1">Movilización</span>{% endif %}
+    {% if plan.indicaciones %}<div class="mt-1"><i class="bi bi-info-circle me-1"></i>{{ plan.indicaciones|linebreaksbr }}</div>{% endif %}
+    {% if plan.pk and plan.actualizado_por %}<div class="text-muted mt-1">Actualizado por {{ plan.actualizado_por.get_full_name|default:plan.actualizado_por.username }} el {{ plan.fecha_actualizacion|date:"d/m/Y H:i" }}</div>{% endif %}
+  </div>
+  {% if celdas %}
+  <div class="row g-2 mt-1">
+    {% for c in celdas %}<div class="col-12 col-sm-6 col-lg-4 col-xl">{% include 'cuidados/_boton_cuidado.html' with c=c volver=request.get_full_path %}</div>{% endfor %}
+  </div>
+  {% endif %}
+</div></div>
+
+<div class="card card-gc mb-3" id="heridas"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bandaid me-1"></i>Heridas y lesiones por presión</h6>
+    {% if puede_heridas %}<a href="{% url 'cuidados_herida_crear' residente.pk %}" class="btn btn-sm btn-gc"><i class="bi bi-plus-circle me-1"></i>Registrar herida</a>{% endif %}
+  </div>
+  {% if heridas %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Herida</th><th>Detectada</th><th>Estadio</th><th>Último seguimiento</th><th>Estado</th></tr></thead>
+    <tbody>{% for h in heridas %}
+      <tr class="{% if not h.activa %}text-muted{% endif %}">
+        <td><a href="{% url 'cuidados_herida_detalle' h.pk %}">{{ h.nombre }}</a>{% if h.origen == 'hogar' and h.es_lpp %} <span class="badge text-bg-warning" title="Apareció en el hogar">En el hogar</span>{% endif %}</td>
+        <td>{{ h.fecha_deteccion|date:"d/m/Y" }}</td>
+        <td>{{ h.estadio_actual|default:"—" }}</td>
+        <td>{% with s=h.ultimo_seguimiento %}{% if s %}{{ s.fecha_hora|date:"d/m/Y H:i" }}{% if s.area_cm2 %} · {{ s.area_cm2 }} cm²{% endif %}{% if s.signos_infeccion %} <span class="badge text-bg-danger">Signos de infección</span>{% endif %}{% else %}<span class="text-danger">Sin seguimiento</span>{% endif %}{% endwith %}</td>
+        <td>{% if h.activa %}<span class="badge text-bg-danger">Activa</span>{% else %}<span class="badge text-bg-secondary">Cerrada: {{ h.get_motivo_cierre_display|lower }}</span>{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="text-muted small mb-0">Sin heridas registradas.</p>{% endif %}
+</div></div>
+
+<div class="card card-gc mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="fw-bold mb-0" style="color:#1F4E79;">Cuidados registrados</h6>
+    <div class="btn-group btn-group-sm">
+      <a href="?dias=1" class="btn {% if dias == 1 %}btn-gc{% else %}btn-outline-secondary{% endif %}">24 horas</a>
+      <a href="?dias=2" class="btn {% if dias == 2 %}btn-gc{% else %}btn-outline-secondary{% endif %}">2 días</a>
+      <a href="?dias=7" class="btn {% if dias == 7 %}btn-gc{% else %}btn-outline-secondary{% endif %}">7 días</a>
+      <a href="?dias=31" class="btn {% if dias == 31 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Mes</a></div>
+  </div>
+  {% if puede_registrar %}
+  <details class="mb-2"><summary class="small text-primary" style="cursor:pointer;">Registrar un cuidado con otra hora u observación</summary>
+    <form method="post" action="{% url 'cuidados_registrar' residente.pk %}" class="row g-2 mt-1" id="form-cuidado">{% csrf_token %}
+      <div class="col-sm-3">{{ form.tipo }}</div>
+      <div class="col-sm-3"><select name="detalle" class="form-select" id="id_detalle"></select></div>
+      <div class="col-sm-3">{{ form.fecha_hora }}</div>
+      <div class="col-sm-3"><button class="btn btn-gc w-100">Registrar cuidado</button></div>
+      <div class="col-12">{{ form.observaciones }}</div>
+    </form>
+  </details>
+  {{ detalles_json|json_script:"detalles-cuidado" }}
+  <script>
+    (function () {
+      const detalles = JSON.parse(document.getElementById('detalles-cuidado').textContent);
+      const tipo = document.getElementById('id_tipo'), det = document.getElementById('id_detalle');
+      function llenar() { det.innerHTML = ''; (detalles[tipo.value] || []).forEach(([v, t]) => det.add(new Option(t, v))); }
+      tipo.addEventListener('change', llenar); llenar();
+    })();
+  </script>
+  {% endif %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead style="background-color:#D6E4F0;"><tr><th class="ps-2">Hora</th><th>Cuidado</th><th>Cómo</th><th>Observación</th><th>Registró</th><th></th></tr></thead>
+    <tbody>{% for r in registros %}
+      <tr class="{% if r.anulado %}text-muted text-decoration-line-through{% endif %}">
+        <td class="ps-2 text-nowrap">{{ r.fecha_hora|date:"d/m H:i" }}</td>
+        <td class="text-nowrap"><i class="bi {{ r.tipo|icono_cuidado }} me-1"></i>{{ r.get_tipo_display }}</td>
+        <td>{{ r.detalle_texto }}</td>
+        <td class="small">{{ r.observaciones }}{% if r.anulado %}<div class="text-decoration-none">Anulado: {{ r.motivo_anulacion }}</div>{% endif %}</td>
+        <td class="small">{{ r.registrado_por.get_full_name|default:r.registrado_por.username }}</td>
+        <td class="text-end">{% if r.puede_anular %}
+          <button type="button" class="btn btn-sm btn-link text-danger p-0" data-bs-toggle="collapse" data-bs-target="#anular-{{ r.pk }}">Anular</button>
+          {% endif %}</td>
+      </tr>
+      {% if r.puede_anular %}<tr class="collapse" id="anular-{{ r.pk }}"><td colspan="6">
+        <form method="post" action="{% url 'cuidados_anular' r.pk %}" class="d-flex gap-2">{% csrf_token %}
+          <input name="motivo" class="form-control form-control-sm" placeholder="Motivo de la anulación" required>
+          <button class="btn btn-sm btn-danger text-nowrap">Anular registro</button></form></td></tr>{% endif %}
+    {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Sin cuidados registrados en este periodo.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div></div>
+{% endblock %}

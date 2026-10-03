@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Registrar herida{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-bandaid me-2"></i>Registrar herida</h4>
+{% include 'cuidados/_encabezado.html' %}
+<form method="post" novalidate class="card card-gc" style="max-width:860px;"><div class="card-body p-4">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    {% for f in form %}
+    <div class="{% if f.name == 'descripcion' or f.name == 'estadio_inicial' %}col-12{% else %}col-md-6{% endif %}" id="campo-{{ f.name }}">
+      <label class="form-label fw-semibold" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="alert alert-light border small mt-3 mb-0"><strong>Lesión por presión:</strong> si apareció en el hogar, cuenta como evento adverso (el jefe de enfermería y el médico reciben una alerta). Después de guardar se pide la primera valoración con medidas y foto.</div>
+  <div class="d-flex gap-2 mt-4"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Registrar herida</button>
+    <a href="{% url 'cuidados_residente' residente.pk %}#heridas" class="btn btn-outline-secondary">Cancelar</a></div>
+</div></form>
+<script>
+  (function () {
+    const tipo = document.getElementById('id_tipo'), estadio = document.getElementById('campo-estadio_inicial');
+    const ubic = document.getElementById('id_ubicacion'), det = document.getElementById('campo-ubicacion_detalle');
+    function ver() { estadio.classList.toggle('d-none', tipo.value !== 'lpp'); }
+    tipo.addEventListener('change', ver); ver();
+  })();
+</script>
+{% endblock %}

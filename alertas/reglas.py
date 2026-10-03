@@ -35,6 +35,8 @@ UMBRALES = {
     'horas_sin_diuresis': {'defecto': 24, 'etiqueta': 'Horas sin diuresis para avisar (según notas de enfermería)'},
     'porcentaje_perdida_peso': {'defecto': 5, 'etiqueta': 'Pérdida de peso (%) en 30 días para avisar'},
     'ml_balance_negativo': {'defecto': 500, 'etiqueta': 'Balance de líquidos negativo (mL en 24 horas) para avisar'},
+    'minutos_gracia_posicion': {'defecto': 30, 'etiqueta': 'Minutos de gracia antes de avisar que un cambio de posición está atrasado'},
+    'dias_herida_sin_seguimiento': {'defecto': 3, 'etiqueta': 'Días sin seguimiento de una herida para avisar'},
 }
 
 
@@ -593,6 +595,142 @@ def plan_atencion(hogar, config, residente=None):
             )
 
 
+# ── Cuidados diarios y heridas ──────────────────────────────────────
+
+def posicion_atrasada(hogar, config, residente=None):
+    """Residente con cambios de posición en su plan que pasó el intervalo
+    (más la gracia) sin que se registrara el cambio."""
+    from cuidados import services as cs
+    from cuidados.models import POSICION, PlanCuidados
+    gracia = config.umbral('minutos_gracia_posicion')
+    planes = PlanCuidados.objects.filter(residente__hogar=hogar, residente__activo=True, cambios_posicion=True)
+    if residente is not None:
+        planes = planes.filter(residente=residente)
+    for plan in planes.select_related('residente'):
+        r = plan.residente
+        u = cs.ultimo(r, POSICION)
+        atraso = cs.posicion_vencida(plan, u, gracia_min=gracia)
+        if not atraso:
+            continue
+        cuando = f'último cambio a las {_hora(u.fecha_hora)} del {_fecha(u.fecha_hora)} ({u.detalle_texto.lower()})' if u \
+            else 'no se ha registrado ningún cambio desde que se definió el plan'
+        yield Candidato(
+            clave=f'posicion_atrasada:{r.pk}', gravedad=ALTA, residente=r,
+            titulo=f'{r.get_nombre()}: cambio de posición atrasado',
+            mensaje=f'Debe cambiarse {plan.get_intervalo_posicion_horas_display().lower()}; {cuando}.',
+            url=reverse('cuidados_planilla') + f'#res-{r.pk}', texto_accion='Registrar cambio de posición',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA],
+        )
+
+
+def riesgo_sin_cambios(hogar, config, residente=None):
+    """Norton con riesgo de lesiones por presión y sin cambios de posición
+    en el plan de cuidados."""
+    from cuidados import services as cs
+    from cuidados.models import PlanCuidados
+    for r in _residentes(hogar, residente):
+        norton = cs.ultimo_norton(r)
+        if not norton or norton.puntaje > cs.NORTON_RIESGO:
+            continue
+        try:
+            plan = r.plan_cuidados
+        except PlanCuidados.DoesNotExist:
+            plan = None
+        if plan is not None and plan.cambios_posicion:
+            continue
+        yield Candidato(
+            clave=f'riesgo_sin_cambios:{r.pk}:{norton.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'{r.get_nombre()}: Norton {norton.puntaje} y sin cambios de posición en su plan de cuidados',
+            mensaje=('Tiene riesgo de lesiones por presión. Defina el plan de cuidados con cambios de posición.'
+                     if plan is None else 'Tiene riesgo de lesiones por presión. Active los cambios de posición en su plan.'),
+            url=reverse('cuidados_plan', args=[r.pk]), texto_accion='Definir plan de cuidados',
+            roles=[Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
+def banio_pendiente(hogar, config, residente=None):
+    from cuidados import services as cs
+    from cuidados.models import PlanCuidados
+    planes = PlanCuidados.objects.filter(residente__hogar=hogar, residente__activo=True).exclude(banio=PlanCuidados.NO_APLICA)
+    if residente is not None:
+        planes = planes.filter(residente=residente)
+    for plan in planes.select_related('residente'):
+        r = plan.residente
+        dias, u = cs.dias_sin_banio(r)
+        limite = 2 if plan.banio == PlanCuidados.DIARIO else 3  # avisa al día siguiente del que tocaba
+        if dias < limite:
+            continue
+        yield Candidato(
+            clave=f'banio_pendiente:{r.pk}', gravedad=INFORMATIVA, residente=r,
+            titulo=f'{r.get_nombre()} lleva {dias} días sin baño registrado',
+            mensaje=f'Su plan indica baño {plan.get_banio_display().lower()}.' + (f' Último: {_fecha(u.fecha_hora)}.' if u else ''),
+            url=reverse('cuidados_planilla') + f'#res-{r.pk}', texto_accion='Registrar baño',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA],
+        )
+
+
+def _heridas(hogar, residente):
+    from cuidados.models import Herida
+    qs = Herida.objects.filter(residente__hogar=hogar, residente__activo=True, estado=Herida.ACTIVA).select_related('residente')
+    if residente is not None:
+        qs = qs.filter(residente=residente)
+    return qs
+
+
+def herida_sin_seguimiento(hogar, config, residente=None):
+    from cuidados import services as cs
+    umbral = config.umbral('dias_herida_sin_seguimiento')
+    hoy = timezone.localdate()
+    for h in _heridas(hogar, residente):
+        dias, s = cs.dias_sin_seguimiento(h)
+        curacion_vencida = bool(s and s.proxima_curacion and s.proxima_curacion < hoy)
+        if dias < umbral and not curacion_vencida:
+            continue
+        r = h.residente
+        motivo = (f'la curación estaba programada para el {s.proxima_curacion:%d/%m/%Y}' if curacion_vencida
+                  else (f'el último seguimiento fue hace {dias} días' if s else 'no tiene ningún seguimiento registrado'))
+        yield Candidato(
+            clave=f'herida_sin_seguimiento:{h.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'{h.nombre} de {r.get_nombre()}: curación o seguimiento pendiente',
+            mensaje=f'{motivo[0].upper()}{motivo[1:]}. Registre la valoración con medidas y foto.',
+            url=reverse('cuidados_seguimiento_crear', args=[h.pk]), texto_accion='Registrar seguimiento',
+            roles=[Rol.JEFE_ENFERMERIA, Rol.ENFERMERO],
+        )
+
+
+def herida_infeccion(hogar, config, residente=None):
+    for h in _heridas(hogar, residente):
+        s = h.ultimo_seguimiento()
+        if not s or not s.signos_infeccion:
+            continue
+        r = h.residente
+        yield Candidato(
+            clave=f'herida_infeccion:{s.pk}', gravedad=ALTA, residente=r,
+            titulo=f'{h.nombre} de {r.get_nombre()} con signos de infección',
+            mensaje=f'Registrado el {_fecha(s.fecha_hora)} a las {_hora(s.fecha_hora)}. Requiere valoración médica.',
+            url=reverse('cuidados_herida_detalle', args=[h.pk]), texto_accion='Ver herida',
+            roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+        )
+
+
+DIAS_AVISO_LPP_NUEVA = 7
+
+
+def lpp_nueva(hogar, config, residente=None):
+    """Lesión por presión aparecida en el hogar: es un evento adverso."""
+    from cuidados.models import Herida
+    desde = timezone.localdate() - timedelta(days=DIAS_AVISO_LPP_NUEVA)
+    for h in _heridas(hogar, residente).filter(tipo=Herida.LPP, origen='hogar', fecha_deteccion__gte=desde):
+        r = h.residente
+        yield Candidato(
+            clave=f'lpp_nueva:{h.pk}', gravedad=ALTA, residente=r,
+            titulo=f'Lesión por presión nueva en el hogar: {r.get_nombre()} ({h.get_ubicacion_display().lower()}, {h.estadio_actual.lower()})',
+            mensaje=f'Detectada el {h.fecha_deteccion:%d/%m/%Y}. Revise los cambios de posición, la superficie de apoyo y la nutrición del residente.',
+            url=reverse('cuidados_herida_detalle', args=[h.pk]), texto_accion='Ver herida',
+            roles=[Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -619,6 +757,12 @@ REGLAS = {
     'valoracion_resultado': (valoracion_resultado, 'Escala de valoración con resultado de riesgo o deterioro'),
     'valoracion_vencida': (valoracion_vencida, 'Escalas de valoración por aplicar o repetir'),
     'plan_atencion': (plan_atencion, 'Plan de atención faltante o con revisión vencida'),
+    'posicion_atrasada': (posicion_atrasada, 'Cambio de posición atrasado'),
+    'riesgo_sin_cambios': (riesgo_sin_cambios, 'Riesgo de lesiones por presión sin cambios de posición en el plan'),
+    'banio_pendiente': (banio_pendiente, 'Días sin baño registrado'),
+    'herida_sin_seguimiento': (herida_sin_seguimiento, 'Herida sin seguimiento o con curación vencida'),
+    'herida_infeccion': (herida_infeccion, 'Herida con signos de infección'),
+    'lpp_nueva': (lpp_nueva, 'Lesión por presión nueva aparecida en el hogar'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -632,6 +776,9 @@ REGLAS_POR_MODELO = {
     'signos': ['signo_critico', 'signo_fuera_rango', 'sin_control_signos', 'perdida_peso'],
     'liquidos': ['balance_negativo'],
     'nota': ['sin_deposicion', 'sin_diuresis'],
-    'valoracion': ['valoracion_resultado', 'valoracion_vencida'],
+    'valoracion': ['valoracion_resultado', 'valoracion_vencida', 'riesgo_sin_cambios'],
     'plan': ['plan_atencion'],
+    'cuidado': ['posicion_atrasada', 'banio_pendiente'],
+    'plan_cuidados': ['posicion_atrasada', 'banio_pendiente', 'riesgo_sin_cambios'],
+    'herida': ['herida_sin_seguimiento', 'herida_infeccion', 'lpp_nueva'],
 }
