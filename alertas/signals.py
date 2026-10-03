@@ -36,6 +36,7 @@ def _conectar():
     from valoracion.models import ConfiguracionValoracion, Valoracion
     from plan_atencion.models import PlanAtencion
     from cuidados.models import Herida, PlanCuidados, RegistroCuidado, SeguimientoHerida
+    from nutricion.models import DietaResidente, RegistroIngesta
 
     @receiver(post_save, sender=Examen, weak=False, dispatch_uid='alertas_examen')
     def _examen(sender, instance, **kw):
@@ -112,6 +113,15 @@ def _conectar():
     @receiver(post_save, sender=SeguimientoHerida, weak=False, dispatch_uid='alertas_seguimiento_herida')
     def _seguimiento_herida(sender, instance, **kw):
         _programar(instance.herida.residente.hogar, instance.herida.residente, 'herida')
+
+
+    @receiver(post_save, sender=RegistroIngesta, weak=False, dispatch_uid='alertas_ingesta')
+    def _ingesta(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'ingesta')
+
+    @receiver(post_save, sender=DietaResidente, weak=False, dispatch_uid='alertas_dieta')
+    def _dieta(sender, instance, **kw):
+        _programar(instance.residente.hogar, instance.residente, 'dieta')
 
 
 _conectar()

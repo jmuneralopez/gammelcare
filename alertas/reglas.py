@@ -37,6 +37,8 @@ UMBRALES = {
     'ml_balance_negativo': {'defecto': 500, 'etiqueta': 'Balance de líquidos negativo (mL en 24 horas) para avisar'},
     'minutos_gracia_posicion': {'defecto': 30, 'etiqueta': 'Minutos de gracia antes de avisar que un cambio de posición está atrasado'},
     'dias_herida_sin_seguimiento': {'defecto': 3, 'etiqueta': 'Días sin seguimiento de una herida para avisar'},
+    'comidas_ingesta_baja': {'defecto': 3, 'etiqueta': 'Comidas seguidas de la mitad o menos para avisar'},
+    'porcentaje_meta_liquidos': {'defecto': 60, 'etiqueta': 'Avisar si en 24 horas tomó menos de este % de su meta de líquidos'},
 }
 
 
@@ -731,6 +733,82 @@ def lpp_nueva(hogar, config, residente=None):
         )
 
 
+# ── Nutrición e hidratación ─────────────────────────────────────────
+
+def ingesta_baja(hogar, config, residente=None):
+    """Las últimas N comidas registradas (en las que estaba) fueron de la
+    mitad o menos."""
+    from nutricion import services as ns
+    from nutricion.models import NOMBRE_COMIDA
+    n = config.umbral('comidas_ingesta_baja')
+    for r in _residentes(hogar, residente):
+        ultimas = ns.ultimas_comidas(r, n)
+        if len(ultimas) < n or any(c.porcentaje > 50 for c in ultimas):
+            continue
+        nada = sum(1 for c in ultimas if c.porcentaje == 0)
+        detalle = ', '.join(f'{NOMBRE_COMIDA[c.comida].lower()} del {c.fecha:%d/%m}: {c.get_consumo_display().lower()}'
+                            for c in reversed(ultimas))
+        yield Candidato(
+            clave=f'ingesta_baja:{r.pk}', gravedad=ALTA if nada >= 2 else MEDIA, residente=r,
+            titulo=f'{r.get_nombre()} comió la mitad o menos en sus últimas {n} comidas',
+            mensaje=f'{detalle[0].upper()}{detalle[1:]}. Revise la dieta, la textura, el estado de la boca y si necesita ayuda; informe a nutrición.',
+            url=reverse('nutricion_residente', args=[r.pk]), texto_accion='Ver nutrición',
+            roles=[Rol.NUTRICIONISTA, Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
+def liquidos_insuficientes(hogar, config, residente=None):
+    """En las últimas 24 horas tomó menos del % de su meta de líquidos, o
+    pasó el máximo que tiene indicado. Solo para residentes a los que se les
+    están registrando líquidos (algún registro en las últimas 24 horas), para
+    no avisar en hogares que todavía no los registran."""
+    from nutricion import services as ns
+    from nutricion.models import ConfiguracionNutricion
+    cn = ConfiguracionNutricion.para_hogar(hogar)
+    porcentaje = config.umbral('porcentaje_meta_liquidos')
+    ahora = timezone.now()
+    desde = ahora - timedelta(hours=24)
+    for r in _residentes(hogar, residente):
+        total = ns.liquidos_orales(r, desde, ahora + timedelta(minutes=1))
+        dieta = ns.dieta_vigente(r)
+        if dieta and dieta.restriccion_liquidos_ml and total > dieta.restriccion_liquidos_ml:
+            yield Candidato(
+                clave=f'liquidos_exceso:{r.pk}', gravedad=ALTA, residente=r,
+                titulo=f'{r.get_nombre()} pasó su máximo de líquidos: {total} mL en 24 horas (máximo {dieta.restriccion_liquidos_ml} mL)',
+                mensaje='Tiene restricción de líquidos indicada. Informe al médico y vigile edemas y dificultad para respirar.',
+                url=reverse('nutricion_residente', args=[r.pk]), texto_accion='Ver nutrición',
+                roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.ENFERMERO],
+            )
+            continue
+        if total == 0 or r.fecha_ingreso > desde:
+            continue
+        meta = ns.meta_liquidos(r, dieta, cn)
+        if total >= meta * porcentaje / 100:
+            continue
+        yield Candidato(
+            clave=f'liquidos_bajos:{r.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'{r.get_nombre()} tomó solo {total} mL de líquidos en 24 horas (meta {meta} mL)',
+            mensaje='Ofrezca líquidos con frecuencia si no hay restricción y vigile signos de deshidratación (boca seca, orina oscura, confusión).',
+            url=reverse('nutricion_planilla') + f'#res-{r.pk}', texto_accion='Registrar líquidos',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA, Rol.NUTRICIONISTA],
+        )
+
+
+def sin_dieta(hogar, config, residente=None):
+    from nutricion import services as ns
+    limite = timezone.now() - timedelta(days=ns.DIAS_SIN_DIETA)
+    for r in _residentes(hogar, residente):
+        if r.fecha_ingreso > limite or ns.dieta_vigente(r):
+            continue
+        yield Candidato(
+            clave=f'sin_dieta:{r.pk}', gravedad=INFORMATIVA, residente=r,
+            titulo=f'{r.get_nombre()} no tiene dieta indicada',
+            mensaje='En la lista para cocina aparece con dieta normal. Indique la dieta, la textura y si necesita ayuda para comer.',
+            url=reverse('nutricion_dieta', args=[r.pk]), texto_accion='Indicar dieta',
+            roles=[Rol.NUTRICIONISTA, Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+        )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -763,6 +841,9 @@ REGLAS = {
     'herida_sin_seguimiento': (herida_sin_seguimiento, 'Herida sin seguimiento o con curación vencida'),
     'herida_infeccion': (herida_infeccion, 'Herida con signos de infección'),
     'lpp_nueva': (lpp_nueva, 'Lesión por presión nueva aparecida en el hogar'),
+    'ingesta_baja': (ingesta_baja, 'Varias comidas seguidas de la mitad o menos'),
+    'liquidos_insuficientes': (liquidos_insuficientes, 'Pocos líquidos en 24 horas o más del máximo indicado'),
+    'sin_dieta': (sin_dieta, 'Residente sin dieta indicada'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -774,11 +855,13 @@ REGLAS_POR_MODELO = {
     'alergias': ['sin_alergias'],
     'cita': ['cita_proxima', 'cita_sin_cierre'],
     'signos': ['signo_critico', 'signo_fuera_rango', 'sin_control_signos', 'perdida_peso'],
-    'liquidos': ['balance_negativo'],
+    'liquidos': ['balance_negativo', 'liquidos_insuficientes'],
     'nota': ['sin_deposicion', 'sin_diuresis'],
     'valoracion': ['valoracion_resultado', 'valoracion_vencida', 'riesgo_sin_cambios'],
     'plan': ['plan_atencion'],
     'cuidado': ['posicion_atrasada', 'banio_pendiente'],
     'plan_cuidados': ['posicion_atrasada', 'banio_pendiente', 'riesgo_sin_cambios'],
     'herida': ['herida_sin_seguimiento', 'herida_infeccion', 'lpp_nueva'],
+    'ingesta': ['ingesta_baja'],
+    'dieta': ['sin_dieta', 'liquidos_insuficientes'],
 }

@@ -293,6 +293,40 @@ def cuidados(residente, kit):
     return story
 
 
+# ── Nutrición ───────────────────────────────────────────────────
+
+def nutricion(residente, kit):
+    from nutricion import services as ns
+    from nutricion.models import ConfiguracionNutricion
+
+    dieta = ns.dieta_vigente(residente)
+    config = ConfiguracionNutricion.para_hogar(residente.hogar)
+    cuadricula = ns.cuadricula(residente, config, dias=7)
+    hay_ingesta = any(c for f in cuadricula for c in f['celdas']) or any(f['liquidos'] for f in cuadricula)
+    if not dieta and not hay_ingesta:
+        return []
+    story = [Paragraph(' Nutrición e hidratación', kit.seccion)]
+    if dieta:
+        partes = [dieta.resumen, dieta.get_ayuda_display().lower(),
+                  f'meta de líquidos {ns.meta_liquidos(residente, dieta, config)} mL']
+        if dieta.restriccion_liquidos_ml:
+            partes.append(f'máximo {dieta.restriccion_liquidos_ml} mL')
+        story.append(Paragraph('Dieta:', kit.label))
+        story.append(_p(', '.join(partes) + (f'. Evitar: {dieta.alimentos_evitar}' if dieta.alimentos_evitar else ''), kit.body))
+    if hay_ingesta:
+        nombres = [n for _, n, _ in config.comidas()]
+        filas = []
+        for f in cuadricula:
+            filas.append([f['fecha'].strftime('%d/%m')]
+                         + [(c.get_consumo_display() if c else '—') for c in f['celdas']]
+                         + [f"{f['promedio']} %" if f['promedio'] is not None else '—',
+                            f"{f['liquidos']} mL" if f['liquidos'] else '—'])
+        ancho = 4.6 / max(1, len(nombres))
+        story.append(tabla(kit, ['Día', *nombres, 'Prom.', 'Líquidos'], filas,
+                           [0.6, *([ancho] * len(nombres)), 0.7, 0.9]))
+    return story
+
+
 SECCIONES = {
     'alergias': ('Alergias y antecedentes', alergias),
     'medicamentos': ('Medicamentos (órdenes activas)', medicamentos),
@@ -302,4 +336,5 @@ SECCIONES = {
     'examenes_clinicos': ('Exámenes (últimos 10)', examenes),
     'citas': ('Citas médicas', citas),
     'cuidados': ('Cuidados y heridas', cuidados),
+    'nutricion': ('Nutrición e hidratación', nutricion),
 }

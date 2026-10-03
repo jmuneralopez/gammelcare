@@ -232,6 +232,12 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link {% if '/nutricion/' in request.path %}active{% endif %}"
+             href="{% url 'nutricion_planilla' %}">
+            <i class="bi bi-cup-hot me-1"></i>Comidas e hidratación
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if 'valoracion' in request.path %}active{% endif %}"
              href="{% url 'valoracion_tablero' %}">
             <i class="bi bi-clipboard2-pulse me-1"></i>Valoración geriátrica

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load nutricion_tags %}
+{% block title %}GammelCare — Comidas e hidratación{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-cup-hot me-2"></i>Comidas e hidratación</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'nutricion_cocina' %}" class="btn btn-outline-primary"><i class="bi bi-printer me-1"></i>Lista de dietas para cocina</a>
+    {% if puede_configurar %}<a href="{% url 'nutricion_configuracion' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Configuración</a>{% endif %}
+  </div>
+</div>
+<div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+  <a href="?fecha={{ dia_anterior|date:'Y-m-d' }}&comida={{ comida }}" class="btn btn-sm btn-outline-secondary" aria-label="Día anterior"><i class="bi bi-chevron-left"></i> Día anterior</a>
+  <strong>{% if fecha == hoy %}Hoy, {% endif %}{{ fecha|date:"l j \d\e F"|capfirst }}</strong>
+  {% if dia_siguiente %}<a href="?fecha={{ dia_siguiente|date:'Y-m-d' }}&comida={{ comida }}" class="btn btn-sm btn-outline-secondary">Día siguiente <i class="bi bi-chevron-right"></i></a>{% endif %}
+</div>
+<div class="btn-group flex-wrap mb-2">
+  {% for c, n, h in comidas %}<a href="?fecha={{ fecha|date:'Y-m-d' }}&comida={{ c }}" class="btn btn-sm {% if c == comida %}btn-gc{% else %}btn-outline-secondary{% endif %}">{{ n }} <span class="small opacity-75">{{ h }}</span></a>{% endfor %}
+</div>
+<p class="text-muted small">{{ nombre_comida }}: {{ registradas }} de {{ filas|length }} residentes registrados. Toque cuánto comió cada uno; si se equivocó, toque la opción correcta (el registro anterior queda en el historial). Los vasos de líquido van al balance de líquidos de signos vitales.</p>
+{% for f in filas %}
+<div class="card card-gc mb-2" id="res-{{ f.residente.pk }}"><div class="card-body py-2">
+  <div class="row g-2 align-items-center">
+    <div class="col-lg-4">
+      <a href="{% url 'nutricion_residente' f.residente.pk %}" class="fw-bold text-decoration-none" style="color:#1F4E79;">{{ f.nombre }}</a>
+      {% if f.residente.cama_actual %}<span class="small text-muted ms-1">hab. {{ f.residente.cama_actual.habitacion.numero }} · cama {{ f.residente.cama_actual.codigo }}</span>{% endif %}
+      <div class="small mt-1">{% include 'nutricion/_dieta_badges.html' with dieta=f.dieta alergias=f.alergias %}</div>
+      <div class="small text-muted mt-1">{% for c, n, r in f.dia %}<span class="me-1" title="{{ n }}">{{ n|slice:":3" }}.{% if r %} <span class="badge {{ r.consumo|clase_consumo }}">{{ r.consumo|corto_consumo }}</span>{% else %} –{% endif %}</span>{% endfor %}</div>
+    </div>
+    <div class="col-lg-5">
+      {% if f.registro %}<div class="small mb-1">Registrado: <span class="badge {{ f.registro.consumo|clase_consumo }}">{{ f.registro.get_consumo_display }}</span> <span class="text-muted">por {{ f.registro.registrado_por.get_full_name|default:f.registro.registrado_por.username }}, {{ f.registro.fecha_registro|date:"H:i" }}</span></div>{% endif %}
+      {% if puede_ingesta %}
+      <form method="post" action="{% url 'nutricion_ingesta' f.residente.pk %}" class="d-flex flex-wrap gap-1">{% csrf_token %}
+        <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="comida" value="{{ comida }}"><input type="hidden" name="volver" value="{{ request.get_full_path }}">
+        {% for valor, texto in consumos %}
+        <button name="consumo" value="{{ valor }}" class="btn btn-sm {% if f.registro.consumo == valor %}btn-gc{% elif valor == 'ausente' %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}" {% if valor == 'ausente' %}title="{{ texto }}"{% endif %}>{% if valor == 'ausente' %}No estaba{% else %}{{ texto }}{% endif %}</button>
+        {% endfor %}
+      </form>
+      {% elif not f.registro %}<span class="small text-muted">Sin registrar.</span>{% endif %}
+    </div>
+    <div class="col-lg-3">
+      <div class="small d-flex justify-content-between"><span><i class="bi bi-droplet me-1"></i>Líquidos {% if fecha == hoy %}hoy{% endif %}</span><span><strong>{{ f.liquidos }}</strong> / {{ f.meta }} mL</span></div>
+      <div class="progress mb-1" style="height:6px;" role="progressbar" aria-label="Líquidos del día"><div class="progress-bar {% if f.dieta.restriccion_liquidos_ml and f.liquidos > f.dieta.restriccion_liquidos_ml %}bg-danger{% elif f.liquidos >= f.meta %}bg-success{% else %}bg-info{% endif %}" style="width: {{ f.liquidos|porcentaje_de:f.meta }}%"></div></div>
+      {% if f.dieta.restriccion_liquidos_ml %}<div class="small text-danger">Máximo {{ f.dieta.restriccion_liquidos_ml }} mL al día</div>{% endif %}
+      {% if puede_liquidos and fecha == hoy %}
+      <form method="post" action="{% url 'nutricion_vaso' f.residente.pk %}">{% csrf_token %}<input type="hidden" name="volver" value="{{ request.get_full_path }}">
+        <button class="btn btn-sm btn-outline-info w-100"><i class="bi bi-cup-straw me-1"></i>+1 vaso ({{ config.vaso_ml }} mL)</button></form>
+      {% endif %}
+    </div>
+  </div>
+</div></div>
+{% empty %}<div class="card card-gc"><div class="card-body text-muted">No hay residentes activos.</div></div>{% endfor %}
+{% endblock %}

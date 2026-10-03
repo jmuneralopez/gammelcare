@@ -1,0 +1,18 @@
+{% load nutricion_tags %}
+<!-- NUTRICIÓN -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-cup-hot me-2"></i>Nutrición e hidratación</h6>
+      <span class="d-flex gap-2">
+        <a href="{% url 'nutricion_residente' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-list-check me-1"></i>Ver nutrición</a>
+        {% if puede_dieta %}<a href="{% url 'nutricion_dieta' residente.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>{% if dieta %}Cambiar dieta{% else %}Indicar dieta{% endif %}</a>{% endif %}
+      </span>
+    </div>
+    <div class="mt-2 small">
+      {% include 'nutricion/_dieta_badges.html' %}
+      <div class="mt-1"><span class="text-muted">Hoy:</span> {% for r in hoy.celdas %}{% if r %}<span class="badge {{ r.consumo|clase_consumo }} me-1">{{ r.consumo|corto_consumo }}</span>{% endif %}{% empty %}{% endfor %}{% if hoy.promedio is None %}sin comidas registradas{% endif %}
+        · líquidos {{ hoy.liquidos }} / {{ meta }} mL{% if promedio is not None %} · promedio de 3 días: <strong class="{% if promedio < 50 %}text-danger{% endif %}">{{ promedio }} %</strong>{% endif %}</div>
+    </div>
+  </div>
+</div>

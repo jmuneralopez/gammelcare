@@ -1,0 +1,6 @@
+{% if dieta %}<span class="badge text-bg-primary fw-normal">{{ dieta.tipo.nombre }}</span>
+{% if dieta.textura != 'normal' %}<span class="badge text-bg-info fw-normal">{{ dieta.get_textura_display }}</span>{% endif %}
+{% if dieta.liquidos != 'normal' %}<span class="badge text-bg-info fw-normal">{{ dieta.get_liquidos_display }}</span>{% endif %}
+{% if dieta.ayuda != 'independiente' %}<span class="badge text-bg-warning fw-normal">{{ dieta.get_ayuda_display }}</span>{% endif %}
+{% else %}<span class="badge text-bg-light border fw-normal">Sin dieta indicada</span>{% endif %}
+{% for a in alergias %}<span class="badge text-bg-danger fw-normal">Alergia: {{ a.sustancia }}</span>{% endfor %}

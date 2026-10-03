@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load nutricion_tags antecedentes_tags %}
+{% block title %}GammelCare — Nutrición de {{ nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-cup-hot me-2"></i>Nutrición e hidratación — {{ nombre }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+    <a href="{% url 'nutricion_planilla' %}#res-{{ residente.pk }}" class="btn btn-outline-primary">Comidas e hidratación</a>
+  </div>
+</div>
+{% banner_alergias residente compacto=True %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card card-gc h-100"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;">Dieta</h6>
+      {% if puede_dieta %}<a href="{% url 'nutricion_dieta' residente.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i>{% if dieta %}Cambiar dieta{% else %}Indicar dieta{% endif %}</a>{% endif %}
+    </div>
+    <div class="mb-2">{% include 'nutricion/_dieta_badges.html' %}</div>
+    {% if dieta %}
+    <div class="small">
+      <div><span class="text-muted">Meta de líquidos:</span> {{ meta }} mL al día{% if dieta.restriccion_liquidos_ml %} · <span class="text-danger">máximo {{ dieta.restriccion_liquidos_ml }} mL</span>{% endif %}</div>
+      {% if dieta.alimentos_evitar %}<div><span class="text-muted">Evitar:</span> {{ dieta.alimentos_evitar }}</div>{% endif %}
+      {% if dieta.preferencias %}<div><span class="text-muted">Gustos:</span> {{ dieta.preferencias }}</div>{% endif %}
+      {% if dieta.indicaciones %}<div><span class="text-muted">Indicaciones:</span> {{ dieta.indicaciones }}</div>{% endif %}
+      <div class="text-muted mt-1">Desde el {{ dieta.fecha_inicio|date:"d/m/Y" }}{% if dieta.indicada_por %} · indicó {{ dieta.indicada_por }}{% endif %} · registró {{ dieta.registrado_por.get_full_name|default:dieta.registrado_por.username }}</div>
+    </div>
+    {% else %}<p class="small text-muted mb-0">Aún no tiene dieta indicada: en la lista para cocina aparece como "sin dieta".</p>{% endif %}
+    {% if historial %}
+    <details class="mt-2 small"><summary class="text-primary" style="cursor:pointer;">Dietas anteriores</summary>
+      <ul class="mb-0 mt-1">{% for d in historial %}<li>{{ d.resumen }} — {{ d.fecha_inicio|date:"d/m/Y" }} a {{ d.fecha_fin|date:"d/m/Y" }}</li>{% endfor %}</ul>
+    </details>{% endif %}
+  </div></div></div>
+  <div class="col-lg-5"><div class="card card-gc h-100"><div class="card-body small">
+    <h6 class="fw-bold" style="color:#1F4E79;">Peso</h6>
+    {% if pesos %}
+      <div>Último: <strong>{{ pesos.0.peso }} kg</strong> el {{ pesos.0.fecha_hora|date:"d/m/Y" }}</div>
+      {% if cambio_peso %}<div class="{% if cambio_peso.2 <= -5 %}text-danger fw-semibold{% elif cambio_peso.2 < 0 %}text-warning{% else %}text-muted{% endif %}">En 30 días: {{ cambio_peso.2|floatformat:1 }} %</div>{% endif %}
+      <div class="text-muted mt-1">{% for p in pesos %}{{ p.fecha_hora|date:"d/m" }}: {{ p.peso }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+    {% else %}<p class="text-muted mb-0">Sin peso registrado en signos vitales.</p>{% endif %}
+    <div class="mt-2">Promedio de lo que comió esta semana: <strong>{% if promedio_semana is not None %}{{ promedio_semana }} %{% else %}—{% endif %}</strong></div>
+  </div></div></div>
+</div>
+<div class="card card-gc"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;">Lo que comió y bebió (últimos 7 días)</h6>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0 text-center">
+    <thead style="background-color:#D6E4F0;"><tr><th class="text-start ps-2">Día</th>{% for c, n, h in comidas %}<th class="small">{{ n }}</th>{% endfor %}<th>Promedio</th><th>Líquidos</th></tr></thead>
+    <tbody>{% for f in cuadricula %}
+      <tr><td class="text-start ps-2 text-nowrap">{{ f.fecha|date:"D d/m"|capfirst }}</td>
+        {% for r in f.celdas %}<td>{% if r %}<span class="badge {{ r.consumo|clase_consumo }}" title="{{ r.get_consumo_display }} · {{ r.registrado_por.get_full_name|default:r.registrado_por.username }}{% if r.observaciones %} · {{ r.observaciones }}{% endif %}">{{ r.consumo|corto_consumo }}</span>{% else %}<span class="text-muted">–</span>{% endif %}</td>{% endfor %}
+        <td class="{% if f.promedio is not None and f.promedio < 50 %}text-danger fw-semibold{% endif %}">{% if f.promedio is not None %}{{ f.promedio }} %{% else %}—{% endif %}</td>
+        <td class="{% if f.liquidos and f.liquidos < meta %}text-warning{% endif %}">{% if f.liquidos %}{{ f.liquidos }} mL{% else %}—{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div></div>
+{% endblock %}

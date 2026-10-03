@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Configuración de nutrición{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-sliders me-2"></i>Configuración de nutrición</h4>
+<form method="post" novalidate style="max-width:640px;">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="card card-gc mb-3"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Comidas que sirve el hogar</h6>
+    {% for activa, hora in form.filas_comidas %}
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+      <div class="form-check">{{ activa }}<label class="form-check-label" for="{{ activa.id_for_label }}">{{ activa.label }}</label></div>
+      <div style="max-width:140px;">{{ hora }}</div>
+    </div>{% for e in hora.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    {% endfor %}
+  </div></div>
+  <div class="card card-gc mb-3"><div class="card-body">
+    <h6 class="fw-bold" style="color:#1F4E79;">Líquidos</h6>
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2"><label class="small" for="{{ form.vaso_ml.id_for_label }}">{{ form.vaso_ml.label }}</label><div style="max-width:140px;">{{ form.vaso_ml }}</div></div>
+    <div class="d-flex justify-content-between align-items-center gap-2"><label class="small" for="{{ form.meta_liquidos_ml.id_for_label }}">{{ form.meta_liquidos_ml.label }}</label><div style="max-width:140px;">{{ form.meta_liquidos_ml }}</div></div>
+    <div class="small text-muted mt-2">La meta de cada residente se puede cambiar en su dieta. Los avisos de poca ingesta se ajustan en <a href="{% url 'alertas_configuracion' %}">Configurar alertas</a>.</div>
+  </div></div>
+  <button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar configuración</button>
+</form>
+{% endblock %}

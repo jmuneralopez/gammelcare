@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Lista de dietas para cocina{% endblock %}
+{% block extra_css %}{% include 'medicamentos/_imprimir.html' %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;">Lista de dietas para cocina</h4>
+  <div class="d-flex gap-2 no-imprimir">
+    <a href="{% url 'nutricion_planilla' %}" class="btn btn-sm btn-outline-secondary">Comidas e hidratación</a>
+    <button type="button" class="btn btn-sm btn-gc" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir lista</button>
+  </div>
+</div>
+<p class="small mb-3">{{ hoy|date:"l j \d\e F \d\e Y"|capfirst }} · {{ total }} residente{{ total|pluralize }} · Comidas: {% for c, n, h in comidas %}{{ n }} {{ h }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+<div class="d-flex flex-wrap gap-2 mb-3">{% for g in grupos %}<span class="badge text-bg-light border fs-6 fw-normal">{{ g.dieta }}{% if g.textura != 'Normal' %} · {{ g.textura|lower }}{% endif %}: <strong>{{ g.residentes|length }}</strong></span>{% endfor %}
+  {% if sin_dieta %}<span class="badge text-bg-warning fs-6 fw-normal">Sin dieta: <strong>{{ sin_dieta|length }}</strong></span>{% endif %}</div>
+{% for g in grupos %}
+<div class="card card-gc mb-3" style="break-inside: avoid;"><div class="card-body py-2">
+  <h6 class="fw-bold mb-2" style="color:#1F4E79;">{{ g.dieta }} — textura {{ g.textura|lower }} ({{ g.residentes|length }})</h6>
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Residente</th><th>Habitación</th><th>Líquidos</th><th>Ayuda</th><th>Alergias y alimentos a evitar</th><th>Gustos e indicaciones</th></tr></thead>
+    <tbody>{% for i in g.residentes %}
+      <tr><td class="fw-semibold">{{ i.nombre }}</td>
+        <td class="text-nowrap">{% if i.residente.cama_actual %}{{ i.residente.cama_actual.habitacion.numero }}-{{ i.residente.cama_actual.codigo }}{% else %}—{% endif %}</td>
+        <td class="small">{% if i.dieta.liquidos != 'normal' %}<strong>{{ i.dieta.get_liquidos_display }}</strong>{% else %}Normales{% endif %}{% if i.dieta.restriccion_liquidos_ml %}<div class="text-danger">Máx. {{ i.dieta.restriccion_liquidos_ml }} mL</div>{% endif %}</td>
+        <td class="small">{{ i.dieta.get_ayuda_display }}</td>
+        <td class="small">{% for a in i.alergias %}<strong class="text-danger">{{ a.sustancia }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}{% if i.alergias and i.dieta.alimentos_evitar %}; {% endif %}{{ i.dieta.alimentos_evitar }}</td>
+        <td class="small">{{ i.dieta.preferencias }}{% if i.dieta.preferencias and i.dieta.indicaciones %}; {% endif %}{{ i.dieta.indicaciones }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+</div></div>
+{% endfor %}
+{% if sin_dieta %}
+<div class="card card-gc mb-3 border-warning"><div class="card-body py-2">
+  <h6 class="fw-bold mb-2 text-warning">Sin dieta indicada ({{ sin_dieta|length }}) — se sirve la dieta normal</h6>
+  <table class="table table-sm mb-0"><tbody>{% for i in sin_dieta %}<tr><td class="fw-semibold">{{ i.nombre }}</td><td>{% if i.residente.cama_actual %}{{ i.residente.cama_actual.habitacion.numero }}-{{ i.residente.cama_actual.codigo }}{% endif %}</td><td class="small">{% for a in i.alergias %}<strong class="text-danger">Alergia: {{ a.sustancia }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}</tbody></table>
+</div></div>
+{% endif %}
+<div class="small mt-3">Impreso por {{ user.get_full_name|default:user.username }} — {% now "d/m/Y H:i" %}</div>
+{% endblock %}

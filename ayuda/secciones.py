@@ -29,6 +29,7 @@ def _secciones():
     from antecedentes import permisos as an
     from citas import permisos as ci
     from cuidados import permisos as cu
+    from nutricion import permisos as nu
     from examenes import permisos as ex
     from plan_atencion import permisos as pa
     from signos import permisos as si
@@ -184,6 +185,34 @@ def _secciones():
              'Marcar signos de infección genera una alerta para el médico.'],
         ),
         Seccion(
+            'nutricion', 'Comidas e hidratación',
+            'La planilla de cada comida del día: cuánto comió cada residente y cuántos vasos de líquido tomó, '
+            'con su dieta, textura, ayuda para comer y alergias a la vista.',
+            [
+                ('Ver la planilla, la dieta de cada residente y la lista para cocina', nu.ROLES_VER),
+                ('Registrar cuánto comió (todo, ¾, la mitad, ¼, nada, lo rechazó o no estaba)', nu.ROLES_INGESTA),
+                ('Corregir lo que registró en las últimas 24 horas (tocando la opción correcta)', nu.ROLES_INGESTA),
+                ('Corregir cualquier registro de ingesta', nu.ROLES_CORREGIR_SIEMPRE),
+                ('Registrar un vaso de líquido (va al balance de líquidos de signos vitales)', nu.ROLES_LIQUIDOS),
+                ('Elegir las comidas que sirve el hogar, sus horas, el tamaño del vaso y la meta de líquidos', nu.ROLES_CONFIGURACION),
+            ],
+            ['"No estaba" (cita, salida, hospitalización o ayuno) no cuenta para el promedio ni para las alertas.',
+             'Varias comidas seguidas de la mitad o menos generan una alerta para el jefe de enfermería, la nutricionista y el médico.',
+             'Las horas de las comidas y los botones dependen de la configuración del hogar.'],
+        ),
+        Seccion(
+            'dietas', 'Dieta del residente',
+            'El tipo de dieta, la textura, la consistencia de los líquidos, la ayuda para comer, la meta o el máximo '
+            'de líquidos y lo que debe evitar. Cada cambio queda en el historial.',
+            [
+                ('Ver la dieta, la ingesta de los últimos 7 días y el peso', nu.ROLES_VER),
+                ('Indicar o cambiar la dieta', nu.ROLES_DIETA),
+                ('Agregar un tipo de dieta al catálogo del hogar desde el formulario', nu.ROLES_DIETA),
+                ('Imprimir la lista de dietas para cocina', nu.ROLES_VER),
+            ],
+            ['Las alergias alimentarias registradas salen en la planilla y en la lista para cocina, aunque no se escriban en la dieta.'],
+        ),
+        Seccion(
             'examenes', 'Exámenes médicos',
             'Órdenes de laboratorio, imágenes y otros exámenes; sus resultados (archivo y valores) y la revisión del médico.',
             [
@@ -263,6 +292,8 @@ PANTALLAS = {
     'historial_med': ['historial_hogar', 'historial_residente', 'kardex'],
     'cuidados': ['cuidados_planilla', 'cuidados_residente', 'cuidados_plan'],
     'heridas': ['cuidados_heridas', 'cuidados_herida_crear', 'cuidados_herida_detalle', 'cuidados_seguimiento_crear'],
+    'nutricion': ['nutricion_planilla', 'nutricion_configuracion'],
+    'dietas': ['nutricion_residente', 'nutricion_dieta', 'nutricion_cocina'],
     'examenes': ['examenes_bandeja', 'examenes_residente', 'examen_crear', 'examenes_tendencias', 'examen_detalle',
                  'examen_editar', 'examen_resultado', 'examen_adenda', 'examen_revisar', 'examen_cancelar',
                  'valor_corregir'],

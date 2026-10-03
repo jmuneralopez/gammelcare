@@ -80,6 +80,12 @@ class RegistroAuditoria(models.Model):
     HERIDA_CERRADA = 'herida_cerrada'
     CONSULTA_FOTO_HERIDA = 'consulta_foto_herida'
 
+    # Nutrición.
+    DIETA_INDICADA = 'dieta_indicada'
+    TIPO_DIETA_CREADO = 'tipo_dieta_creado'
+    INGESTA_CORREGIDA = 'ingesta_corregida'
+    CONFIGURACION_NUTRICION = 'configuracion_nutricion'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -134,6 +140,10 @@ class RegistroAuditoria(models.Model):
         (HERIDA_SEGUIMIENTO, 'Seguimiento o curación de herida'),
         (HERIDA_CERRADA, 'Cierre de herida'),
         (CONSULTA_FOTO_HERIDA, 'Consulta de foto de herida'),
+        (DIETA_INDICADA, 'Dieta indicada o cambiada'),
+        (TIPO_DIETA_CREADO, 'Tipo de dieta agregado al catálogo del hogar'),
+        (INGESTA_CORREGIDA, 'Corrección de un registro de ingesta'),
+        (CONFIGURACION_NUTRICION, 'Cambio de comidas y metas de líquidos del hogar'),
     ]
 
     usuario = models.ForeignKey(

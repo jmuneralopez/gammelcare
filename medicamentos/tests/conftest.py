@@ -67,6 +67,11 @@ def usuario_fisioterapeuta(hogar):
 
 
 @pytest.fixture
+def usuario_nutricionista(hogar):
+    return _crear_usuario(hogar, 'nutricionista', Rol.NUTRICIONISTA)
+
+
+@pytest.fixture
 def usuario_sin_hogar():
     """Usuario con rol pero sin hogar asignado — debe quedar bloqueado por
     rol_requerido() antes de llegar a cualquier vista (ver

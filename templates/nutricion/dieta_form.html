@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load antecedentes_tags %}
+{% block title %}GammelCare — Dieta{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-egg-fried me-2"></i>{% if actual %}Cambiar dieta{% else %}Indicar dieta{% endif %} — {{ nombre }}</h4>
+{% banner_alergias residente %}
+{% if actual %}<div class="alert alert-light border small">Dieta actual: {{ actual.resumen }}, desde el {{ actual.fecha_inicio|date:"d/m/Y" }}. Al guardar, queda en el historial y empieza la nueva.</div>{% endif %}
+<form method="post" novalidate class="card card-gc" style="max-width:900px;"><div class="card-body p-4">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    {% for f in form %}
+    <div class="{% if f.name in 'alimentos_evitar preferencias indicaciones' %}col-md-12{% else %}col-md-6{% endif %}">
+      <div class="d-flex justify-content-between align-items-end"><label class="form-label fw-semibold" for="{{ f.id_for_label }}">{{ f.label }}</label>
+        {% if f.name == 'tipo' %}<button type="button" class="btn btn-sm btn-link p-0 mb-1" data-bs-toggle="modal" data-bs-target="#modalDieta">Agregar tipo de dieta</button>{% endif %}</div>
+      {{ f }}
+      {% if f.help_text %}<div class="small text-muted">{{ f.help_text }}</div>{% endif %}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if alergias %}<div class="alert alert-warning small mt-3 mb-0">Recuerde incluir en "Alimentos que debe evitar": {% for a in alergias %}{{ a.sustancia }}{% if not forloop.last %}, {% endif %}{% endfor %}. La lista para cocina muestra las alergias de todos modos.</div>{% endif %}
+  <div class="d-flex gap-2 mt-4"><button class="btn btn-gc"><i class="bi bi-check-circle me-1"></i>Guardar dieta</button>
+    <a href="{% url 'nutricion_residente' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+</div></form>
+
+<div class="modal fade" id="modalDieta" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Agregar tipo de dieta</h6><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+    <div class="modal-body">
+      <div class="errores text-danger small mb-2"></div>
+      <label class="form-label small fw-semibold" for="nueva-dieta-nombre">Nombre</label><input type="text" id="nueva-dieta-nombre" name="nombre" class="form-control mb-2" placeholder="Ej.: Sin gluten">
+      <label class="form-label small fw-semibold" for="nueva-dieta-desc">Descripción (opcional)</label><input type="text" id="nueva-dieta-desc" name="descripcion" class="form-control">
+      <div class="small text-muted mt-2">Queda disponible solo para este hogar.</div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-gc" id="guardar-dieta">Agregar tipo de dieta</button></div>
+  </div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('guardar-dieta').addEventListener('click', function () {
+  const modal = document.getElementById('modalDieta'), errores = modal.querySelector('.errores');
+  const datos = new FormData();
+  modal.querySelectorAll('input').forEach(function (c) { datos.append(c.name, c.value); });
+  datos.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  errores.textContent = '';
+  fetch('{% url "nutricion_tipo_dieta_rapido" %}', { method: 'POST', body: datos })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (!res.ok) { errores.textContent = Object.values(res.j.errors || {}).flat().join(' ') || 'No se pudo guardar.'; return; }
+      const select = document.getElementById('id_tipo');
+      select.add(new Option(res.j.text, res.j.id, true, true));
+      select.value = res.j.id;
+      modal.querySelectorAll('input').forEach(function (c) { c.value = ''; });
+      bootstrap.Modal.getInstance(modal).hide();
+    })
+    .catch(function () { errores.textContent = 'No se pudo guardar. Revise la conexión.'; });
+});
+</script>
+{% endblock %}
