@@ -43,7 +43,12 @@
   <h4 class="fw-bold mb-0" style="color:#1F4E79;">
     <i class="bi bi-person-vcard me-2"></i>Expediente del Residente
   </h4>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
+    {% if user.es_clinico %}
+    <a href="{% url 'residente_calendario' residente.pk %}" class="btn btn-outline-primary">
+      <i class="bi bi-calendar3 me-1"></i>Calendario del residente
+    </a>
+    {% endif %}
     {% if user.es_administrador_hogar %}
     <a href="{% url 'residente_editar' residente.pk %}" class="btn btn-gc">
       <i class="bi bi-pencil me-1"></i>Editar
@@ -121,11 +126,11 @@
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="examen" id="secExamen" checked>
-            <label class="form-check-label" for="secExamen">Examen de ingreso</label>
+            <label class="form-check-label" for="secExamen">Valoración al ingreso</label>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="expediente" id="secExpediente" checked>
-            <label class="form-check-label" for="secExpediente">Expediente de ingreso (alergias, inventario, observaciones)</label>
+            <label class="form-check-label" for="secExpediente">Pertenencias y observaciones del ingreso</label>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="notas" id="secNotas" checked
@@ -394,85 +399,7 @@
   </div>
 </div>
 
-<!-- EXAMEN DE INGRESO -->
-{% if examen %}
-<div class="card card-gc mb-3">
-  <div class="card-body">
-    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#examen-section">
-      <h6 class="fw-bold mb-0" style="color:#1F4E79;">
-        <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
-      </h6>
-      <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
-    </div>
-    <div class="collapse" id="examen-section">
-      <div class="row g-3 mt-1">
-        <div class="col-md-2">
-          <div class="text-muted" style="font-size:0.82rem;">Peso</div>
-          <div class="fw-semibold">{{ examen.peso|default:"—" }} kg</div>
-        </div>
-        <div class="col-md-2">
-          <div class="text-muted" style="font-size:0.82rem;">Talla</div>
-          <div class="fw-semibold">{{ examen.talla|default:"—" }} cm</div>
-        </div>
-        <div class="col-md-2">
-          <div class="text-muted" style="font-size:0.82rem;">IMC</div>
-          <div class="fw-semibold">{{ examen.imc|default:"—" }}</div>
-        </div>
-        <div class="col-md-3">
-          <div class="text-muted" style="font-size:0.82rem;">Presión arterial</div>
-          <div class="fw-semibold">{{ examen.presion_arterial|default:"—" }}</div>
-        </div>
-        <div class="col-md-3">
-          <div class="text-muted" style="font-size:0.82rem;">Frec. cardíaca</div>
-          <div class="fw-semibold">{{ examen.frecuencia_cardiaca|default:"—" }} lpm</div>
-        </div>
-        <div class="col-md-2">
-          <div class="text-muted" style="font-size:0.82rem;">Temperatura</div>
-          <div class="fw-semibold">{{ examen.temperatura|default:"—" }} °C</div>
-        </div>
-        <div class="col-md-2">
-          <div class="text-muted" style="font-size:0.82rem;">Sat. O2</div>
-          <div class="fw-semibold">{{ examen.saturacion_oxigeno|default:"—" }} %</div>
-        </div>
-        <div class="col-md-4">
-          <div class="text-muted" style="font-size:0.82rem;">Procedencia</div>
-          <div class="fw-semibold">{{ examen.get_procedencia_display|default:"—" }}</div>
-        </div>
-        <div class="col-md-4">
-          <div class="text-muted" style="font-size:0.82rem;">Estado mental</div>
-          <div class="fw-semibold">{{ examen.get_estado_mental_display|default:"—" }}</div>
-        </div>
-        <div class="col-md-4">
-          <div class="text-muted" style="font-size:0.82rem;">Movilidad</div>
-          <div class="fw-semibold">{{ examen.get_movilidad_display|default:"—" }}</div>
-        </div>
-        <div class="col-md-4">
-          <div class="text-muted" style="font-size:0.82rem;">Condición nutricional</div>
-          <div class="fw-semibold">{{ examen.get_condicion_nutricional_display|default:"—" }}</div>
-        </div>
-        {% if examen.observaciones_fisicas %}
-        <div class="col-12">
-          <div class="text-muted" style="font-size:0.82rem;">Observaciones físicas</div>
-          <div>{{ examen.observaciones_fisicas|linebreaksbr }}</div>
-        </div>
-        {% endif %}
-        {% if examen.antecedentes_medicos %}
-        <div class="col-md-6">
-          <div class="text-muted" style="font-size:0.82rem;">Antecedentes médicos</div>
-          <div>{{ examen.antecedentes_medicos|linebreaksbr }}</div>
-        </div>
-        {% endif %}
-        {% if examen.antecedentes_familiares %}
-        <div class="col-md-6">
-          <div class="text-muted" style="font-size:0.82rem;">Antecedentes familiares</div>
-          <div>{{ examen.antecedentes_familiares|linebreaksbr }}</div>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
+
 
 {% resumen_signos residente %}
 {% resumen_cuidados residente %}
@@ -552,31 +479,86 @@
 
 {% resumen_medicamentos residente %}
 
-<!-- EXPEDIENTE DE INGRESO -->
-{% if expediente %}
+<!-- INGRESO -->
+{% if examen or expediente %}
 <div class="card card-gc mb-3">
   <div class="card-body">
-    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#expediente-section">
+    <div class="section-header" data-bs-toggle="collapse" data-bs-target="#ingreso-section">
       <h6 class="fw-bold mb-0" style="color:#1F4E79;">
-        <i class="bi bi-clipboard2-pulse me-2"></i>Expediente de Ingreso
+        <i class="bi bi-door-open me-2"></i>Ingreso{% if residente.fecha_ingreso %} <span class="fw-normal small text-muted">— {{ residente.fecha_ingreso|date:"d/m/Y" }}</span>{% endif %}
       </h6>
       <i class="bi bi-chevron-down collapse-icon" style="color:#2E75B6;"></i>
     </div>
-    <div class="collapse" id="expediente-section">
-      <div class="row g-3 mt-1">
-        <div class="col-12">
-          <div class="text-muted" style="font-size:0.82rem;">Alergias</div>
-          <div>{{ expediente.alergias|default:"—"|linebreaksbr }}</div>
+    <div class="collapse" id="ingreso-section">
+      <p class="small text-muted mt-2 mb-1">Cómo llegó el residente el día de su ingreso. Las alergias y los antecedentes están en su propio módulo.</p>
+      {% if examen %}
+      <div class="fw-semibold small mt-2" style="color:#1F4E79;">Valoración al ingreso</div>
+      <div class="row g-3 mt-0">
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Peso</div>
+          <div class="fw-semibold">{{ examen.peso|default:"—" }} kg</div>
         </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Talla</div>
+          <div class="fw-semibold">{{ examen.talla|default:"—" }} cm</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">IMC</div>
+          <div class="fw-semibold">{{ examen.imc|default:"—" }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted" style="font-size:0.82rem;">Presión arterial</div>
+          <div class="fw-semibold">{{ examen.presion_arterial|default:"—" }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted" style="font-size:0.82rem;">Frec. cardíaca</div>
+          <div class="fw-semibold">{{ examen.frecuencia_cardiaca|default:"—" }} lpm</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Temperatura</div>
+          <div class="fw-semibold">{{ examen.temperatura|default:"—" }} °C</div>
+        </div>
+        <div class="col-md-2">
+          <div class="text-muted" style="font-size:0.82rem;">Sat. O2</div>
+          <div class="fw-semibold">{{ examen.saturacion_oxigeno|default:"—" }} %</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Procedencia</div>
+          <div class="fw-semibold">{{ examen.get_procedencia_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Estado mental</div>
+          <div class="fw-semibold">{{ examen.get_estado_mental_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Movilidad</div>
+          <div class="fw-semibold">{{ examen.get_movilidad_display|default:"—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted" style="font-size:0.82rem;">Condición nutricional</div>
+          <div class="fw-semibold">{{ examen.get_condicion_nutricional_display|default:"—" }}</div>
+        </div>
+        {% if examen.observaciones_fisicas %}
         <div class="col-12">
-          <div class="text-muted" style="font-size:0.82rem;">Inventario de Ingreso</div>
+          <div class="text-muted" style="font-size:0.82rem;">Observaciones físicas</div>
+          <div>{{ examen.observaciones_fisicas|linebreaksbr }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if expediente %}
+      <div class="fw-semibold small mt-3" style="color:#1F4E79;">Pertenencias y observaciones</div>
+      <div class="row g-3 mt-0">
+        <div class="col-md-6">
+          <div class="text-muted" style="font-size:0.82rem;">Inventario de pertenencias</div>
           <div>{{ expediente.inventario_ingreso|default:"—"|linebreaksbr }}</div>
         </div>
-        <div class="col-12">
+        <div class="col-md-6">
           <div class="text-muted" style="font-size:0.82rem;">Observaciones generales</div>
           <div>{{ expediente.observaciones|default:"—"|linebreaksbr }}</div>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>

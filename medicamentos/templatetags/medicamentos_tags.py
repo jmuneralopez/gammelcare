@@ -13,6 +13,11 @@ def puede_ver_botiquin(usuario):
 
 
 @register.filter
+def puede_ver_ronda(usuario):
+    return usuario.is_authenticated and usuario.tiene_rol(*Rol.ROLES_RONDA)
+
+
+@register.filter
 def puede_configurar_medicamentos(usuario):
     return usuario.is_authenticated and usuario.tiene_rol(Rol.ADMINISTRADOR, Rol.JEFE_ENFERMERIA)
 

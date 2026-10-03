@@ -225,19 +225,11 @@ class ExamenIngreso(models.Model):
         verbose_name='Condición nutricional'
     )
 
-    # Observaciones y antecedentes
+    # Observaciones (los antecedentes y las alergias viven en el módulo de antecedentes)
     observaciones_fisicas = models.TextField(
         blank=True,
         verbose_name='Observaciones físicas',
         help_text='Golpes, cortes, heridas, amputaciones u otras condiciones físicas observadas'
-    )
-    antecedentes_medicos = models.TextField(
-        blank=True,
-        verbose_name='Antecedentes médicos'
-    )
-    antecedentes_familiares = models.TextField(
-        blank=True,
-        verbose_name='Antecedentes familiares'
     )
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -289,7 +281,6 @@ class ExpedienteIngreso(models.Model):
         on_delete=models.CASCADE,
         related_name='expediente'
     )
-    alergias = models.TextField(blank=True, verbose_name='Alergias')
     inventario_ingreso = models.TextField(
         blank=True,
         verbose_name='Inventario de Ingreso'

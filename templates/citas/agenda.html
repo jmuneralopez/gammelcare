@@ -1,18 +1,24 @@
 {% extends 'base.html' %}
-{% load citas_tags %}
-{% block title %}GammelCare — Agenda de citas{% endblock %}
+{% load citas_tags cuidados_tags %}
+{% block title %}GammelCare — Agenda{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-calendar2-week me-2"></i>Agenda de citas</h4>
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-calendar2-week me-2"></i>Agenda</h4>
   <div class="btn-group">
-    <a href="?dias=1" class="btn btn-sm {% if dias == 1 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Hoy</a>
-    <a href="?dias=7" class="btn btn-sm {% if dias == 7 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 7 días</a>
-    <a href="?dias=30" class="btn btn-sm {% if dias == 30 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 30 días</a>
-    <a href="?dias=90" class="btn btn-sm {% if dias == 90 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 3 meses</a>
+    <a href="?dias=1&ver={{ ver }}" class="btn btn-sm {% if dias == 1 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Hoy</a>
+    <a href="?dias=7&ver={{ ver }}" class="btn btn-sm {% if dias == 7 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 7 días</a>
+    <a href="?dias=30&ver={{ ver }}" class="btn btn-sm {% if dias == 30 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 30 días</a>
+    <a href="?dias=90&ver={{ ver }}" class="btn btn-sm {% if dias == 90 %}btn-gc{% else %}btn-outline-secondary{% endif %}">Próximos 3 meses</a>
   </div>
 </div>
-<p class="text-muted small">Para agendar una cita, entre al expediente del residente y use <strong>Agendar cita</strong>.</p>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <p class="text-muted small mb-0">Citas y fechas pendientes de todos los residentes; lo vencido aparece hoy. Para agendar una cita, entre al expediente del residente y use <strong>Agendar cita</strong>.</p>
+  <div class="btn-group btn-group-sm">
+    <a href="?dias={{ dias }}&ver=todo" class="btn {% if ver == 'todo' %}btn-gc{% else %}btn-outline-secondary{% endif %}">Todo</a>
+    <a href="?dias={{ dias }}&ver=citas" class="btn {% if ver == 'citas' %}btn-gc{% else %}btn-outline-secondary{% endif %}">Solo citas</a>
+  </div>
+</div>
 
 {% if sin_cierre %}
 <div class="card card-gc mb-4 border-warning">
@@ -37,16 +43,16 @@
 </div>
 {% endif %}
 
-{% for dia, citas in por_dia %}
+{% for dia, grupo in por_dia %}
 <div class="card card-gc mb-3">
   <div class="card-body">
     <h6 class="fw-bold mb-3" style="color:#1F4E79;">
       {% if dia == hoy %}Hoy{% elif dia == manana %}Mañana{% else %}{{ dia|date:"l"|capfirst }}{% endif %},
       {{ dia|date:"j \d\e F" }}{% if dia.year != hoy.year %} de {{ dia.year }}{% endif %}
-      <span class="badge text-bg-light border ms-1">{{ citas|length }}</span>
+      <span class="badge text-bg-light border ms-1">{{ grupo.total }}</span>
     </h6>
-    {% for c in citas %}
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+    {% for c in grupo.citas %}
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 border-bottom">
       <div>
         <div><strong class="me-2">{{ c.fecha_hora|date:"H:i" }}</strong>{{ c.nombre_residente }} — {{ c.titulo }}{% estado_cita c %}</div>
         <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ c.lugar }}{% if c.profesional %} · {{ c.profesional }}{% endif %}</div>
@@ -56,9 +62,15 @@
       <a href="{% url 'cita_detalle' c.pk %}" class="btn btn-sm btn-outline-secondary">Ver cita</a>
     </div>
     {% endfor %}
+    {% for e in grupo.otros %}
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 border-bottom small">
+      <div><span class="badge me-2" style="background-color:{{ colores|get_item:e.capa }};">{{ nombres_capa|get_item:e.capa }}</span>{{ e.residente.get_nombre }} — {{ e.titulo }}</div>
+      <a href="{{ e.url }}" class="btn btn-sm btn-outline-secondary">Abrir</a>
+    </div>
+    {% endfor %}
   </div>
 </div>
 {% empty %}
-<div class="card card-gc"><div class="card-body text-muted">No hay citas programadas en este periodo.</div></div>
+<div class="card card-gc"><div class="card-body text-muted">No hay {% if ver == 'citas' %}citas programadas{% else %}citas ni fechas pendientes{% endif %} en este periodo.</div></div>
 {% endfor %}
 {% endblock %}

@@ -213,7 +213,7 @@ def stock_bajo(hogar, config, residente=None):
                 gravedad = MEDIA
             yield Candidato(
                 clave=f'stock_bajo:{r.pk}:{medicamento.pk}', gravedad=gravedad, residente=r, titulo=titulo,
-                mensaje='Pida a la familia o a la EPS que lo traiga. Mientras tanto se puede usar el botiquín como préstamo.',
+                mensaje='Pida a la familia o a la EPS que lo traiga.',
                 url=reverse('ingreso_lista', args=[r.pk]), texto_accion='Ver el cajón',
                 roles=[Rol.JEFE_ENFERMERIA, Rol.ADMINISTRADOR, Rol.TRABAJO_SOCIAL],
             )

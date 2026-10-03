@@ -98,12 +98,8 @@ class ResidenteForm(forms.Form):
 class ExpedienteIngresoForm(forms.ModelForm):
     class Meta:
         model = ExpedienteIngreso
-        fields = ['alergias', 'inventario_ingreso', 'observaciones']
+        fields = ['inventario_ingreso', 'observaciones']
         widgets = {
-            'alergias': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 3,
-                'placeholder': 'Alergias conocidas'
-            }),
             'inventario_ingreso': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 5,
                 'placeholder': 'Liste las pertenencias del residente'
@@ -114,7 +110,6 @@ class ExpedienteIngresoForm(forms.ModelForm):
             }),
         }
         labels = {
-            'alergias': 'Alergias',
             'inventario_ingreso': 'Inventario de Ingreso',
             'observaciones': 'Observaciones generales',
         }
@@ -127,7 +122,7 @@ class ExamenIngresoForm(forms.ModelForm):
             'peso', 'talla', 'presion_arterial',
             'frecuencia_cardiaca', 'temperatura', 'saturacion_oxigeno',
             'procedencia', 'estado_mental', 'movilidad', 'condicion_nutricional',
-            'observaciones_fisicas', 'antecedentes_medicos', 'antecedentes_familiares',
+            'observaciones_fisicas',
         ]
         widgets = {
             'peso': forms.NumberInput(attrs={
@@ -155,14 +150,6 @@ class ExamenIngresoForm(forms.ModelForm):
             'observaciones_fisicas': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 4,
                 'placeholder': 'Golpes, cortes, heridas, amputaciones...'
-            }),
-            'antecedentes_medicos': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 4,
-                'placeholder': 'Enfermedades previas, cirugías...'
-            }),
-            'antecedentes_familiares': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 4,
-                'placeholder': 'Enfermedades hereditarias...'
             }),
         }
 

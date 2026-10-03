@@ -224,15 +224,40 @@ def _secciones():
             ['Un resultado con valores críticos genera una alerta crítica para el médico y el jefe de enfermería.'],
         ),
         Seccion(
-            'citas', 'Citas médicas',
-            'Citas fuera del hogar (especialistas, controles, exámenes, terapias): cuándo, dónde, cómo prepararlo, '
-            'quién acompaña y cómo llega; y qué pasó en la cita.',
+            'citas', 'Agenda y citas médicas',
+            'La agenda reúne, día por día, las citas de todos los residentes y las demás fechas pendientes: revisiones '
+            'del plan de atención, escalas por aplicar, próximas curaciones y órdenes médicas que terminan. Lo vencido '
+            'aparece hoy. Las citas se agendan desde el expediente de cada residente.',
             [
                 ('Ver la agenda y las citas de cada residente', ci.ROLES_VER),
                 ('Agendar, corregir, reprogramar o cancelar una cita', ci.ROLES_REGISTRO),
                 ('Registrar qué pasó en la cita y adjuntar la fórmula u orden', ci.ROLES_REGISTRO),
             ],
-            ['El día anterior y el mismo día llega una alerta con la preparación; sube de importancia si falta definir transporte o acompañante.'],
+            ['El día anterior y el mismo día llega una alerta con la preparación; sube de importancia si falta definir transporte o acompañante.',
+             'Use "Solo citas" para ver únicamente las citas.'],
+        ),
+        Seccion(
+            'calendario', 'Calendario del residente',
+            'Todo lo del residente en un calendario: notas, citas, exámenes, órdenes médicas, escalas, plan de atención, '
+            'heridas y curaciones, cambios de dieta e ingreso. Lo que ya pasó va relleno de color; lo que viene o está '
+            'pendiente, solo con el borde.',
+            [
+                ('Ver el calendario y abrir cada registro desde él', CLINICOS_Y_ADMIN),
+                ('Filtrar las notas por tipo, profesional o texto', CLINICOS_Y_ADMIN),
+            ],
+            ['Toque una capa para ocultarla o mostrarla; "Solo lo que viene" deja únicamente lo pendiente.'],
+        ),
+        Seccion(
+            'inicio', 'Inicio',
+            'Lo que tiene que resolver hoy según su rol: cada cuadro es un número con el enlace a la pantalla donde se '
+            'resuelve. En verde, lo que está al día.',
+            [
+                ('Ver el resumen del hogar, las alertas para usted y las citas de hoy', None),
+                ('Enfermería: tomas atrasadas, cambios de posición, comida sin registrar, curaciones y signos', [Rol.JEFE_ENFERMERIA, Rol.ENFERMERO]),
+                ('Médico: exámenes por revisar, signos críticos, heridas infectadas, escalas, planes y órdenes', [Rol.MEDICO, Rol.JEFE_ENFERMERIA]),
+                ('Nutrición: ingesta baja, pérdida de peso, líquidos y residentes sin dieta', [Rol.NUTRICIONISTA, Rol.MEDICO]),
+                ('Administración: camas, ingresos, vencimientos, préstamos, citas, lesiones por presión y usuarios', [Rol.ADMINISTRADOR]),
+            ],
         ),
         Seccion(
             'alertas', 'Alertas',
@@ -297,6 +322,8 @@ PANTALLAS = {
     'examenes': ['examenes_bandeja', 'examenes_residente', 'examen_crear', 'examenes_tendencias', 'examen_detalle',
                  'examen_editar', 'examen_resultado', 'examen_adenda', 'examen_revisar', 'examen_cancelar',
                  'valor_corregir'],
+    'calendario': ['residente_calendario'],
+    'inicio': ['dashboard'],
     'citas': ['citas_agenda', 'citas_residente', 'cita_crear', 'cita_detalle', 'cita_editar'],
     'alertas': ['alertas_bandeja', 'aviso_crear', 'alertas_configuracion'],
     'antecedentes': ['residente_antecedentes', 'alergia_crear', 'antecedente_crear'],

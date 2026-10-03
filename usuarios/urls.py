@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import configuracion, views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
@@ -10,5 +10,6 @@ urlpatterns = [
     path('<int:pk>/editar/', views.usuario_editar, name='usuario_editar'),
     path('<int:pk>/toggle/', views.usuario_toggle, name='usuario_toggle'),
     path('<int:pk>/resetear-password/', views.usuario_resetear_password, name='usuario_resetear_password'),
+    path('configuracion/', configuracion.configuracion, name='configuracion_hogar'),
     path('cambiar-password/', views.cambiar_password, name='cambiar_password'),
 ]

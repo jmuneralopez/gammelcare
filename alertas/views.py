@@ -9,6 +9,7 @@ from auditoria.models import RegistroAuditoria
 from residentes.models import Residente
 
 from . import services
+from .reglas import REGLAS
 from .forms import AtenderForm, AvisoForm, ConfiguracionForm, DescartarForm
 from .models import Alerta, ConfiguracionAlertas
 from .motor import evaluar_hogar, evaluar_si_toca
@@ -39,8 +40,11 @@ def bandeja(request):
     estado = request.GET.get('estado', 'activas')
     gravedad = request.GET.get('gravedad', '')
     residente_id = request.GET.get('residente', '')
+    reglas = [r for r in request.GET.get('regla', '').split(',') if r]
 
     qs = services.alertas_para(request.user, todas=todas)
+    if reglas:
+        qs = qs.filter(regla__in=reglas)
     if estado == 'activas':
         qs = qs.filter(estado__in=Alerta.ACTIVAS)
     elif estado in dict(Alerta.ESTADOS):
@@ -64,6 +68,7 @@ def bandeja(request):
         'estado': estado,
         'gravedad': gravedad,
         'residente_id': residente_id,
+        'reglas_filtro': [REGLAS[r][1] for r in reglas if r in REGLAS],
         'residentes': [(r.pk, r.get_nombre()) for r in residentes],
         'puede_ver_todas': puede_ver_todas(request.user),
         'puede_publicar': puede_publicar(request.user),

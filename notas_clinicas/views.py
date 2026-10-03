@@ -235,16 +235,7 @@ def notas_calendario_data(request, pk):
 @login_required
 @clinico_requerido
 def notas_calendario(request, pk):
+    """El calendario de notas ahora es el calendario completo del residente."""
+    from django.urls import reverse
     residente = get_object_or_404(Residente, pk=pk, hogar=request.user.hogar)
-    autores = (
-        NotaClinica.objects
-        .filter(residente=residente)
-        .values('autor_id', 'autor__first_name', 'autor__last_name')
-        .distinct()
-        .order_by('autor__first_name', 'autor__last_name')
-    )
-    return render(request, 'notas_clinicas/notas_calendario.html', {
-        'residente': residente,
-        'nombre': residente.get_nombre(),
-        'autores': autores,
-    })
+    return redirect(reverse('residente_calendario', args=[residente.pk]))

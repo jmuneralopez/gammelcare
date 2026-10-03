@@ -85,6 +85,11 @@ def ingreso_medicamento_requerido(view_func):
     return rol_requerido(*Rol.ROLES_INGRESO_MEDICAMENTO)(view_func)
 
 
+def ronda_requerido(view_func):
+    """Ronda de medicamentos: solo enfermería (jefe y auxiliares)."""
+    return rol_requerido(*Rol.ROLES_RONDA)(view_func)
+
+
 def administracion_requerido(view_func):
     """Registrar suministro y no administración: médico, jefe de
     enfermería y enfermero/auxiliar — el administrador nunca toca al

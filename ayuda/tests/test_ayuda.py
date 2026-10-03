@@ -38,4 +38,4 @@ def test_ayuda_en_cada_seccion(client, usuarios, url):
 
 def test_sin_ayuda_en_pantallas_sin_seccion(client, usuarios):
     client.force_login(usuarios['jefe'])
-    assert '¿Qué puedo hacer aquí?' not in client.get(reverse('dashboard')).content.decode()
+    assert '¿Qué puedo hacer aquí?' not in client.get(reverse('cambiar_password')).content.decode()

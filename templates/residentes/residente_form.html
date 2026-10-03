@@ -89,7 +89,7 @@
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-        <i class="bi bi-heart-pulse me-2"></i>Examen de Ingreso
+        <i class="bi bi-heart-pulse me-2"></i>Valoración al ingreso
       </h6>
       <div class="row g-3">
         <div class="col-md-2">
@@ -139,14 +139,6 @@
         <div class="col-12">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Observaciones físicas</label>
           {{ examen_form.observaciones_fisicas }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">Antecedentes médicos</label>
-          {{ examen_form.antecedentes_medicos }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">Antecedentes familiares</label>
-          {{ examen_form.antecedentes_familiares }}
         </div>
       </div>
     </div>
@@ -203,13 +195,10 @@
   <div class="card card-gc mb-4">
     <div class="card-body p-4">
       <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-        <i class="bi bi-clipboard2-pulse me-2"></i>Expediente de Ingreso
+        <i class="bi bi-clipboard2-pulse me-2"></i>Pertenencias y observaciones del ingreso
       </h6>
+      <p class="small text-muted">Las alergias y los antecedentes se registran después de crear el residente, en su módulo de Alergias y antecedentes.</p>
       <div class="row g-3">
-        <div class="col-12">
-          <label class="form-label fw-semibold" style="font-size:0.9rem;">Alergias</label>
-          {{ expediente_form.alergias }}
-        </div>
         <div class="col-12">
           <label class="form-label fw-semibold" style="font-size:0.9rem;">Inventario de ingreso</label>
           {{ expediente_form.inventario_ingreso }}

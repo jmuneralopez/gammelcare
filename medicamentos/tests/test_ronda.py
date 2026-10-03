@@ -224,21 +224,26 @@ class TestVistaRonda:
         assert resp.context['modo_alistamiento'] is False
         assert 'id="form-ronda-guardar"' in resp.content.decode()
 
-    def test_quien_no_suministra_solo_ve_el_alistamiento(
-        self, client, usuario_fisioterapeuta, prescripcion_horarios_fijos, ingreso_residente
+    def test_solo_enfermeria_entra_a_la_ronda(
+        self, client, usuario_fisioterapeuta, usuario_medico, usuario_jefe_enfermeria,
+        prescripcion_horarios_fijos, ingreso_residente
     ):
-        client.force_login(usuario_fisioterapeuta)
-        resp = client.get(reverse('ronda'), {'modo': 'suministro'})
-        assert resp.context['modo_alistamiento'] is True
-        assert 'id="form-ronda-guardar"' not in resp.content.decode()
-
-    def test_fisioterapeuta_puede_ver_la_ronda_pero_no_administrar(
-        self, client, usuario_fisioterapeuta, prescripcion_horarios_fijos, ingreso_residente
-    ):
-        client.force_login(usuario_fisioterapeuta)
+        for usuario in (usuario_fisioterapeuta, usuario_medico):
+            client.force_login(usuario)
+            assert client.get(reverse('ronda')).status_code in (302, 403)
+            assert client.post(reverse('ronda_guardar'), {'marcas': '[]'}).status_code in (302, 403)
+        client.force_login(usuario_jefe_enfermeria)
         resp = client.get(reverse('ronda'))
-        assert resp.status_code == 200
-        assert resp.context['puede_administrar'] is False
+        assert resp.status_code == 200 and resp.context['puede_administrar'] is True
+
+    def test_medico_suministra_desde_medicamentos_de_hoy(
+        self, client, usuario_medico, residente, prescripcion_horarios_fijos, ingreso_residente
+    ):
+        client.force_login(usuario_medico)
+        resp = client.get(reverse('hoja_dia', args=[residente.pk]))
+        assert resp.status_code == 200 and resp.context['puede_administrar'] is True
+        html = client.get(reverse('dashboard')).content.decode()
+        assert reverse('ronda') not in html
 
     def test_renderiza_la_advertencia_de_sin_existencias(
         self, client, usuario_enfermero, prescripcion_horarios_fijos

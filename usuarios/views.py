@@ -189,45 +189,8 @@ def dashboard_view(request):
         }
 
     elif request.user.hogar:
-        hogar = request.user.hogar
-        total_residentes = Residente.objects.filter(hogar=hogar, activo=True).count()
-        ingresos_mes = Residente.objects.filter(
-            hogar=hogar,
-            fecha_ingreso__month=hoy.month,
-            fecha_ingreso__year=hoy.year
-        ).count()
-        total_camas = Cama.objects.filter(
-            habitacion__departamento__hogar=hogar, activo=True
-        ).count()
-        camas_disponibles = Cama.objects.filter(
-            habitacion__departamento__hogar=hogar,
-            activo=True, estado='disponible'
-        ).count()
-        camas_ocupadas = Cama.objects.filter(
-            habitacion__departamento__hogar=hogar,
-            activo=True, estado='ocupada'
-        ).count()
-        ocupacion_pct = round((camas_ocupadas / total_camas * 100), 1) if total_camas > 0 else 0
-        notas_hoy = NotaClinica.objects.filter(
-            residente__hogar=hogar,
-            fecha_creacion__date=hoy
-        ).count()
-        notas_semana = NotaClinica.objects.filter(
-            residente__hogar=hogar,
-            fecha_creacion__date__gte=hoy - timedelta(days=7)
-        ).count()
-
-        contexto = {
-            'es_superadmin': False,
-            'total_residentes': total_residentes,
-            'ingresos_mes': ingresos_mes,
-            'total_camas': total_camas,
-            'camas_disponibles': camas_disponibles,
-            'camas_ocupadas': camas_ocupadas,
-            'ocupacion_pct': ocupacion_pct,
-            'notas_hoy': notas_hoy,
-            'notas_semana': notas_semana,
-        }
+        from .tablero import secciones
+        contexto = {'es_superadmin': False, 'secciones': secciones(request.user)}
 
     return render(request, 'usuarios/dashboard.html', contexto)
 

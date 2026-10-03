@@ -497,7 +497,7 @@ def residente_exportar_pdf(request, pk):
 
     # EXAMEN DE INGRESO
     if examen:
-        story.append(Paragraph(" Examen de Ingreso", style_seccion))
+        story.append(Paragraph(" Valoración al ingreso", style_seccion))
         ex_data = [
             [Paragraph("Peso", style_label), Paragraph(f"{examen.peso} kg" if examen.peso else "—", style_valor),
              Paragraph("Talla", style_label), Paragraph(f"{examen.talla} cm" if examen.talla else "—", style_valor),
@@ -527,19 +527,10 @@ def residente_exportar_pdf(request, pk):
             story.append(Spacer(1, 6))
             story.append(Paragraph("Observaciones físicas:", style_label))
             story.append(Paragraph(examen.observaciones_fisicas, style_body))
-        if examen.antecedentes_medicos:
-            story.append(Paragraph("Antecedentes médicos:", style_label))
-            story.append(Paragraph(examen.antecedentes_medicos, style_body))
-        if examen.antecedentes_familiares:
-            story.append(Paragraph("Antecedentes familiares:", style_label))
-            story.append(Paragraph(examen.antecedentes_familiares, style_body))
 
     # EXPEDIENTE
     if expediente:
-        story.append(Paragraph(" Expediente de Ingreso", style_seccion))
-        if expediente.alergias:
-            story.append(Paragraph("Alergias:", style_label))
-            story.append(Paragraph(expediente.alergias, style_body))
+        story.append(Paragraph(" Pertenencias y observaciones del ingreso", style_seccion))
         if expediente.inventario_ingreso:
             story.append(Paragraph("Inventario de ingreso:", style_label))
             story.append(Paragraph(expediente.inventario_ingreso, style_body))

@@ -16,7 +16,7 @@ from residentes.models import Residente
 from usuarios.decorators import (
     clinico_requerido, registro_tratamiento_requerido,
     ingreso_medicamento_requerido, administracion_requerido,
-    rol_requerido, ajuste_inventario_requerido,
+    rol_requerido, ajuste_inventario_requerido, ronda_requerido,
 )
 from usuarios.models import Rol
 
@@ -747,7 +747,7 @@ def _url_ronda(fecha=None, hora=None, modo=None):
 
 
 @login_required
-@clinico_requerido
+@ronda_requerido
 def ronda(request):
     """La ronda por franja horaria (3.1): todo el hogar agrupado por
     pabellón/habitación/cama, para la hora que se esté administrando en
@@ -840,7 +840,7 @@ def ronda(request):
 
 
 @login_required
-@administracion_requerido
+@ronda_requerido
 def ronda_guardar(request):
     """Un solo POST con todo lo marcado en la ronda (3.1) — no una petición
     por medicamento. Cada marca se valida y se procesa por separado

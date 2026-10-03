@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_calendario
 
 urlpatterns = [
     path('', views.residente_lista, name='residente_lista'),
@@ -10,5 +10,7 @@ urlpatterns = [
     path('<int:pk>/reactivar/', views.residente_reactivar, name='residente_reactivar'),
     path('<int:pk>/diagnostico/nuevo/', views.diagnostico_agregar, name='diagnostico_agregar'),
     path('<int:pk>/diagnostico/<int:dpk>/remover/', views.diagnostico_desactivar, name='diagnostico_desactivar'),
+    path('<int:pk>/calendario/', views_calendario.calendario_residente, name='residente_calendario'),
+    path('<int:pk>/calendario/datos/', views_calendario.calendario_residente_data, name='residente_calendario_data'),
     path('<int:pk>/pdf/', views.residente_exportar_pdf, name='residente_pdf'),
 ]

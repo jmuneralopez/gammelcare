@@ -28,19 +28,12 @@ def _residente(request, pk):
 @clinico_requerido
 def residente_antecedentes(request, pk):
     residente = _residente(request, pk)
-    expediente = getattr(residente, 'expediente', None)
-    examen = getattr(residente, 'examen_ingreso', None)
     return render(request, 'antecedentes/residente_antecedentes.html', {
         'residente': residente,
         'nombre': residente.get_nombre(),
         'alergias': residente.alergias.select_related('medicamento', 'registrado_por', 'inactivado_por'),
         'antecedentes': residente.antecedentes.select_related('codigo_cie10', 'registrado_por', 'inactivado_por'),
         'estado': services.estado_alergias(residente),
-        'texto_alergias_anterior': (expediente.alergias if expediente else '').strip(),
-        'texto_antecedentes_anterior': ' '.join(filter(None, [
-            (examen.antecedentes_medicos if examen else '').strip(),
-            (examen.antecedentes_familiares if examen else '').strip(),
-        ])),
         'puede_registrar': puede_registrar(request.user),
         'puede_inactivar': puede_inactivar(request.user),
         'inactivar_form': InactivarForm(),

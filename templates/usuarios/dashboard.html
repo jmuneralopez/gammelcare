@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}GammelCare — Dashboard{% endblock %}
+{% block title %}GammelCare — Inicio{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h4 class="fw-bold mb-1" style="color:#1F4E79;">
-      <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+      <i class="bi bi-house me-2"></i>Inicio
     </h4>
     <span class="text-muted" style="font-size:0.9rem;">
       Bienvenido, {{ user.get_full_name|default:user.username }}
@@ -217,138 +217,30 @@
 <!-- ══════════════════════════════════════════════ -->
 
 {% if user.hogar %}
-<div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card card-gc p-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted" style="font-size:0.82rem;">Residentes activos</div>
-          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ total_residentes }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">+{{ ingresos_mes }} este mes</div>
-        </div>
-        <i class="bi bi-person-lines-fill fs-2" style="color:#D6E4F0;"></i>
+{% for s in secciones %}
+<h6 class="fw-bold mt-3 mb-2" style="color:#1F4E79;">{{ s.titulo }}</h6>
+<div class="row g-3 mb-2">
+  {% for t in s.tarjetas %}
+  <div class="col-6 col-md-4 col-xl-3">
+    <a href="{{ t.url }}" class="card card-gc h-100 text-decoration-none" style="border-left: 5px solid var(--bs-{{ t.color }}) !important;"><div class="card-body py-2">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="small text-muted">{{ t.titulo }}</div>
+        <i class="bi {{ t.icono }} text-{{ t.color }} fs-5"></i>
       </div>
-    </div>
+      <div class="fs-3 fw-bold text-{% if t.color == 'success' or t.color == 'secondary' %}body{% else %}{{ t.color }}{% endif %}">{{ t.valor }}</div>
+      {% if t.detalle %}<div class="small text-muted">{{ t.detalle }}</div>{% endif %}
+    </div></a>
   </div>
-  <div class="col-md-3">
-    <div class="card card-gc p-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted" style="font-size:0.82rem;">Ocupación</div>
-          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ ocupacion_pct }}%</div>
-          <div class="text-muted" style="font-size:0.78rem;">{{ camas_ocupadas }} / {{ total_camas }} camas</div>
-        </div>
-        <i class="bi bi-hospital fs-2" style="color:#D6E4F0;"></i>
-      </div>
-      <div class="progress mt-2" style="height:6px;">
-        <div class="progress-bar" style="width:{{ ocupacion_pct }}%; background-color:#2E75B6;"></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card card-gc p-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted" style="font-size:0.82rem;">Camas disponibles</div>
-          <div class="fw-bold fs-3" style="color:#198754;">{{ camas_disponibles }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">de {{ total_camas }} en total</div>
-        </div>
-        <i class="bi bi-check-circle fs-2" style="color:#D6E4F0;"></i>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card card-gc p-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted" style="font-size:0.82rem;">Notas hoy</div>
-          <div class="fw-bold fs-3" style="color:#1F4E79;">{{ notas_hoy }}</div>
-          <div class="text-muted" style="font-size:0.78rem;">{{ notas_semana }} últimos 7 días</div>
-        </div>
-        <i class="bi bi-journal-medical fs-2" style="color:#D6E4F0;"></i>
-      </div>
-    </div>
-  </div>
+  {% endfor %}
 </div>
-
-{% if user.es_administrativo %}
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-lightning-charge me-2"></i>Accesos rápidos
-    </h6>
-  </div>
-  <div class="col-md-3">
-    <a href="{% url 'residente_crear' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-person-plus fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Nuevo Residente</div>
-    </a>
-  </div>
-  <div class="col-md-3">
-    <a href="{% url 'residente_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-person-lines-fill fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Ver Residentes</div>
-    </a>
-  </div>
-  <div class="col-md-3">
-    <a href="{% url 'usuario_crear' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-person-plus fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Nuevo Usuario</div>
-    </a>
-  </div>
-  <div class="col-md-3">
-    <a href="{% url 'usuario_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-people fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Ver Usuarios</div>
-    </a>
-  </div>
-  <div class="col-md-3">
-    <a href="{% url 'auditoria_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-shield-check fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Auditoría</div>
-    </a>
-  </div>
-</div>
+{% if s.lista_titulo %}
+<div class="card card-gc mb-3"><div class="card-body py-2">
+  <div class="small fw-semibold mb-1">{{ s.lista_titulo }}</div>
+  {% for f in s.lista %}<div class="small py-1 border-bottom"><a href="{{ f.url }}" class="text-decoration-none"><strong>{{ f.hora }}</strong> {{ f.texto }}</a>{% if f.detalle %} <span class="text-muted">· {{ f.detalle }}</span>{% endif %}</div>
+  {% empty %}<div class="small text-muted">{{ s.lista_vacia }}</div>{% endfor %}
+</div></div>
 {% endif %}
-
-{% if user.es_clinico %}
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-lightning-charge me-2"></i>Accesos rápidos
-    </h6>
-  </div>
-  <div class="col-md-6">
-    <a href="{% url 'atencion_lista' %}" class="card card-gc p-3 text-decoration-none d-block text-center">
-      <i class="bi bi-heart-pulse-fill fs-3 mb-2 d-block" style="color:#2E75B6;"></i>
-      <div class="fw-semibold" style="color:#1F4E79;">Atención a Residentes</div>
-    </a>
-  </div>
-</div>
-{% endif %}
-
-<!-- INFO HOGAR -->
-<div class="card card-gc">
-  <div class="card-body">
-    <h6 class="fw-bold mb-3" style="color:#1F4E79;">
-      <i class="bi bi-building me-2"></i>Hogar
-    </h6>
-    <div class="row g-3">
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Nombre</div>
-        <div class="fw-semibold">{{ user.hogar.nombre }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">NIT</div>
-        <div class="fw-semibold">{{ user.hogar.nit }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-muted" style="font-size:0.82rem;">Dirección</div>
-        <div class="fw-semibold">{{ user.hogar.direccion }}</div>
-      </div>
-    </div>
-  </div>
-</div>
+{% endfor %}
 
 {% else %}
 <div class="alert alert-warning">

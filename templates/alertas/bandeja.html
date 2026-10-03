@@ -9,6 +9,7 @@
     {% if puede_configurar %}<a href="{% url 'alertas_configuracion' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Configurar alertas</a>{% endif %}
   </div>
 </div>
+{% if reglas_filtro %}<div class="alert alert-light border d-flex justify-content-between align-items-center py-2 small">Mostrando solo: {{ reglas_filtro|join:", " }}<a href="?ver={{ ver }}" class="btn btn-sm btn-outline-secondary">Ver todas</a></div>{% endif %}
 
 <div class="row g-2 mb-3">
   {% for g, nombre in gravedades %}

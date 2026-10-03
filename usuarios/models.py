@@ -56,6 +56,9 @@ class Rol(models.Model):
     ROLES_REGISTRO_TRATAMIENTO = [ADMINISTRADOR, MEDICO, JEFE_ENFERMERIA]
     ROLES_INGRESO_MEDICAMENTO = [ADMINISTRADOR, JEFE_ENFERMERIA, ENFERMERO]
     ROLES_ADMINISTRACION = [MEDICO, JEFE_ENFERMERIA, ENFERMERO]
+    # La ronda de medicamentos es trabajo de enfermería; el médico suministra
+    # desde "Medicamentos de hoy" de cada residente cuando lo considera necesario.
+    ROLES_RONDA = [JEFE_ENFERMERIA, ENFERMERO]
     ROLES_AJUSTE_INVENTARIO = [ADMINISTRADOR, JEFE_ENFERMERIA]
 
     NOTA_POR_ROL = {

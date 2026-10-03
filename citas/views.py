@@ -32,22 +32,33 @@ def _cita(request, pk):
 @login_required
 @ver_requerido
 def agenda(request):
-    """Agenda del hogar: hoy, los próximos días y las que quedaron sin cierre."""
+    """Agenda del hogar: citas y demás fechas pendientes (revisiones de plan,
+    escalas por aplicar, próximas curaciones, órdenes que terminan), por día.
+    Lo vencido se muestra hoy."""
+    from residentes import calendario
     dias = request.GET.get('dias', '7')
     dias = int(dias) if dias in ('1', '7', '30', '90') else 7
+    ver = 'citas' if request.GET.get('ver') == 'citas' else 'todo'
     hoy = timezone.localdate()
     proximas = services.proximas(request.user.hogar, dias=dias)
     por_dia = {}
     for c in proximas:
-        por_dia.setdefault(timezone.localdate(c.fecha_hora), []).append(c)
+        por_dia.setdefault(timezone.localdate(c.fecha_hora), {'citas': [], 'otros': []})['citas'].append(c)
+    if ver == 'todo':
+        capas = [c for c in calendario.CAPAS_AGENDA if c != 'citas']
+        for e in calendario.agenda_hogar(request.user.hogar, hoy, hoy + timedelta(days=dias - 1), capas):
+            por_dia.setdefault(e.fecha, {'citas': [], 'otros': []})['otros'].append(e)
     sin_cierre = [c for c in services.sin_cierre(request.user.hogar) if timezone.localdate(c.fecha_hora) < hoy]
     return render(request, 'citas/agenda.html', {
-        'por_dia': sorted(por_dia.items()),
+        'por_dia': [(d, dict(g, total=len(g['citas']) + len(g['otros']))) for d, g in sorted(por_dia.items())],
         'sin_cierre': sin_cierre,
         'dias': dias,
+        'ver': ver,
         'hoy': hoy,
         'manana': hoy + timedelta(days=1),
         'puede_registrar': puede_registrar(request.user),
+        'colores': calendario.COLOR,
+        'nombres_capa': calendario.NOMBRE_CAPA,
     })
 
 
