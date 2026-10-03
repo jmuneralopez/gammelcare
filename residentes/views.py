@@ -298,7 +298,9 @@ def diagnostico_desactivar(request, pk, dpk):
         messages.success(request, 'Diagnóstico removido correctamente.')
     return redirect('residente_detalle', pk=residente.pk)
 
-SECCIONES_PDF_DISPONIBLES = {'diagnosticos', 'examen', 'expediente', 'notas'}
+from . import pdf_secciones
+
+SECCIONES_PDF_DISPONIBLES = {'diagnosticos', 'examen', 'expediente', 'notas', *pdf_secciones.SECCIONES}
 
 
 @login_required
@@ -452,6 +454,15 @@ def residente_exportar_pdf(request, pk):
     ]))
     story.append(t)
 
+    kit = pdf_secciones.Kit(
+        seccion=style_seccion, label=style_label, body=style_body,
+        encabezado=ParagraphStyle('enc', parent=styles['Normal'], fontSize=8, textColor=colors.white,
+                                  fontName='Helvetica-Bold'),
+        azul_medio=BLUE_MID, azul_claro=BLUE_LIGHT, azul_xclaro=BLUE_XLIGHT,
+    )
+    if 'alergias' in secciones:
+        story.extend(pdf_secciones.alergias(residente, kit))
+
     # DIAGNÓSTICOS
     if diagnosticos:
         story.append(Paragraph(" Diagnósticos", style_seccion))
@@ -479,6 +490,10 @@ def residente_exportar_pdf(request, pk):
             ('LEFTPADDING', (0,0), (-1,-1), 6),
         ]))
         story.append(dt)
+
+    for clave in ('medicamentos', 'signos', 'valoracion', 'plan', 'examenes_clinicos', 'citas'):
+        if clave in secciones:
+            story.extend(pdf_secciones.SECCIONES[clave][1](residente, kit))
 
     # EXAMEN DE INGRESO
     if examen:
