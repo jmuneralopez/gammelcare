@@ -751,9 +751,13 @@ def _url_ronda(fecha=None, hora=None, modo=None):
 def ronda(request):
     """La ronda por franja horaria (3.1): todo el hogar agrupado por
     pabellón/habitación/cama, para la hora que se esté administrando en
-    este momento — en vez de entrar residente por residente. Con
-    ?modo=alistamiento es la misma pantalla en solo lectura, para repasar
-    antes de salir al pasillo."""
+    este momento — en vez de entrar residente por residente.
+
+    El orden es el del trabajo real: primero se ALISTA (vista de solo
+    lectura con el total de cada medicamento por sacar de los cajones) y,
+    cuando se tienen los medicamentos, se pasa a SUMINISTRAR
+    (?modo=suministro), donde se registra. Quien no suministra (p. ej.
+    fisioterapia) solo ve la vista de alistamiento."""
     hogar = request.user.hogar
     config = ConfiguracionMedicamentos.para_hogar(hogar)
 
@@ -763,7 +767,8 @@ def ronda(request):
     except ValueError:
         fecha = timezone.localdate()
 
-    modo_alistamiento = request.GET.get('modo') == 'alistamiento'
+    puede_administrar = request.user.tiene_rol(*Rol.ROLES_ADMINISTRACION)
+    modo_alistamiento = not (puede_administrar and request.GET.get('modo') == 'suministro')
 
     franjas = services.franjas_del_dia(hogar, fecha)
 
@@ -798,6 +803,23 @@ def ronda(request):
         1 for bloque in bloques for fila in bloque['filas'] if fila['pendiente']
     )
 
+    # Lista para alistar: total por medicamento de las tomas pendientes.
+    por_alistar = {}
+    for bloque in bloques:
+        for fila in bloque['filas']:
+            if not fila['pendiente']:
+                continue
+            p = fila['prescripcion']
+            clave = (p.medicamento_id, p.dosis_unidad)
+            item = por_alistar.setdefault(clave, {
+                'medicamento': p.medicamento, 'unidad': p.get_dosis_unidad_display(),
+                'cantidad': Decimal('0'), 'tomas': 0, 'sin_existencias': 0,
+            })
+            item['cantidad'] += p.dosis_cantidad
+            item['tomas'] += 1
+            item['sin_existencias'] += 1 if fila['sin_existencias'] else 0
+    lista_alistar = sorted(por_alistar.values(), key=lambda i: str(i['medicamento']))
+
     return render(request, 'medicamentos/ronda.html', {
         'hogar': hogar,
         'fecha': fecha,
@@ -810,7 +832,8 @@ def ronda(request):
         'modo_alistamiento': modo_alistamiento,
         'franja_dentro_de_ventana': franja_dentro_de_ventana,
         'total_pendientes': total_pendientes,
-        'puede_administrar': request.user.tiene_rol(*Rol.ROLES_ADMINISTRACION),
+        'puede_administrar': puede_administrar,
+        'lista_alistar': lista_alistar,
         'motivos_no_administracion': Administracion.MOTIVOS_NO_ADMINISTRACION,
         'motivos_uso_botiquin': Administracion.MOTIVOS_USO_BOTIQUIN,
     })
@@ -825,7 +848,7 @@ def ronda_guardar(request):
     las demás filas ya marcadas correctamente."""
     fecha_str = request.POST.get('fecha', '')
     hora_str = request.POST.get('hora', '')
-    destino = _url_ronda(fecha=fecha_str, hora=hora_str)
+    destino = _url_ronda(fecha=fecha_str, hora=hora_str, modo='suministro')
 
     if request.method != 'POST':
         return redirect(destino)

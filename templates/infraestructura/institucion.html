@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Institución{% endblock %}
+{% block extra_css %}
+<style>
+  .dep-header { background-color:#1F4E79; color:#fff; border-radius:8px; padding:10px 16px; }
+  .hab-box { background:#fff; border:1px solid var(--gc-border); border-radius:8px; }
+  .hab-header { background-color:#EBF3FA; border-radius:8px 8px 0 0; padding:8px 14px; }
+  .cama { border:1px solid; border-radius:8px; padding:8px 10px; min-width:210px; flex:1 1 210px; max-width:320px; }
+  .cama-ocupada { background:#fff7f0; border-color:#f3c9a8; }
+  .cama-disponible { background:#f0fbf4; border-color:#bfe3cb; }
+  .cama-mantenimiento { background:#fff8e1; border-color:#ffe08a; }
+  .cama-inactiva { background:#f2f2f2; border-color:#ddd; opacity:.75; }
+  .btn-xs { padding:1px 8px; font-size:.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-building me-2"></i>Institución</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if puede_editar %}
+      <a href="?{% if not ver_inactivos %}inactivos=1{% endif %}" class="btn btn-outline-secondary">{% if ver_inactivos %}Ocultar inactivos{% else %}Ver también los inactivos{% endif %}</a>
+      <a href="{% url 'departamento_crear' %}" class="btn btn-gc"><i class="bi bi-plus-circle me-1"></i>Nuevo departamento</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="card card-gc h-100"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-bar-chart me-2"></i>Ocupación</h6>
+        <span class="fw-bold fs-5" style="color:#1F4E79;">{{ ocupacion }} %</span>
+      </div>
+      <div class="progress mb-2" style="height:10px;"><div class="progress-bar bg-{{ color_general }}" style="width:{{ ocupacion }}%;"></div></div>
+      <div class="d-flex gap-4 small"><span>Ocupadas: <strong>{{ ocupadas }}</strong></span><span>Disponibles: <strong>{{ disponibles }}</strong></span><span class="text-muted">Total: {{ total_camas }} camas</span></div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-gc h-100"><div class="card-body">
+      <label class="form-label small fw-semibold" for="buscar">Buscar residente o cama</label>
+      <input type="search" id="buscar" class="form-control" placeholder="Nombre, cama o habitación">
+    </div></div>
+  </div>
+</div>
+
+{% if sin_cama %}
+<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-1"></i><strong>Residentes activos sin cama asignada:</strong>
+  {% for r in sin_cama %}<a href="{% url 'residente_detalle' r.pk %}" class="ms-1">{{ r.get_nombre }}</a>{% if not forloop.last %},{% endif %}{% endfor %}
+</div>
+{% endif %}
+
+{% for d in data %}
+<div class="mb-4 bloque-dep" id="dep-{{ d.dep.pk }}">
+  <div class="dep-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 {% if not d.dep.activo %}opacity-75{% endif %}">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <i class="bi bi-grid-fill"></i><span class="fw-bold">{{ d.dep.nombre }}</span>
+      {% if not d.dep.activo %}<span class="badge bg-secondary">Inactivo</span>{% endif %}
+      <span class="small" style="opacity:.85;">{{ d.habitaciones|length }} habitación{{ d.habitaciones|length|pluralize:"es" }} · {{ d.ocupadas }}/{{ d.total }} camas ocupadas</span>
+    </div>
+    {% if puede_editar %}
+    <div class="d-flex gap-1 flex-wrap">
+      <a href="{% url 'habitacion_crear' %}?departamento={{ d.dep.pk }}" class="btn btn-light btn-xs">Agregar habitación</a>
+      <a href="{% url 'departamento_editar' d.dep.pk %}" class="btn btn-outline-light btn-xs">Editar</a>
+      <form method="post" action="{% url 'departamento_desactivar' d.dep.pk %}" class="d-inline" onsubmit="return confirm('¿{% if d.dep.activo %}Desactivar{% else %}Reactivar{% endif %} el departamento {{ d.dep.nombre }}?');">{% csrf_token %}
+        <button class="btn btn-outline-light btn-xs">{% if d.dep.activo %}Desactivar{% else %}Reactivar{% endif %}</button></form>
+    </div>
+    {% endif %}
+  </div>
+  {% if d.dep.descripcion %}<p class="small text-muted ms-1">{{ d.dep.descripcion }}</p>{% endif %}
+
+  {% for h in d.habitaciones %}
+  <div class="hab-box mb-2 ms-md-3 bloque-hab" id="hab-{{ h.hab.pk }}">
+    <div class="hab-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <i class="bi bi-door-open" style="color:#2E75B6;"></i>
+        <span class="fw-semibold texto-busqueda" style="color:#1F4E79;">Habitación {{ h.hab.numero }}</span>
+        {% if not h.hab.activo %}<span class="badge bg-secondary">Inactiva</span>{% endif %}
+        {% if h.hab.descripcion %}<span class="small text-muted">{{ h.hab.descripcion }}</span>{% endif %}
+        <span class="small text-muted">· {{ h.ocupadas }}/{{ h.total }} ocupadas</span>
+      </div>
+      {% if puede_editar %}
+      <div class="d-flex gap-1 flex-wrap">
+        <a href="{% url 'cama_crear' %}?habitacion={{ h.hab.pk }}" class="btn btn-outline-primary btn-xs">Agregar cama</a>
+        <a href="{% url 'habitacion_editar' h.hab.pk %}" class="btn btn-outline-secondary btn-xs">Editar</a>
+        <form method="post" action="{% url 'habitacion_desactivar' h.hab.pk %}" class="d-inline" onsubmit="return confirm('¿{% if h.hab.activo %}Desactivar{% else %}Reactivar{% endif %} la habitación {{ h.hab.numero }}?');">{% csrf_token %}
+          <button class="btn btn-outline-secondary btn-xs">{% if h.hab.activo %}Desactivar{% else %}Reactivar{% endif %}</button></form>
+      </div>
+      {% endif %}
+    </div>
+    <div class="p-2 d-flex flex-wrap gap-2">
+      {% for c in h.camas %}
+      <div class="cama bloque-cama {% if not c.cama.activo %}cama-inactiva{% elif c.residente %}cama-ocupada{% elif c.cama.estado == 'mantenimiento' %}cama-mantenimiento{% else %}cama-disponible{% endif %}"
+           data-busqueda="{{ c.nombre|lower }} cama {{ c.cama.codigo|lower }} habitación {{ h.hab.numero|lower }} {{ d.dep.nombre|lower }}">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="bi bi-hospital me-1"></i>Cama {{ c.cama.codigo }}</span>
+          <span class="small">{% if not c.cama.activo %}Inactiva{% elif c.residente %}Ocupada{% elif c.cama.estado == 'mantenimiento' %}En mantenimiento{% else %}Disponible{% endif %}</span>
+        </div>
+        {% if c.residente %}
+          <a href="{% url 'residente_detalle' c.residente.pk %}" class="d-block mt-1 fw-semibold text-decoration-none"><i class="bi bi-person-fill me-1"></i>{{ c.nombre }}</a>
+          <a href="{% url 'residente_detalle' c.residente.pk %}" class="btn btn-sm btn-outline-primary mt-1 py-0">Ver expediente</a>
+        {% endif %}
+        {% if puede_editar %}
+        <div class="d-flex gap-1 mt-2">
+          <a href="{% url 'cama_editar' c.cama.pk %}" class="btn btn-outline-secondary btn-xs">Editar</a>
+          {% if not c.residente %}
+          <form method="post" action="{% url 'cama_desactivar' c.cama.pk %}" class="d-inline">{% csrf_token %}
+            <button class="btn btn-outline-secondary btn-xs">{% if c.cama.activo %}Desactivar{% else %}Reactivar{% endif %}</button></form>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <span class="small text-muted p-1">Sin camas registradas.</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="small text-muted ms-3">Sin habitaciones registradas.</p>
+  {% endfor %}
+</div>
+{% empty %}
+<div class="card card-gc"><div class="card-body text-center text-muted py-4">
+  <i class="bi bi-inbox fs-3 d-block mb-2"></i>Aún no hay departamentos registrados.{% if puede_editar %} Empiece con <strong>Nuevo departamento</strong>.{% endif %}
+</div></div>
+{% endfor %}
+<p class="small text-muted" id="sin-resultados" style="display:none;">No hay camas que coincidan con la búsqueda.</p>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const caja = document.getElementById('buscar');
+  caja.addEventListener('input', function () {
+    const q = caja.value.trim().toLowerCase();
+    let visibles = 0;
+    document.querySelectorAll('.bloque-cama').forEach(function (c) {
+      const ok = !q || c.dataset.busqueda.indexOf(q) !== -1;
+      c.style.display = ok ? '' : 'none';
+      if (ok) visibles += 1;
+    });
+    document.querySelectorAll('.bloque-hab').forEach(function (h) {
+      h.style.display = (!q || h.querySelector('.bloque-cama:not([style*="none"])')) ? '' : 'none';
+    });
+    document.querySelectorAll('.bloque-dep').forEach(function (d) {
+      d.style.display = (!q || d.querySelector('.bloque-hab:not([style*="none"])')) ? '' : 'none';
+    });
+    document.getElementById('sin-resultados').style.display = (q && !visibles) ? '' : 'none';
+  });
+})();
+</script>
+{% endblock %}

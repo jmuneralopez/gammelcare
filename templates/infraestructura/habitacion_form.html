@@ -1,42 +1,16 @@
-{% extends 'base.html' %}
-{% block title %}GammelCare — {{ titulo }}{% endblock %}
-
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
-    <i class="bi bi-door-open me-2"></i>{{ titulo }}
-  </h4>
-  <a href="{% url 'habitacion_lista' %}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left me-1"></i>Volver
-  </a>
-</div>
-
-<div class="card card-gc" style="max-width:600px;">
-  <div class="card-body p-4">
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:0.9rem;">
-          {{ field.label }}
-        </label>
-        {{ field }}
-        {% if field.errors %}
-          <div class="text-danger" style="font-size:0.83rem;">
-            {{ field.errors|join:", " }}
-          </div>
-        {% endif %}
-      </div>
-      {% endfor %}
-      <div class="d-flex gap-2 mt-4">
-        <button type="submit" class="btn btn-gc">
-          <i class="bi bi-check-circle me-1"></i>{{ accion }}
-        </button>
-        <a href="{% url 'habitacion_lista' %}" class="btn btn-outline-secondary">
-          Cancelar
-        </a>
-      </div>
-    </form>
-  </div>
+{% extends 'infraestructura/_form_base.html' %}
+{% block icono %}door-open{% endblock %}
+{% block extra_label %}{% if field.name == 'departamento' %}<button type="button" class="btn btn-sm btn-link p-0 mb-1" data-bs-toggle="modal" data-bs-target="#modalAlta">Agregar departamento</button>{% endif %}{% endblock %}
+{% block modal %}
+<div class="modal fade alta-rapida" id="modalAlta" tabindex="-1" data-url="{% url 'departamento_crear_rapido' %}" data-select="#id_departamento">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Agregar departamento</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="errores text-danger small mb-2"></div>
+      <label class="form-label small fw-semibold">Nombre</label><input type="text" name="nombre" class="form-control mb-2" placeholder="Ej.: Pabellón B">
+      <label class="form-label small fw-semibold">Descripción (opcional)</label><input type="text" name="descripcion" class="form-control">
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-gc guardar-alta">Agregar departamento</button></div>
+  </div></div>
 </div>
 {% endblock %}

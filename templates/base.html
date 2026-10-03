@@ -190,6 +190,14 @@
             <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </li>
+        {% if user.es_clinico or user.es_administrador_hogar %}
+        <li class="nav-item">
+          <a class="nav-link {% if 'infraestructura' in request.path %}active{% endif %}"
+             href="{% url 'institucion' %}">
+            <i class="bi bi-building me-1"></i>Institución
+          </a>
+        </li>
+        {% endif %}
         {% if alertas_campana %}
         <li class="nav-item">
           <a class="nav-link {% if 'alertas' in request.path %}active{% endif %}"
@@ -304,24 +312,6 @@
           </a>
         </li>
         {% endif %}
-        <li class="nav-item">
-          <a class="nav-link {% if 'departamentos' in request.path %}active{% endif %}"
-             href="{% url 'departamento_lista' %}">
-            <i class="bi bi-grid me-1"></i>Departamentos
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if 'habitaciones' in request.path %}active{% endif %}"
-             href="{% url 'habitacion_lista' %}">
-            <i class="bi bi-door-open me-1"></i>Habitaciones
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if 'camas' in request.path %}active{% endif %}"
-             href="{% url 'cama_lista' %}">
-            <i class="bi bi-hospital me-1"></i>Camas
-          </a>
-        </li>
         <li class="nav-item mt-2">
           <small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">
             Catálogos

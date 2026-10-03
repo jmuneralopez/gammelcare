@@ -215,9 +215,22 @@ class TestVistaRonda:
         self, client, usuario_enfermero, prescripcion_horarios_fijos, ingreso_residente
     ):
         client.force_login(usuario_enfermero)
-        resp = client.get(reverse('ronda'), {'modo': 'alistamiento'})
+        resp = client.get(reverse('ronda'))
         assert resp.status_code == 200
+        assert resp.context['modo_alistamiento'] is True  # la ronda abre en alistamiento
+        assert 'Lo que hay que alistar' in resp.content.decode()
+        assert 'pasar a suministrar' in resp.content.decode()
+        resp = client.get(reverse('ronda'), {'modo': 'suministro'})
+        assert resp.context['modo_alistamiento'] is False
+        assert 'id="form-ronda-guardar"' in resp.content.decode()
+
+    def test_quien_no_suministra_solo_ve_el_alistamiento(
+        self, client, usuario_fisioterapeuta, prescripcion_horarios_fijos, ingreso_residente
+    ):
+        client.force_login(usuario_fisioterapeuta)
+        resp = client.get(reverse('ronda'), {'modo': 'suministro'})
         assert resp.context['modo_alistamiento'] is True
+        assert 'id="form-ronda-guardar"' not in resp.content.decode()
 
     def test_fisioterapeuta_puede_ver_la_ronda_pero_no_administrar(
         self, client, usuario_fisioterapeuta, prescripcion_horarios_fijos, ingreso_residente
@@ -233,7 +246,7 @@ class TestVistaRonda:
         """Sin ingreso_residente el lote FEFO no existe — la ronda debe
         mostrar la advertencia y el flujo de botiquín, no reventar."""
         client.force_login(usuario_enfermero)
-        resp = client.get(reverse('ronda'), {'fecha': date.today().isoformat()})
+        resp = client.get(reverse('ronda'), {'fecha': date.today().isoformat(), 'modo': 'suministro'})
         assert resp.status_code == 200
         assert resp.context['bloques'][0]['filas'][0]['sin_existencias'] is True
         assert 'sin existencias propias' in resp.content.decode('utf-8')

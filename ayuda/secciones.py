@@ -101,10 +101,10 @@ def _secciones():
         ),
         Seccion(
             'suministro', 'Suministro de medicamentos',
-            'La ronda de medicamentos del hogar y "Medicamentos de hoy" de cada residente: qué toca dar, a qué hora, '
-            'y el registro de lo que se suministró o no se suministró.',
+            'La ronda de medicamentos en dos pasos: primero alistar (ver qué sacar de los cajones para la franja) y '
+            'luego suministrar y registrar; y "Medicamentos de hoy" de cada residente.',
             [
-                ('Ver la ronda y los medicamentos de hoy', CLINICOS_Y_ADMIN),
+                ('Ver la ronda (alistamiento) y los medicamentos de hoy', CLINICOS_Y_ADMIN),
                 ('Registrar que se suministró un medicamento (o que no se suministró, con el motivo)', Rol.ROLES_ADMINISTRACION),
                 ('Suministrar del botiquín cuando el residente no tiene en su cajón', Rol.ROLES_ADMINISTRACION),
                 ('Anular un suministro propio dentro de las 2 horas siguientes', Rol.ROLES_ADMINISTRACION),
@@ -170,6 +170,20 @@ def _secciones():
              'Para atender una alerta crítica hay que escribir qué se hizo.'],
         ),
         Seccion(
+            'institucion', 'Institución',
+            'Los departamentos (pabellones o pisos), habitaciones y camas del hogar, con el residente que ocupa '
+            'cada cama. Sirve también para encontrar a un residente por su lugar y entrar a su expediente.',
+            [
+                ('Ver departamentos, habitaciones, camas y quién ocupa cada una; entrar al expediente desde la cama',
+                 CLINICOS_Y_ADMIN),
+                ('Crear y editar departamentos, habitaciones y camas', [Rol.ADMINISTRADOR]),
+                ('Desactivar o reactivar un departamento, una habitación o una cama libre', [Rol.ADMINISTRADOR]),
+            ],
+            ['Use el buscador para encontrar a un residente o una cama.',
+             'Al crear una habitación o una cama puede agregar el departamento o la habitación sin salir del formulario.',
+             'No se puede desactivar nada que tenga una cama ocupada por un residente activo.'],
+        ),
+        Seccion(
             'antecedentes', 'Alergias y antecedentes',
             'Alergias (a medicamentos, alimentos u otras) y antecedentes de salud del residente. '
             '"Sin alergias conocidas" se declara explícitamente.',
@@ -202,6 +216,8 @@ PANTALLAS = {
     'citas': ['citas_agenda', 'citas_residente', 'cita_crear', 'cita_detalle', 'cita_editar'],
     'alertas': ['alertas_bandeja', 'aviso_crear', 'alertas_configuracion'],
     'antecedentes': ['residente_antecedentes', 'alergia_crear', 'antecedente_crear'],
+    'institucion': ['institucion', 'departamento_crear', 'departamento_editar', 'habitacion_crear',
+                    'habitacion_editar', 'cama_crear', 'cama_editar'],
 }
 SECCION_POR_PANTALLA = {url: codigo for codigo, urls in PANTALLAS.items() for url in urls}
 

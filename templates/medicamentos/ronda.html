@@ -19,40 +19,37 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="fw-bold mb-0" style="color:#1F4E79;">
-    <i class="bi bi-clock-history me-2"></i>Ronda de medicamentos
-    {% if modo_alistamiento %}<span class="badge bg-secondary ms-2">Modo alistamiento</span>{% endif %}
-  </h4>
-  <div class="d-flex gap-2">
-    {% if modo_alistamiento %}
-      <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}" class="btn btn-gc">
-        <i class="bi bi-play-fill me-1"></i>Empezar a registrar
-      </a>
-    {% else %}
-      <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}&modo=alistamiento" class="btn btn-outline-secondary">
-        <i class="bi bi-eye me-1"></i>Preparar la ronda
-      </a>
-    {% endif %}
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-clock-history me-2"></i>Ronda de medicamentos</h4>
+  {% if puede_administrar %}
+  <div class="btn-group" role="group" aria-label="Pasos de la ronda">
+    <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}" class="btn {% if modo_alistamiento %}btn-gc{% else %}btn-outline-secondary{% endif %}">1. Alistar medicamentos</a>
+    <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}{% if hora_seleccionada %}&hora={{ hora_seleccionada|time:'H:i' }}{% endif %}&modo=suministro" class="btn {% if not modo_alistamiento %}btn-gc{% else %}btn-outline-secondary{% endif %}">2. Suministrar medicamentos</a>
   </div>
+  {% endif %}
 </div>
 
 {% if modo_alistamiento %}
 <div class="alert" style="background-color:#EBF3FA; border-left:4px solid #2E75B6;">
   <i class="bi bi-info-circle me-2" style="color:#1F4E79;"></i>
-  Vista previa de solo lectura — repase qué va a alistar antes de salir al pasillo. Aquí no se registra nada.
+  {% if puede_administrar %}<strong>Paso 1 — Alistar.</strong> Saque de los cajones lo que se va a suministrar en esta franja. Aquí no se registra nada. Cuando tenga todo, pase a <strong>Suministrar medicamentos</strong>.
+  {% else %}Vista de la ronda en solo lectura: su rol no registra suministros.{% endif %}
+</div>
+{% else %}
+<div class="alert" style="background-color:#E3F2EC; border-left:4px solid #4F9E86;">
+  <i class="bi bi-check2-square me-2" style="color:#3E8571;"></i><strong>Paso 2 — Suministrar.</strong> Marque lo que suministró a cada residente y guarde al final.
 </div>
 {% endif %}
 
 <div class="d-flex align-items-center justify-content-between mb-3 p-2" style="background-color:#EBF3FA; border-radius:8px;">
-  <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}{% if modo_alistamiento %}&modo=alistamiento{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+  <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}{% if not modo_alistamiento %}&modo=suministro{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
   <strong>{{ fecha }}{% if fecha == hoy %} (hoy){% endif %}</strong>
-  <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}{% if modo_alistamiento %}&modo=alistamiento{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+  <a href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}{% if not modo_alistamiento %}&modo=suministro{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
 </div>
 
 {% if franjas %}
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% for franja in franjas %}
-    <a href="?fecha={{ fecha|date:'Y-m-d' }}&hora={{ franja|time:'H:i' }}{% if modo_alistamiento %}&modo=alistamiento{% endif %}"
+    <a href="?fecha={{ fecha|date:'Y-m-d' }}&hora={{ franja|time:'H:i' }}{% if not modo_alistamiento %}&modo=suministro{% endif %}"
        class="btn btn-sm franja-tab {% if franja == hora_seleccionada %}activa{% else %}btn-outline-secondary{% endif %}">
       {{ franja|time:"H:i" }}{% if franja == hora_seleccionada and franja_dentro_de_ventana %} · ahora{% endif %}
     </a>
@@ -63,6 +60,26 @@
   {{ total_pendientes }} toma{% if total_pendientes != 1 %}s{% endif %} pendiente{% if total_pendientes != 1 %}s{% endif %}
   en la franja de las {{ hora_seleccionada|time:"H:i" }}.
 </p>
+
+{% if modo_alistamiento and lista_alistar %}
+<div class="card card-gc mb-3"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;"><i class="bi bi-basket me-2"></i>Lo que hay que alistar para las {{ hora_seleccionada|time:"H:i" }}</h6>
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Medicamento</th><th class="text-end">Total</th><th class="text-end">Tomas</th><th></th></tr></thead>
+    <tbody>
+    {% for i in lista_alistar %}
+      <tr>
+        <td>{{ i.medicamento }}{% if i.medicamento.requiere_refrigeracion %} <i class="bi bi-snow text-info" title="Requiere refrigeración"></i>{% endif %}{% if i.medicamento.control_especial %} <i class="bi bi-shield-lock text-warning" title="Control especial"></i>{% endif %}</td>
+        <td class="text-end fw-semibold">{{ i.cantidad|floatformat:"-2" }} {{ i.unidad }}</td>
+        <td class="text-end">{{ i.tomas }}</td>
+        <td class="small">{% if i.sin_existencias %}<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{ i.sin_existencias }} sin existencias en el cajón: tomar del botiquín</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="small text-muted mt-2">Abajo está el detalle por residente, en el orden de pabellón, habitación y cama.</div>
+</div></div>
+{% endif %}
 
 {% for bloque in bloques %}
 <div class="bloque-residente">
@@ -190,6 +207,12 @@
   {% endfor %}
 </div>
 {% endfor %}
+
+{% if modo_alistamiento and puede_administrar and bloques %}
+<div class="barra-guardar d-flex justify-content-end">
+  <a href="{% url 'ronda' %}?fecha={{ fecha|date:'Y-m-d' }}&hora={{ hora_seleccionada|time:'H:i' }}&modo=suministro" class="btn btn-gc btn-lg"><i class="bi bi-arrow-right-circle me-1"></i>Ya tengo los medicamentos: pasar a suministrar</a>
+</div>
+{% endif %}
 
 {% if not modo_alistamiento and puede_administrar %}
 <form id="form-ronda-guardar" method="post" action="{% url 'ronda_guardar' %}">
