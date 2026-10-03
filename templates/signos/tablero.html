@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% load signos_tags %}
-{% block title %}GammelCare — Signos vitales del hogar{% endblock %}
+{% block title %}GammelCare — Signos vitales{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Signos vitales del hogar</h4>
-  {% if puede_rango_hogar %}<a href="{% url 'signos_rangos_hogar' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Rangos del hogar</a>{% endif %}
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-heart-pulse me-2"></i>Signos vitales</h4>
+  {% if puede_rango_hogar %}<a href="{% url 'signos_rangos_hogar' %}" class="btn btn-outline-secondary"><i class="bi bi-sliders me-1"></i>Rangos generales</a>{% endif %}
 </div>
 <p class="text-muted small">Última toma de cada residente. <span class="badge text-bg-warning">amarillo</span> fuera de rango, <span class="badge text-bg-danger">rojo</span> crítico. La deposición sale de las notas de enfermería.</p>
 

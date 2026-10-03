@@ -310,8 +310,8 @@ def rango_residente_quitar(request, pk):
     regla.save(update_fields=['activo', 'inactivado_por', 'fecha_inactivacion'])
     _auditar(request, RegistroAuditoria.RANGO_SIGNOS,
              f'Rango propio de {regla.parametro_obj.nombre.lower()} retirado del residente #{regla.residente_id}; '
-             f'vuelve al rango del hogar')
-    messages.success(request, 'Listo: este signo vuelve a usar el rango del hogar.')
+             f'vuelve al rango general')
+    messages.success(request, 'Listo: este signo vuelve a usar el rango general.')
     return redirect(f"{redirect('signos_residente', pk=regla.residente_id).url}#rangos")
 
 
@@ -326,6 +326,6 @@ def rangos_hogar(request):
         obj.save()
         _auditar(request, RegistroAuditoria.RANGO_SIGNOS,
                  f'Rangos de signos vitales del hogar actualizados ({", ".join(obj.rangos) or "valores por defecto"})')
-        messages.success(request, 'Rangos del hogar guardados.')
+        messages.success(request, 'Rangos generales guardados.')
         return redirect('signos_rangos_hogar')
     return render(request, 'signos/rangos_hogar.html', {'form': form, 'rangos': obj})

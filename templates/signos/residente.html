@@ -171,9 +171,9 @@
         <tr>
           <td>{{ r.parametro.nombre }}</td>
           <td class="fw-semibold">{{ r.texto }} {{ r.parametro.unidad }}</td>
-          <td class="small">{% if r.origen == 'residente' %}<span class="badge text-bg-info">Propio del residente</span> {{ r.regla.motivo|truncatechars:70 }} — {{ r.regla.definido_por.get_full_name|default:r.regla.definido_por.username }}, {{ r.regla.fecha|date:"d/m/Y" }}{% else %}<span class="text-muted">Rango del hogar</span>{% endif %}</td>
+          <td class="small">{% if r.origen == 'residente' %}<span class="badge text-bg-info">Propio del residente</span> {{ r.regla.motivo|truncatechars:70 }} — {{ r.regla.definido_por.get_full_name|default:r.regla.definido_por.username }}, {{ r.regla.fecha|date:"d/m/Y" }}{% else %}<span class="text-muted">Rango general</span>{% endif %}</td>
           <td class="text-end text-nowrap">{% if puede_rango_residente %}
-            {% if r.origen == 'residente' %}<form method="post" action="{% url 'signos_rango_quitar' r.regla.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link">Volver al rango del hogar</button></form>
+            {% if r.origen == 'residente' %}<form method="post" action="{% url 'signos_rango_quitar' r.regla.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link">Volver al rango general</button></form>
             {% else %}<a href="{% url 'signos_rango_residente' residente.pk %}?parametro={{ r.parametro.codigo }}" class="btn btn-sm btn-link">Ajustar</a>{% endif %}
           {% endif %}</td>
         </tr>

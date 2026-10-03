@@ -84,7 +84,7 @@ class RegistroAuditoria(models.Model):
         (AJUSTE_INVENTARIO, 'Ajuste de inventario de medicamentos'),
         (DESCARTE_VENCIDO, 'Descarte de lote vencido'),
         (ANULACION_ADMINISTRACION, 'Anulación de un suministro'),
-        (USO_BOTIQUIN, 'Uso del botiquín del hogar'),
+        (USO_BOTIQUIN, 'Uso del botiquín'),
         (EXAMEN_REGISTRADO, 'Registro de orden de examen'),
         (RESULTADO_EXAMEN, 'Carga de resultado de examen'),
         (ADENDA_EXAMEN, 'Información adicional en examen'),

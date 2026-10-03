@@ -136,7 +136,7 @@ def _lotes_con_saldo(hogar, residente):
 def _destino_lote(lote):
     if lote.residente_id:
         return reverse('ingreso_lista', args=[lote.residente_id]), f'el cajón de {lote.residente.get_nombre()}'
-    return reverse('botiquin_lista'), 'el botiquín del hogar'
+    return reverse('botiquin_lista'), 'el botiquín'
 
 
 def lote_vencido(hogar, config, residente=None):
@@ -209,7 +209,7 @@ def stock_bajo(hogar, config, residente=None):
                 gravedad = MEDIA
             yield Candidato(
                 clave=f'stock_bajo:{r.pk}:{medicamento.pk}', gravedad=gravedad, residente=r, titulo=titulo,
-                mensaje='Pida a la familia o a la EPS que lo traiga. Mientras tanto se puede usar el botiquín del hogar como préstamo.',
+                mensaje='Pida a la familia o a la EPS que lo traiga. Mientras tanto se puede usar el botiquín como préstamo.',
                 url=reverse('ingreso_lista', args=[r.pk]), texto_accion='Ver el cajón',
                 roles=[Rol.JEFE_ENFERMERIA, Rol.ADMINISTRADOR, Rol.TRABAJO_SOCIAL],
             )

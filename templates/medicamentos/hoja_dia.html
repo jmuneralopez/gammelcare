@@ -78,7 +78,7 @@
       {% if f.pendiente and puede_administrar %}
         {% if f.sin_existencias %}
           <div class="caja-accion">
-            <div class="text-warning fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Sin existencias propias — ¿usar del botiquín del hogar?</div>
+            <div class="text-warning fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Sin existencias propias — ¿usar del botiquín?</div>
             <form method="post" action="{% url 'administracion_registrar' p.pk f.horario.pk %}" class="row g-2 align-items-end">
               {% csrf_token %}
               <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
@@ -89,7 +89,7 @@
                 </select>
               </div>
               <div class="col-auto"><input type="text" name="observacion" class="form-control form-control-sm" placeholder="Observación (obligatoria)" required style="min-width:220px;"></div>
-              <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Suministrar del botiquín del hogar</button></div>
+              <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Suministrar del botiquín</button></div>
             </form>
             <form method="post" action="{% url 'administracion_no_registrar' p.pk f.horario.pk %}" class="mt-1">
               {% csrf_token %}
@@ -171,7 +171,7 @@
             {% for val, label in motivos_uso_botiquin %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Suministrar del botiquín del hogar</button></div>
+        <div class="col-auto"><button type="submit" class="btn btn-sm btn-warning">Suministrar del botiquín</button></div>
         {% else %}
         <div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Suministrar ahora (si lo necesita)</button></div>
         {% endif %}

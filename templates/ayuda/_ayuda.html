@@ -1,0 +1,28 @@
+{% if seccion %}
+<div class="d-flex justify-content-end mb-2">
+  <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="offcanvas" data-bs-target="#ayuda-contextual" aria-controls="ayuda-contextual">
+    <i class="bi bi-question-circle me-1"></i>¿Qué puedo hacer aquí?
+  </button>
+</div>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="ayuda-contextual" aria-labelledby="ayuda-titulo" style="width:420px;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="ayuda-titulo" style="color:#1F4E79;"><i class="bi bi-question-circle me-2"></i>Ayuda: {{ seccion.titulo }}</h5>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="offcanvas">Cerrar ayuda</button>
+  </div>
+  <div class="offcanvas-body">
+    <p class="small">{{ seccion.que_es }}</p>
+    <div class="small text-muted mb-2">Su rol: <strong>{{ mis_roles|join:", " }}</strong></div>
+    <h6 class="fw-bold text-success mt-3"><i class="bi bi-check-circle me-1"></i>Usted puede</h6>
+    {% if puede %}<ul class="small ps-3">{% for a in puede %}<li class="mb-1">{{ a }}</li>{% endfor %}</ul>
+    {% else %}<p class="small text-muted">Su rol no tiene acciones en esta sección.</p>{% endif %}
+    {% if no_puede %}
+    <h6 class="fw-bold text-secondary mt-3"><i class="bi bi-people me-1"></i>Lo hacen otros roles</h6>
+    <ul class="small ps-3">{% for texto, roles in no_puede %}<li class="mb-1">{{ texto }} — <span class="text-muted">{{ roles|join:", " }}</span></li>{% endfor %}</ul>
+    {% endif %}
+    {% if seccion.consejos %}
+    <h6 class="fw-bold mt-3" style="color:#1F4E79;"><i class="bi bi-lightbulb me-1"></i>Para tener en cuenta</h6>
+    <ul class="small ps-3">{% for c in seccion.consejos %}<li class="mb-1">{{ c }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

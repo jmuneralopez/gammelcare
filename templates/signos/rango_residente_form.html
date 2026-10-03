@@ -3,7 +3,7 @@
 {% block content %}
 <h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-rulers me-2"></i>Ajustar rango de este residente</h4>
 {% include 'signos/_encabezado.html' %}
-<p class="text-muted">Úselo cuando la meta de este residente es distinta a la del hogar (por ejemplo, saturación 88 a 92 % en EPOC). Las alertas usarán este rango. El rango anterior queda en el historial.</p>
+<p class="text-muted">Úselo cuando la meta de este residente es distinta al rango general (por ejemplo, saturación 88 a 92 % en EPOC). Las alertas usarán este rango. El rango anterior queda en el historial.</p>
 <div class="card card-gc mb-3" style="max-width:860px;"><div class="card-body p-4">
   <form method="post" novalidate>
     {% csrf_token %}

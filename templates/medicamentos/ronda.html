@@ -121,7 +121,7 @@
         {% elif f.sin_existencias %}
           <div class="caja-accion">
             <div class="text-warning fw-semibold mb-1">
-              <i class="bi bi-exclamation-triangle me-1"></i>{{ p.medicamento }} ({{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}) — sin existencias propias. ¿Usar del botiquín del hogar?
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ p.medicamento }} ({{ p.dosis_cantidad }} {{ p.get_dosis_unidad_display }}) — sin existencias propias. ¿Usar del botiquín?
             </div>
             <div class="row g-2 align-items-end">
               <div class="col-auto">
@@ -132,7 +132,7 @@
               <div class="col-auto flex-grow-1">
                 <input type="text" class="form-control form-control-sm" id="obsbot-{{ p.pk }}-{{ f.horario.pk }}" placeholder="Observación (obligatoria)" style="min-width:220px;">
               </div>
-              <div class="col-auto"><button type="button" class="btn btn-sm btn-warning" onclick="rondaMarcarUsarBotiquin({{ p.pk }}, {{ f.horario.pk }})">Suministrar del botiquín del hogar</button></div>
+              <div class="col-auto"><button type="button" class="btn btn-sm btn-warning" onclick="rondaMarcarUsarBotiquin({{ p.pk }}, {{ f.horario.pk }})">Suministrar del botiquín</button></div>
               <div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" onclick="rondaMarcarNoAdmSinExistencias({{ p.pk }}, {{ f.horario.pk }})">No suministrado: no hay medicamento</button></div>
             </div>
             <div class="small mt-1" id="marca-estado-{{ p.pk }}-{{ f.horario.pk }}"></div>

@@ -359,7 +359,7 @@ def ingreso_botiquin_crear(request):
             registrar_auditoria(
                 usuario=request.user,
                 accion=RegistroAuditoria.INGRESO_MEDICAMENTO,
-                descripcion=f'Ingreso al botiquín del hogar: {creados} lote(s) nuevo(s), '
+                descripcion=f'Ingreso al botiquín: {creados} lote(s) nuevo(s), '
                             f'{sumados} sumado(s) a saldo existente',
                 request=request
             )
@@ -578,10 +578,10 @@ def administracion_registrar(request, prescripcion_pk, horario_pk):
         )
     except services.SinExistenciasError:
         if usar_botiquin:
-            messages.error(request, 'No hay existencias ni en el residente ni en el botiquín del hogar.')
+            messages.error(request, 'No hay existencias ni en el residente ni en el botiquín.')
         else:
             messages.warning(request, 'El residente no tiene saldo propio de este medicamento. '
-                                       'Use la opción "Usar del botiquín del hogar" si corresponde.')
+                                       'Use la opción "Usar del botiquín" si corresponde.')
         return redirect('hoja_dia', pk=residente.pk)
 
     if usar_botiquin:

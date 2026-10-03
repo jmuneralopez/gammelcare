@@ -69,4 +69,4 @@ def test_formula_de_otro_hogar_no_se_ve(client, usuario_medico, residente, medic
 def test_enlace_botiquin_en_el_menu(client, request, fixture, ve):
     client.force_login(request.getfixturevalue(fixture))
     html = client.get(reverse('dashboard')).content.decode()
-    assert ('Botiquín del hogar' in html) is ve
+    assert (reverse('botiquin_lista') in html) is ve
