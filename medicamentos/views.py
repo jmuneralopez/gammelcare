@@ -519,6 +519,12 @@ def hoja_dia(request, pk):
         'puede_administrar': request.user.tiene_rol(*Rol.ROLES_ADMINISTRACION),
         'motivos_no_administracion': Administracion.MOTIVOS_NO_ADMINISTRACION,
         'motivos_uso_botiquin': Administracion.MOTIVOS_USO_BOTIQUIN,
+        'corregidos_sin_evento': list(
+            Administracion.objects.filter(residente=residente, anulada=True,
+                                          fecha_anulacion__date=timezone.localdate(),
+                                          eventos_adversos__isnull=True)
+            .select_related('prescripcion__medicamento')
+        ),
     })
 
 

@@ -114,6 +114,8 @@ def _enfermeria(usuario, activas):
             curaciones += 1
     posicion = _por_regla(activas, 'posicion_atrasada')
     signos = _por_regla(activas, 'sin_control_signos')
+    from eventos import services as es
+    vigilancias = es.vigilancias_pendientes(hogar).count()
     return Seccion(f'Turno de la {turno.lower()}', [
         Tarjeta('Tomas de medicamentos atrasadas', atrasadas,
                 reverse('ronda') if usuario.tiene_rol(*Rol.ROLES_RONDA) else reverse('atencion_lista'),
@@ -127,16 +129,22 @@ def _enfermeria(usuario, activas):
                 _color(curaciones, 'warning')),
         Tarjeta('Residentes sin signos en 24 horas', signos, reverse('signos_tablero'), 'bi-heart-pulse',
                 _color(signos, 'warning')),
+        Tarjeta('Revisiones después de caídas pendientes', vigilancias, reverse('eventos_bandeja'), 'bi-eye',
+                _color(vigilancias)),
     ])
 
 
 def _medico(usuario, activas):
+    from eventos.models import EventoAdverso
     from examenes.models import Examen
+    por_analizar = EventoAdverso.objects.filter(hogar=usuario.hogar, estado=EventoAdverso.ABIERTO).count()
     por_revisar = Examen.objects.filter(residente__hogar=usuario.hogar, residente__activo=True,
                                         estado=Examen.RESULTADO).count()
     t = [
         Tarjeta('Exámenes por revisar', por_revisar, reverse('examenes_bandeja'), 'bi-clipboard2-data',
                 _color(por_revisar, 'warning')),
+        Tarjeta('Eventos adversos por analizar', por_analizar, reverse('eventos_bandeja'), 'bi-exclamation-diamond',
+                _color(por_analizar, 'warning')),
     ]
     for titulo, reglas, url, icono, color in (
         ('Signos vitales críticos', ('signo_critico',), None, 'bi-heart-pulse', 'danger'),
@@ -177,6 +185,9 @@ def _administracion(usuario, activas):
     semana = _citas_de(hogar, inicio, inicio + timedelta(days=7)).count()
     lotes = _por_regla(activas, 'lote_vencido', 'lote_por_vencer')
     prestamos = _por_regla(activas, 'prestamo_sin_reponer')
+    from eventos.models import CAIDA, EventoAdverso
+    caidas_mes = EventoAdverso.objects.filter(hogar=hogar, tipo=CAIDA, fecha_hora__year=hoy.year,
+                                              fecha_hora__month=hoy.month).count()
     lpp_mes = Herida.objects.filter(residente__hogar=hogar, tipo=Herida.LPP, origen='hogar',
                                     fecha_deteccion__year=hoy.year, fecha_deteccion__month=hoy.month).count()
     ingresos = Residente.objects.filter(hogar=hogar, fecha_ingreso__year=hoy.year,
@@ -193,6 +204,7 @@ def _administracion(usuario, activas):
         Tarjeta('Citas de los próximos 7 días', semana, reverse('citas_agenda'), 'bi-calendar2-week', 'primary'),
         Tarjeta('Lesiones por presión aparecidas en el hogar este mes', lpp_mes, reverse('cuidados_heridas'),
                 'bi-bandaid', _color(lpp_mes)),
+        Tarjeta('Caídas este mes', caidas_mes, reverse('eventos_indicadores'), 'bi-exclamation-diamond', _color(caidas_mes)),
         Tarjeta('Usuarios activos', Usuario.objects.filter(hogar=hogar, activo=True).count(),
                 reverse('usuario_lista'), 'bi-person-badge', 'secondary'),
     ])

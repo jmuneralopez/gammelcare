@@ -9,6 +9,9 @@
   </div>
 </div>
 {% include 'cuidados/_encabezado.html' %}
+{% if proponer_evento %}<div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <span><i class="bi bi-exclamation-diamond me-1"></i>Esta lesión por presión apareció en el hogar: es un evento adverso y conviene reportarlo para analizar por qué pasó.</span>
+  <a href="{% url 'eventos_reportar' residente.pk %}?herida={{ herida.pk }}" class="btn btn-sm btn-danger">Reportar evento adverso</a></div>{% endif %}
 {% if puede_cerrar %}
 <div class="collapse mb-3" id="cerrar"><form method="post" action="{% url 'cuidados_herida_cerrar' herida.pk %}" class="card card-gc"><div class="card-body row g-2 align-items-end">{% csrf_token %}
   <div class="col-md-4"><label class="form-label fw-semibold">{{ form_cerrar.motivo.label }}</label>{{ form_cerrar.motivo }}</div>

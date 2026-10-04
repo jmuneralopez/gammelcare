@@ -227,7 +227,8 @@ def herida_detalle(request, pk):
                      'porcentaje': round(100 * (ultimo - primero) / primero) if primero else None}
     return render(request, 'cuidados/herida_detalle.html', {
         'herida': h, 'residente': h.residente, 'nombre': h.residente.get_nombre(), 'seguimientos': seguimientos,
-        'evolucion': evolucion, 'grafica': [{'x': timezone.localtime(s.fecha_hora).strftime('%d/%m'),
+        'evolucion': evolucion,
+        'proponer_evento': h.es_lpp and h.origen == 'hogar' and not h.eventos_adversos.exists(), 'grafica': [{'x': timezone.localtime(s.fecha_hora).strftime('%d/%m'),
                                              'y': float(s.area_cm2)} for s in vigentes],
         'form_cerrar': CerrarHeridaForm(), 'form_anular': AnularForm(),
         'puede_heridas': puede_heridas(request.user) and h.activa,

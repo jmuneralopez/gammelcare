@@ -203,6 +203,7 @@
         {% endif %}
         <li class="nav-item"><a class="nav-link {% if '/examenes/' in request.path %}active{% endif %}" href="{% url 'examenes_bandeja' %}"><i class="bi bi-clipboard2-data me-1"></i>Exámenes médicos</a></li>
         <li class="nav-item"><a class="nav-link {% if '/citas/' in request.path %}active{% endif %}" href="{% url 'citas_agenda' %}"><i class="bi bi-calendar2-week me-1"></i>Agenda</a></li>
+        <li class="nav-item"><a class="nav-link {% if '/eventos/' in request.path %}active{% endif %}" href="{% url 'eventos_bandeja' %}"><i class="bi bi-exclamation-diamond me-1"></i>Eventos adversos</a></li>
         {% endif %}
         {% if user|puede_ver_botiquin %}
         <li class="nav-item mt-3"><small class="text-uppercase px-2" style="color:#6c9bc7; font-size:0.7rem; letter-spacing:1px;">Medicamentos del hogar</small></li>

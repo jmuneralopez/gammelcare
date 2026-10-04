@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}GammelCare — Indicadores de eventos adversos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-graph-up me-2"></i>Indicadores de eventos adversos</h4>
+  <a href="{% url 'eventos_bandeja' %}" class="btn btn-outline-secondary">Eventos adversos</a>
+</div>
+<h6 class="fw-bold" style="color:#1F4E79;">Este mes ({{ actual.mes|date:"F Y"|capfirst }})</h6>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card card-gc h-100"><div class="card-body py-2"><div class="small text-muted">Caídas por 1.000 días-residente</div><div class="fs-3 fw-bold">{{ actual.tasa_caidas|default:"—" }}</div><div class="small text-muted">{{ actual.caidas }} caída{{ actual.caidas|pluralize }} en {{ actual.dias_residente }} días-residente</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-gc h-100"><div class="card-body py-2"><div class="small text-muted">Caídas con daño moderado o mayor</div><div class="fs-3 fw-bold {% if actual.caidas_con_dano %}text-danger{% endif %}">{{ actual.caidas_con_dano }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-gc h-100"><div class="card-body py-2"><div class="small text-muted">Errores de medicación</div><div class="fs-3 fw-bold {% if actual.medicacion %}text-warning{% endif %}">{{ actual.medicacion }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-gc h-100"><div class="card-body py-2"><div class="small text-muted">Lesiones por presión aparecidas en el hogar</div><div class="fs-3 fw-bold {% if actual.lpp_hogar %}text-danger{% endif %}">{{ actual.lpp_hogar }}</div></div></div></div>
+</div>
+<div class="card card-gc mb-3"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;">Eventos por tipo, últimos 12 meses</h6>
+  {% if tipos %}<canvas id="grafica-tipos" height="110"></canvas>{% else %}<p class="text-muted small mb-0">Sin eventos en los últimos 12 meses.</p>{% endif %}
+</div></div>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0 text-center">
+  <thead style="background-color:#D6E4F0;"><tr><th class="text-start ps-3">Mes</th><th>Eventos</th><th>Caídas</th><th>Caídas con daño</th><th>Caídas por 1.000 días-residente</th><th>Errores de medicación</th><th>Lesiones por presión del hogar</th><th>Daño moderado o mayor</th></tr></thead>
+  <tbody>{% for f in filas reversed %}
+    <tr><td class="text-start ps-3">{{ f.mes|date:"F Y"|capfirst }}</td><td>{{ f.total }}</td><td>{{ f.caidas }}</td><td>{{ f.caidas_con_dano }}</td><td>{{ f.tasa_caidas|default:"—" }}</td><td>{{ f.medicacion }}</td><td>{{ f.lpp_hogar }}</td><td>{{ f.graves }}</td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+<p class="small text-muted mt-2">Días-residente: suma de los días que cada residente ocupó una cama en el mes. Las lesiones por presión salen de Cuidados y heridas (aparecidas en el hogar).</p>
+{% endblock %}
+{% block extra_js %}
+{% if tipos %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+  const d = {{ grafica|safe }};
+  const colores = ['#1768AC', '#B42318', '#C2410C', '#6f42c1', '#0B7285', '#198754', '#8A6100', '#495057', '#d63384'];
+  new Chart(document.getElementById('grafica-tipos'), {
+    type: 'bar',
+    data: { labels: d.labels, datasets: d.series.map((s, i) => ({ label: s.label, data: s.data, backgroundColor: colores[i % colores.length] })) },
+    options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'plan_atencion',
     'cuidados',
     'nutricion',
+    'eventos',
     'ayuda',
     'alertas',
 ]

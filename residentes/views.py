@@ -491,7 +491,7 @@ def residente_exportar_pdf(request, pk):
         ]))
         story.append(dt)
 
-    for clave in ('medicamentos', 'signos', 'cuidados', 'nutricion', 'valoracion', 'plan', 'examenes_clinicos', 'citas'):
+    for clave in ('medicamentos', 'signos', 'cuidados', 'nutricion', 'eventos', 'valoracion', 'plan', 'examenes_clinicos', 'citas'):
         if clave in secciones:
             story.extend(pdf_secciones.SECCIONES[clave][1](residente, kit))
 

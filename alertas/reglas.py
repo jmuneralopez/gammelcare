@@ -39,6 +39,8 @@ UMBRALES = {
     'dias_herida_sin_seguimiento': {'defecto': 3, 'etiqueta': 'Días sin seguimiento de una herida para avisar'},
     'comidas_ingesta_baja': {'defecto': 3, 'etiqueta': 'Comidas seguidas de la mitad o menos para avisar'},
     'porcentaje_meta_liquidos': {'defecto': 60, 'etiqueta': 'Avisar si en 24 horas tomó menos de este % de su meta de líquidos'},
+    'dias_evento_sin_analizar': {'defecto': 7, 'etiqueta': 'Días para avisar que un evento adverso sigue sin analizar'},
+    'minutos_gracia_vigilancia': {'defecto': 30, 'etiqueta': 'Minutos de gracia antes de avisar que una revisión después de una caída está atrasada'},
 }
 
 
@@ -809,6 +811,90 @@ def sin_dieta(hogar, config, residente=None):
         )
 
 
+# ── Eventos adversos ────────────────────────────────────────────────
+
+def _eventos(hogar, residente):
+    from eventos.models import EventoAdverso
+    qs = EventoAdverso.objects.filter(hogar=hogar, residente__activo=True, estado=EventoAdverso.ABIERTO) \
+        .select_related('residente')
+    if residente is not None:
+        qs = qs.filter(residente=residente)
+    return qs
+
+
+def evento_grave(hogar, config, residente=None):
+    """Evento con daño moderado o mayor: avisa hasta que se analice y cierre."""
+    from eventos.models import GRAVEDADES_ALTAS
+    for e in _eventos(hogar, residente).filter(gravedad__in=GRAVEDADES_ALTAS):
+        r = e.residente
+        yield Candidato(
+            clave=f'evento_grave:{e.pk}', gravedad=CRITICA if e.gravedad in ('grave', 'muerte') else ALTA, residente=r,
+            titulo=f'{e.get_tipo_display()} de {r.get_nombre()} con {e.get_gravedad_display().split(" (")[0].lower()}',
+            mensaje=f'Ocurrió el {_fecha(e.fecha_hora)} a las {_hora(e.fecha_hora)}. Valore al residente, informe a la familia '
+                    'y analice el evento para que no se repita.',
+            url=reverse('eventos_detalle', args=[e.pk]), texto_accion='Ver evento',
+            roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA],
+        )
+
+
+def evento_sin_analizar(hogar, config, residente=None):
+    dias = config.umbral('dias_evento_sin_analizar')
+    limite = timezone.now() - timedelta(days=dias)
+    for e in _eventos(hogar, residente).filter(fecha_registro__lt=limite):
+        r = e.residente
+        yield Candidato(
+            clave=f'evento_sin_analizar:{e.pk}', gravedad=MEDIA, residente=r,
+            titulo=f'{e.get_tipo_display()} de {r.get_nombre()} sin analizar desde hace más de {dias} días',
+            mensaje='Registre las causas y las acciones para que no se repita, y cierre el evento.',
+            url=reverse('eventos_detalle', args=[e.pk]), texto_accion='Analizar evento',
+            roles=[Rol.JEFE_ENFERMERIA, Rol.MEDICO],
+        )
+
+
+def vigilancia_atrasada(hogar, config, residente=None):
+    """Revisión programada después de una caída que pasó su hora sin registrarse."""
+    from eventos.models import VigilanciaEvento
+    limite = timezone.now() - timedelta(minutes=config.umbral('minutos_gracia_vigilancia'))
+    qs = VigilanciaEvento.objects.filter(evento__hogar=hogar, evento__residente__activo=True, realizada__isnull=True,
+                                         programada__lt=limite).select_related('evento__residente')
+    if residente is not None:
+        qs = qs.filter(evento__residente=residente)
+    por_evento = {}
+    for v in qs.order_by('programada'):
+        por_evento.setdefault(v.evento, []).append(v)
+    for e, lista in por_evento.items():
+        r = e.residente
+        yield Candidato(
+            clave=f'vigilancia_atrasada:{e.pk}', gravedad=ALTA, residente=r,
+            titulo=f'{r.get_nombre()}: revisión después de la caída atrasada ({len(lista)} pendiente{"s" if len(lista) > 1 else ""})',
+            mensaje=f'Tocaba a las {_hora(lista[0].programada)} del {_fecha(lista[0].programada)}. Revise conciencia, dolor y signos.',
+            url=reverse('eventos_detalle', args=[e.pk]) + '#vigilancia', texto_accion='Registrar revisión',
+            roles=[Rol.ENFERMERO, Rol.JEFE_ENFERMERIA],
+        )
+
+
+def vigilancia_alarma(hogar, config, residente=None):
+    """Una revisión después de la caída encontró algo preocupante."""
+    from eventos.models import VigilanciaEvento
+    desde = timezone.now() - timedelta(hours=24)
+    qs = VigilanciaEvento.objects.filter(evento__hogar=hogar, evento__residente__activo=True, realizada__gte=desde) \
+        .select_related('evento__residente')
+    if residente is not None:
+        qs = qs.filter(evento__residente=residente)
+    for v in qs:
+        if not v.preocupante:
+            continue
+        r = v.evento.residente
+        yield Candidato(
+            clave=f'vigilancia_alarma:{v.pk}', gravedad=CRITICA, residente=r,
+            titulo=f'{r.get_nombre()}: hallazgo de alarma en la revisión después de la caída',
+            mensaje=f'{v.get_conciencia_display()}' + (f', dolor {v.dolor}/10' if v.dolor is not None else '')
+                    + (f'. {v.hallazgos}' if v.hallazgos else '') + '. Requiere valoración médica.',
+            url=reverse('eventos_detalle', args=[v.evento_id]) + '#vigilancia', texto_accion='Ver evento',
+            roles=[Rol.MEDICO, Rol.JEFE_ENFERMERIA, Rol.ENFERMERO],
+        )
+
+
 # ── Registro ────────────────────────────────────────────────────────
 
 REGLAS = {
@@ -844,6 +930,10 @@ REGLAS = {
     'ingesta_baja': (ingesta_baja, 'Varias comidas seguidas de la mitad o menos'),
     'liquidos_insuficientes': (liquidos_insuficientes, 'Pocos líquidos en 24 horas o más del máximo indicado'),
     'sin_dieta': (sin_dieta, 'Residente sin dieta indicada'),
+    'evento_grave': (evento_grave, 'Evento adverso con daño moderado o mayor'),
+    'evento_sin_analizar': (evento_sin_analizar, 'Evento adverso sin analizar'),
+    'vigilancia_atrasada': (vigilancia_atrasada, 'Revisión después de una caída atrasada'),
+    'vigilancia_alarma': (vigilancia_alarma, 'Hallazgo de alarma en la revisión después de una caída'),
 }
 
 # Qué reglas reevaluar de inmediato cuando cambia cada tipo de registro.
@@ -864,4 +954,6 @@ REGLAS_POR_MODELO = {
     'herida': ['herida_sin_seguimiento', 'herida_infeccion', 'lpp_nueva'],
     'ingesta': ['ingesta_baja'],
     'dieta': ['sin_dieta', 'liquidos_insuficientes'],
+    'evento': ['evento_grave', 'evento_sin_analizar', 'vigilancia_atrasada'],
+    'vigilancia': ['vigilancia_atrasada', 'vigilancia_alarma'],
 }

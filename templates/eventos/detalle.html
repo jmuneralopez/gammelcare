@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load eventos_tags antecedentes_tags %}
+{% block title %}GammelCare — {{ evento.get_tipo_display }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-exclamation-diamond me-2"></i>{{ evento.get_tipo_display }} — {{ nombre }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary"><i class="bi bi-folder2-open me-1"></i>Expediente</a>
+    <a href="{% url 'eventos_bandeja' %}" class="btn btn-outline-primary">Eventos adversos</a>
+  </div>
+</div>
+{% banner_alergias residente compacto=True %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <span class="badge {{ evento.gravedad|clase_gravedad }} fs-6 fw-normal">{{ evento.get_gravedad_display }}</span>
+  {% if evento.abierto %}<span class="badge text-bg-warning fs-6 fw-normal">Por analizar</span>{% else %}<span class="badge text-bg-success fs-6 fw-normal">Analizado y cerrado</span>{% endif %}
+  {% if evento.origen != 'manual' %}<span class="badge text-bg-light border fs-6 fw-normal">{{ evento.get_origen_display }}</span>{% endif %}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card card-gc h-100"><div class="card-body small">
+    <h6 class="fw-bold" style="color:#1F4E79;">Reporte</h6>
+    <div><span class="text-muted">Cuándo:</span> {{ evento.fecha_hora|date:"l j \d\e F \d\e Y, H:i"|capfirst }}</div>
+    <div><span class="text-muted">Dónde:</span> {{ evento.get_lugar_display }}{% if evento.lugar_detalle %} — {{ evento.lugar_detalle }}{% endif %}</div>
+    {% if evento.testigo %}<div><span class="text-muted">Lo presenció o encontró:</span> {{ evento.testigo }}</div>{% endif %}
+    <div class="mt-2"><span class="text-muted">Qué pasó:</span><br>{{ evento.descripcion|linebreaksbr }}</div>
+    <div class="mt-2"><span class="text-muted">Qué se hizo en el momento:</span><br>{{ evento.accion_inmediata|linebreaksbr }}</div>
+    {% if evento.tipo == 'caida' %}<div class="mt-2">
+      {% if evento.golpe_cabeza %}<span class="badge text-bg-danger me-1">Se golpeó la cabeza</span>{% endif %}
+      {% if evento.perdida_conciencia %}<span class="badge text-bg-danger me-1">Perdió el conocimiento</span>{% endif %}
+      {% if evento.anticoagulantes %}<span class="badge text-bg-warning me-1">Toma anticoagulantes</span>{% endif %}
+    </div>{% endif %}
+    {% if evento.lesiones %}<div class="mt-2"><span class="text-muted">Lesiones:</span> {{ evento.lesiones }}</div>{% endif %}
+    {% if evento.tipo == 'medicacion' %}<div class="mt-2"><span class="text-muted">Qué falló:</span> {{ evento.get_tipo_error_display }}{% if evento.prescripcion %} · <a href="{% url 'tratamiento_detalle' evento.prescripcion_id %}">{{ evento.prescripcion.medicamento }}</a>{% endif %}</div>{% endif %}
+    {% if evento.herida %}<div class="mt-2"><span class="text-muted">Lesión:</span> <a href="{% url 'cuidados_herida_detalle' evento.herida_id %}">{{ evento.herida.nombre }}</a></div>{% endif %}
+    <div class="mt-2">{% if evento.aviso_medico %}<span class="badge text-bg-light border me-1">Se avisó al médico</span>{% endif %}{% if evento.aviso_familia %}<span class="badge text-bg-light border me-1">Se avisó a la familia: {{ evento.aviso_familia_quien }}</span>{% endif %}</div>
+    <div class="text-muted mt-2">Reportado el {{ evento.fecha_registro|date:"d/m/Y H:i" }}{% if evento.anonimo %} · reporte anónimo{% elif ve_quien %} por {{ evento.reportado_por.get_full_name|default:evento.reportado_por.username }}{% endif %}</div>
+  </div></div></div>
+  <div class="col-lg-5"><div class="card card-gc h-100"><div class="card-body small">
+    <h6 class="fw-bold" style="color:#1F4E79;">Análisis</h6>
+    {% if not evento.abierto %}
+      <div><span class="text-muted">Causas:</span><br>{{ evento.causas|linebreaksbr }}</div>
+      <div class="mt-2"><span class="text-muted">Acciones para que no se repita:</span><br>{{ evento.acciones_mejora|linebreaksbr }}</div>
+      {% if evento.responsable_acciones %}<div class="mt-2"><span class="text-muted">Responsable:</span> {{ evento.responsable_acciones }}{% if evento.fecha_limite_acciones %} · antes del {{ evento.fecha_limite_acciones|date:"d/m/Y" }}{% endif %}</div>{% endif %}
+      <div class="text-muted mt-2">Cerrado por {{ evento.cerrado_por.get_full_name|default:evento.cerrado_por.username }} el {{ evento.fecha_cierre|date:"d/m/Y H:i" }}</div>
+    {% elif puede_analizar %}
+      <form method="post" action="{% url 'eventos_cerrar' evento.pk %}">{% csrf_token %}
+        <label class="form-label fw-semibold mb-0">{{ form_cierre.causas.label }}</label>{{ form_cierre.causas }}
+        <label class="form-label fw-semibold mb-0 mt-2">{{ form_cierre.acciones.label }}</label>{{ form_cierre.acciones }}
+        <div class="row g-2 mt-1"><div class="col-7"><label class="form-label mb-0">{{ form_cierre.responsable.label }}</label>{{ form_cierre.responsable }}</div>
+          <div class="col-5"><label class="form-label mb-0">{{ form_cierre.fecha_limite.label }}</label>{{ form_cierre.fecha_limite }}</div></div>
+        <button class="btn btn-gc mt-3"><i class="bi bi-check2-circle me-1"></i>Cerrar evento con este análisis</button>
+      </form>
+    {% else %}<p class="text-muted mb-0">Lo analizan el jefe de enfermería o el médico.</p>{% endif %}
+  </div></div></div>
+</div>
+
+{% if vigilancias %}
+<div class="card card-gc mb-3" id="vigilancia"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;"><i class="bi bi-eye me-1"></i>Vigilancia después de la caída</h6>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Programada</th><th>Revisión</th><th></th></tr></thead>
+    <tbody>{% for v in vigilancias %}
+      <tr class="{% if v.vencida %}table-warning{% endif %}">
+        <td class="text-nowrap">{{ v.programada|date:"d/m H:i" }}{% if v.vencida %} <span class="badge text-bg-danger">Atrasada</span>{% endif %}</td>
+        <td class="small">{% if v.realizada %}<span class="{% if v.preocupante %}text-danger fw-semibold{% endif %}">{{ v.get_conciencia_display }}{% if v.dolor is not None %} · dolor {{ v.dolor }}/10{% endif %}{% if v.requiere_medico %} · necesita valoración médica{% endif %}</span>{% if v.hallazgos %}<div class="text-muted">{{ v.hallazgos }}</div>{% endif %}<div class="text-muted">{{ v.realizada|date:"d/m H:i" }} · {{ v.realizada_por.get_full_name|default:v.realizada_por.username }}</div>{% else %}<span class="text-muted">Pendiente</span>{% endif %}</td>
+        <td class="text-end">{% if v.pendiente and puede_vigilancia %}<button class="btn btn-sm {% if v.vencida %}btn-warning{% else %}btn-outline-primary{% endif %}" data-bs-toggle="collapse" data-bs-target="#vig-{{ v.pk }}">Registrar revisión</button>{% endif %}</td>
+      </tr>
+      {% if v.pendiente and puede_vigilancia %}<tr class="collapse" id="vig-{{ v.pk }}"><td colspan="3">
+        <form method="post" action="{% url 'eventos_vigilancia' v.pk %}" class="row g-2 align-items-end">{% csrf_token %}
+          <div class="col-md-4"><label class="form-label small mb-0">{{ form_vigilancia.conciencia.label }}</label>{{ form_vigilancia.conciencia }}</div>
+          <div class="col-md-2"><label class="form-label small mb-0">{{ form_vigilancia.dolor.label }}</label>{{ form_vigilancia.dolor }}</div>
+          <div class="col-md-6"><label class="form-label small mb-0">{{ form_vigilancia.hallazgos.label }}</label>{{ form_vigilancia.hallazgos }}</div>
+          <div class="col-md-8"><div class="form-check">{{ form_vigilancia.requiere_medico }}<label class="form-check-label small">{{ form_vigilancia.requiere_medico.label }}</label></div></div>
+          <div class="col-md-4 text-end"><button class="btn btn-gc">Guardar revisión</button></div>
+        </form></td></tr>{% endif %}
+    {% endfor %}</tbody>
+  </table></div>
+</div></div>
+{% endif %}
+
+<div class="card card-gc"><div class="card-body">
+  <h6 class="fw-bold" style="color:#1F4E79;">Seguimiento</h6>
+  {% for n in notas %}<div class="small py-1 border-bottom"><span class="text-muted">{{ n.fecha|date:"d/m/Y H:i" }} · {{ n.autor.get_full_name|default:n.autor.username }}:</span> {{ n.texto|linebreaksbr }}</div>
+  {% empty %}<p class="small text-muted">Sin notas de seguimiento.</p>{% endfor %}
+  {% if puede_nota %}
+  <form method="post" action="{% url 'eventos_nota' evento.pk %}" class="mt-2">{% csrf_token %}{{ form_nota.texto }}
+    <button class="btn btn-sm btn-outline-primary mt-2">Agregar nota</button></form>{% endif %}
+</div></div>
+{% endblock %}

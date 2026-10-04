@@ -6,6 +6,7 @@
 {% load signos_tags %}
 {% load cuidados_tags %}
 {% load nutricion_tags %}
+{% load eventos_tags %}
 {% load valoracion_tags %}
 {% load plan_atencion_tags %}
 {% load medicamentos_tags %}
@@ -103,6 +104,10 @@
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="nutricion" id="sec_nutricion" checked>
             <label class="form-check-label" for="sec_nutricion">Dieta e ingesta de los últimos 7 días</label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="secciones" value="eventos" id="sec_eventos" checked>
+            <label class="form-check-label" for="sec_eventos">Eventos adversos</label>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="secciones" value="valoracion" id="sec_valoracion" checked>
@@ -404,6 +409,7 @@
 {% resumen_signos residente %}
 {% resumen_cuidados residente %}
 {% resumen_nutricion residente %}
+{% resumen_eventos residente %}
 {% resumen_antecedentes residente %}
 {% resumen_valoracion residente %}
 {% resumen_plan residente %}

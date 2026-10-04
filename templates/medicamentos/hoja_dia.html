@@ -28,6 +28,15 @@
 </div>
 
 {% banner_alergias residente True %}
+{% if corregidos_sin_evento %}
+<div class="alert alert-light border small">
+  <strong>Suministros corregidos hoy:</strong>
+  {% for a in corregidos_sin_evento %}<div class="d-flex justify-content-between align-items-center gap-2 py-1">
+    <span>{{ a.prescripcion.medicamento }} — anulado: {{ a.motivo_anulacion }}</span>
+    <a href="{% url 'eventos_reportar' residente.pk %}?administracion={{ a.pk }}" class="btn btn-sm btn-outline-danger text-nowrap">¿Fue un error de medicación? Reportar evento</a>
+  </div>{% endfor %}
+</div>
+{% endif %}
 
 <div class="d-flex align-items-center justify-content-between mb-4 p-2" style="background-color:#EBF3FA; border-radius:8px;">
   <a href="?fecha={{ fecha_anterior|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>

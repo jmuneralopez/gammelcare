@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load eventos_tags %}
+{% block title %}GammelCare — Eventos adversos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-exclamation-diamond me-2"></i>Eventos adversos</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalReportar"><i class="bi bi-plus-circle me-1"></i>Reportar evento</button>
+    {% if supervision %}<a href="{% url 'eventos_indicadores' %}" class="btn btn-outline-primary"><i class="bi bi-graph-up me-1"></i>Indicadores</a>{% endif %}
+  </div>
+</div>
+<p class="small text-muted">Reportar un evento no es buscar culpables: sirve para entender qué pasó y evitar que se repita.
+  {% if config.modo_reporte == 'anonimo' %}En este hogar puede reportar sin dejar su nombre.{% elif config.modo_reporte == 'confidencial' %}Quién reporta solo lo ve el jefe de enfermería.{% endif %}</p>
+
+{% if vigilancias %}
+<div class="card card-gc mb-3 border-warning"><div class="card-body">
+  <h6 class="fw-bold text-warning-emphasis"><i class="bi bi-eye me-2"></i>Vigilancia después de caídas: revisiones pendientes ({{ vigilancias|length }})</h6>
+  {% for v in vigilancias %}
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-1 border-bottom small">
+    <span><strong class="{% if v.vencida %}text-danger{% endif %}">{{ v.programada|date:"d/m H:i" }}</strong> {{ v.evento.residente.get_nombre }} — caída del {{ v.evento.fecha_hora|date:"d/m H:i" }}{% if v.vencida %} <span class="badge text-bg-danger">Atrasada</span>{% endif %}</span>
+    <a href="{% url 'eventos_detalle' v.evento_id %}#vigilancia" class="btn btn-sm {% if puede_vigilancia %}btn-warning{% else %}btn-outline-secondary{% endif %}">{% if puede_vigilancia %}Registrar revisión{% else %}Ver{% endif %}</a>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+  {% if supervision %}
+  <div class="btn-group btn-group-sm">
+    <a href="?estado=abiertos&tipo={{ tipo }}" class="btn {% if estado == 'abiertos' %}btn-gc{% else %}btn-outline-secondary{% endif %}">Por analizar ({{ abiertos }})</a>
+    <a href="?estado=cerrados&tipo={{ tipo }}" class="btn {% if estado == 'cerrados' %}btn-gc{% else %}btn-outline-secondary{% endif %}">Cerrados</a>
+    <a href="?estado=todos&tipo={{ tipo }}" class="btn {% if estado == 'todos' %}btn-gc{% else %}btn-outline-secondary{% endif %}">Todos</a>
+  </div>
+  {% else %}<span class="small fw-semibold">Eventos que usted reportó con su nombre</span>{% endif %}
+  <form method="get" class="d-flex gap-1"><input type="hidden" name="estado" value="{{ estado }}">
+    <select name="tipo" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Tipo de evento"><option value="">Todos los tipos</option>{% for t, n in tipos %}<option value="{{ t }}" {% if t == tipo %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></form>
+</div>
+<div class="card card-gc"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead style="background-color:#D6E4F0;"><tr><th class="ps-3">Cuándo</th><th>Residente</th><th>Evento</th><th>Daño</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for e in eventos %}
+    <tr>
+      <td class="ps-3 text-nowrap">{{ e.fecha_hora|date:"d/m/Y H:i" }}</td>
+      <td>{{ e.residente.get_nombre }}</td>
+      <td>{{ e.get_tipo_display }}{% if e.origen != 'manual' %} <span class="badge text-bg-light border" title="{{ e.get_origen_display }}">automático</span>{% endif %}</td>
+      <td><span class="badge {{ e.gravedad|clase_gravedad }}">{{ e|gravedad_corta }}</span></td>
+      <td>{% if e.abierto %}<span class="badge text-bg-warning">Por analizar</span>{% else %}<span class="badge text-bg-success">Cerrado</span>{% endif %}</td>
+      <td class="text-end pe-3"><a href="{% url 'eventos_detalle' e.pk %}" class="btn btn-sm btn-outline-primary">Ver evento</a></td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No hay eventos en esta lista.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+
+<div class="modal fade" id="modalReportar" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title fw-bold">Reportar evento: ¿a qué residente le pasó?</h6><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+  <div class="modal-body">
+    <select id="residente-evento" class="form-select" aria-label="Residente"><option value="">— Elija el residente —</option>{% for pk, n in residentes %}<option value="{{ pk }}">{{ n }}</option>{% endfor %}</select>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button type="button" class="btn btn-danger" onclick="const v=document.getElementById('residente-evento').value; if(v) location.href='{% url 'eventos_reportar' 0 %}'.replace('/0/', '/' + v + '/');">Continuar</button></div>
+</div></div></div>
+{% endblock %}

@@ -20,11 +20,12 @@ CAPAS = [
     ('plan', 'Plan de atención', '#1F4E79'),
     ('heridas', 'Heridas y curaciones', '#B42318'),
     ('dieta', 'Dieta', '#C2410C'),
+    ('eventos', 'Eventos adversos', '#7A1F1F'),
     ('ingreso', 'Ingreso', '#495057'),
 ]
 COLOR = {c: col for c, _, col in CAPAS}
 NOMBRE_CAPA = {c: n for c, n, _ in CAPAS}
-CAPAS_AGENDA = ['citas', 'plan', 'valoracion', 'heridas', 'medicamentos']
+CAPAS_AGENDA = ['citas', 'plan', 'valoracion', 'heridas', 'medicamentos', 'eventos']
 
 
 @dataclass
@@ -183,6 +184,22 @@ def _dieta(residentes, desde, hasta):
                      residente=d.residente)
 
 
+def _eventos(residentes, desde, hasta):
+    from eventos.models import EventoAdverso, VigilanciaEvento
+    ini, fin = _dt_rango(desde, hasta)
+    for e in EventoAdverso.objects.filter(residente__in=residentes, fecha_hora__range=(ini, fin)).select_related('residente'):
+        yield Evento('eventos', e.get_tipo_display(), e.fecha_hora, reverse('eventos_detalle', args=[e.pk]),
+                     e.get_gravedad_display().split(' (')[0], residente=e.residente)
+    ahora = timezone.now()
+    for v in VigilanciaEvento.objects.filter(evento__residente__in=residentes, realizada__isnull=True) \
+            .select_related('evento__residente'):
+        cuando = max(v.programada, ahora) if v.programada < ahora else v.programada  # lo atrasado, ahora
+        if ini <= cuando <= fin:
+            yield Evento('eventos', 'Revisión después de la caída' + (' (atrasada)' if v.programada < ahora else ''),
+                         cuando, reverse('eventos_detalle', args=[v.evento_id]) + '#vigilancia', pendiente=True,
+                         residente=v.evento.residente)
+
+
 def _notas(residentes, desde, hasta, filtro=None):
     from notas_clinicas.models import NotaClinica
     ini, fin = _dt_rango(desde, hasta)
@@ -202,7 +219,7 @@ def _ingreso(residentes, desde, hasta):
 
 FUENTES = {
     'citas': _citas, 'examenes': _examenes, 'medicamentos': _medicamentos, 'valoracion': _valoracion,
-    'plan': _plan, 'heridas': _heridas, 'dieta': _dieta, 'ingreso': _ingreso,
+    'plan': _plan, 'heridas': _heridas, 'dieta': _dieta, 'ingreso': _ingreso, 'eventos': _eventos,
 }
 
 

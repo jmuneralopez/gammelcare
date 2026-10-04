@@ -86,6 +86,13 @@ class RegistroAuditoria(models.Model):
     INGESTA_CORREGIDA = 'ingesta_corregida'
     CONFIGURACION_NUTRICION = 'configuracion_nutricion'
 
+    # Eventos adversos.
+    EVENTO_REPORTADO = 'evento_reportado'
+    EVENTO_NOTA = 'evento_nota'
+    EVENTO_CERRADO = 'evento_cerrado'
+    VIGILANCIA_REGISTRADA = 'vigilancia_registrada'
+    CONFIGURACION_EVENTOS = 'configuracion_eventos'
+
     ACCIONES = [
         (INICIO_SESION, 'Inicio de sesión'),
         (CIERRE_SESION, 'Cierre de sesión'),
@@ -144,6 +151,11 @@ class RegistroAuditoria(models.Model):
         (TIPO_DIETA_CREADO, 'Tipo de dieta agregado al catálogo del hogar'),
         (INGESTA_CORREGIDA, 'Corrección de un registro de ingesta'),
         (CONFIGURACION_NUTRICION, 'Cambio de comidas y metas de líquidos del hogar'),
+        (EVENTO_REPORTADO, 'Reporte de evento adverso'),
+        (EVENTO_NOTA, 'Nota de seguimiento de un evento adverso'),
+        (EVENTO_CERRADO, 'Análisis y cierre de un evento adverso'),
+        (VIGILANCIA_REGISTRADA, 'Revisión de vigilancia después de una caída'),
+        (CONFIGURACION_EVENTOS, 'Cambio en la configuración de eventos adversos'),
     ]
 
     usuario = models.ForeignKey(

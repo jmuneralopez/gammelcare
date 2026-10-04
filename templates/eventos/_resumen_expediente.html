@@ -1,0 +1,16 @@
+{% load eventos_tags %}
+<!-- EVENTOS ADVERSOS -->
+<div class="card card-gc mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="fw-bold mb-0" style="color:#1F4E79;"><i class="bi bi-exclamation-diamond me-2"></i>Eventos adversos{% if total %} <span class="badge text-bg-light border">{{ total }}</span>{% endif %}</h6>
+      {% if puede_reportar %}<a href="{% url 'eventos_reportar' residente.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus-circle me-1"></i>Reportar evento</a>{% endif %}
+    </div>
+    <div class="mt-2 small">
+      {% for e in eventos %}
+      <div class="py-1 {% if not forloop.last %}border-bottom{% endif %}"><a href="{% url 'eventos_detalle' e.pk %}" class="text-decoration-none">{{ e.fecha_hora|date:"d/m/Y H:i" }} — {{ e.get_tipo_display }}</a>
+        <span class="badge {{ e.gravedad|clase_gravedad }}">{{ e|gravedad_corta }}</span>{% if e.abierto %} <span class="badge text-bg-light border">Por analizar</span>{% endif %}</div>
+      {% empty %}<span class="text-muted">Sin eventos adversos registrados.</span>{% endfor %}
+    </div>
+  </div>
+</div>

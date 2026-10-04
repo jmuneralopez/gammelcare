@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load antecedentes_tags %}
+{% block title %}GammelCare — Reportar evento adverso{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3" style="color:#1F4E79;"><i class="bi bi-exclamation-diamond me-2"></i>Reportar evento adverso — {{ nombre }}</h4>
+{% banner_alergias residente compacto=True %}
+<p class="small text-muted">Cuente lo que pasó tal como fue, sin buscar culpables. Si el residente está en peligro, atiéndalo primero y reporte después.</p>
+<form method="post" novalidate class="card card-gc" style="max-width:900px;"><div class="card-body p-4">{% csrf_token %}
+  <input type="hidden" name="origen" value="{{ origen }}">
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_tipo">{{ form.tipo.label }}</label>{{ form.tipo }}{% for e in form.tipo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_fecha_hora">{{ form.fecha_hora.label }}</label>{{ form.fecha_hora }}{% for e in form.fecha_hora.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_lugar">{{ form.lugar.label }}</label>{{ form.lugar }}</div>
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_lugar_detalle">{{ form.lugar_detalle.label }}</label>{{ form.lugar_detalle }}</div>
+
+    <div class="col-12 bloque" data-tipos="caida"><div class="p-3 rounded" style="background:#FFF8E6;">
+      <div class="fw-semibold small mb-2">Caída</div>
+      <div class="d-flex flex-wrap gap-4">
+        <div class="form-check">{{ form.golpe_cabeza }}<label class="form-check-label" for="id_golpe_cabeza">{{ form.golpe_cabeza.label }}</label></div>
+        <div class="form-check">{{ form.perdida_conciencia }}<label class="form-check-label" for="id_perdida_conciencia">{{ form.perdida_conciencia.label }}</label></div>
+        <div class="form-check">{{ form.anticoagulantes }}<label class="form-check-label" for="id_anticoagulantes">{{ form.anticoagulantes.label }}</label></div>
+      </div>
+      <div class="small text-muted mt-1">Golpe en la cabeza o anticoagulantes: avise al médico ya, aunque se vea bien.</div>
+    </div></div>
+    <div class="col-12 bloque" data-tipos="caida lesion agresion"><label class="form-label fw-semibold" for="id_lesiones">{{ form.lesiones.label }}</label>{{ form.lesiones }}</div>
+
+    <div class="col-12 bloque" data-tipos="medicacion"><div class="row g-3 p-3 rounded mx-0" style="background:#FFF8E6;">
+      <div class="col-md-6"><label class="form-label fw-semibold" for="id_tipo_error">{{ form.tipo_error.label }}</label>{{ form.tipo_error }}{% for e in form.tipo_error.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label fw-semibold" for="id_prescripcion">{{ form.prescripcion.label }}</label>{{ form.prescripcion }}</div>
+    </div></div>
+    <div class="col-12 bloque" data-tipos="lpp"><label class="form-label fw-semibold" for="id_herida">Lesión por presión registrada</label>{{ form.herida }}
+      <div class="small text-muted">Si aún no la registró, hágalo en Cuidados y heridas: desde allí se propone este reporte.</div></div>
+
+    <div class="col-12"><label class="form-label fw-semibold" for="id_descripcion">{{ form.descripcion.label }}</label>{{ form.descripcion }}{% for e in form.descripcion.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_testigo">{{ form.testigo.label }}</label>{{ form.testigo }}</div>
+    <div class="col-md-6"><label class="form-label fw-semibold" for="id_gravedad">{{ form.gravedad.label }}</label>{{ form.gravedad }}{% for e in form.gravedad.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-12"><label class="form-label fw-semibold" for="id_accion_inmediata">{{ form.accion_inmediata.label }}</label>{{ form.accion_inmediata }}{% for e in form.accion_inmediata.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-md-4"><div class="form-check mt-md-4">{{ form.aviso_medico }}<label class="form-check-label" for="id_aviso_medico">{{ form.aviso_medico.label }}</label></div></div>
+    <div class="col-md-3"><div class="form-check mt-md-4">{{ form.aviso_familia }}<label class="form-check-label" for="id_aviso_familia">{{ form.aviso_familia.label }}</label></div></div>
+    <div class="col-md-5"><label class="form-label fw-semibold" for="id_aviso_familia_quien">{{ form.aviso_familia_quien.label }}</label>{{ form.aviso_familia_quien }}{% for e in form.aviso_familia_quien.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    {% if form.anonimo %}<div class="col-12"><div class="form-check p-2 ps-5 rounded border">{{ form.anonimo }}<label class="form-check-label" for="id_anonimo"><strong>{{ form.anonimo.label }}</strong> — no se guardará quién hizo el reporte. Podrá verlo en el expediente del residente, pero no podrá agregar notas.</label></div></div>{% endif %}
+  </div>
+  <div class="d-flex gap-2 mt-4"><button class="btn btn-danger"><i class="bi bi-check-circle me-1"></i>Reportar evento</button>
+    <a href="{% url 'residente_detalle' residente.pk %}" class="btn btn-outline-secondary">Cancelar</a></div>
+</div></form>
+<script>
+  (function () {
+    const tipo = document.getElementById('id_tipo');
+    function ver() { document.querySelectorAll('.bloque').forEach(b => b.classList.toggle('d-none', !b.dataset.tipos.split(' ').includes(tipo.value))); }
+    tipo.addEventListener('change', ver); ver();
+  })();
+</script>
+{% endblock %}

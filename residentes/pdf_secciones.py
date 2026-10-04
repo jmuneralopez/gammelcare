@@ -327,6 +327,20 @@ def nutricion(residente, kit):
     return story
 
 
+# ── Eventos adversos ────────────────────────────────────────────
+
+def eventos(residente, kit, cantidad=10):
+    from eventos.models import EventoAdverso
+    lista = list(EventoAdverso.objects.filter(residente=residente).order_by('-fecha_hora')[:cantidad])
+    if not lista:
+        return []
+    filas = [[_fecha(e.fecha_hora, con_hora=True), e.get_tipo_display(), e.get_gravedad_display().split(' (')[0],
+              e.descripcion[:200], (f'Cerrado: {e.acciones_mejora[:150]}' if not e.abierto else 'Por analizar')]
+             for e in lista]
+    return [Paragraph(f' Eventos adversos (últimos {len(lista)})', kit.seccion),
+            tabla(kit, ['Fecha', 'Evento', 'Daño', 'Qué pasó', 'Análisis'], filas, [1.0, 1.2, 0.9, 2.3, 1.6])]
+
+
 SECCIONES = {
     'alergias': ('Alergias y antecedentes', alergias),
     'medicamentos': ('Medicamentos (órdenes activas)', medicamentos),
@@ -337,4 +351,5 @@ SECCIONES = {
     'citas': ('Citas médicas', citas),
     'cuidados': ('Cuidados y heridas', cuidados),
     'nutricion': ('Nutrición e hidratación', nutricion),
+    'eventos': ('Eventos adversos', eventos),
 }

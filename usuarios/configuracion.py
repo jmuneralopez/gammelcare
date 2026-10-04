@@ -12,12 +12,15 @@ def opciones(usuario):
     if not usuario.is_authenticated or not usuario.hogar_id:
         return []
     from alertas import permisos as al
+    from eventos import permisos as ev
     from nutricion import permisos as nu
     from signos import permisos as si
     from valoracion import permisos as va
 
     candidatas = [
         ('Alertas', 'Umbrales de cada aviso y reglas activas.', 'alertas_configuracion', 'bi-bell', al.ROLES_CONFIGURAR),
+        ('Eventos adversos', 'Si se identifica a quien reporta y la vigilancia después de una caída.',
+         'eventos_configuracion', 'bi-exclamation-diamond', ev.ROLES_CONFIGURAR),
         ('Medicamentos', 'Semáforo de vencimiento, horas estándar, ronda y anulaciones.', 'medicamentos_configuracion',
          'bi-capsule', [Rol.ADMINISTRADOR, Rol.JEFE_ENFERMERIA]),
         ('Comidas e hidratación', 'Comidas que sirve el hogar, sus horas, el vaso y la meta de líquidos.',

@@ -30,6 +30,7 @@ def _secciones():
     from citas import permisos as ci
     from cuidados import permisos as cu
     from nutricion import permisos as nu
+    from eventos import permisos as ev
     from examenes import permisos as ex
     from plan_atencion import permisos as pa
     from signos import permisos as si
@@ -213,6 +214,23 @@ def _secciones():
             ['Las alergias alimentarias registradas salen en la planilla y en la lista para cocina, aunque no se escriban en la dieta.'],
         ),
         Seccion(
+            'eventos', 'Eventos adversos',
+            'Caídas, errores de medicación, lesiones por presión aparecidas en el hogar, fugas, atragantamientos, '
+            'agresiones y otros eventos: qué pasó, qué se hizo, el análisis de por qué pasó y qué se hará para que no '
+            'se repita. Después de una caída queda programada la vigilancia.',
+            [
+                ('Reportar un evento', ev.ROLES_REPORTAR),
+                ('Ver todos los eventos y los indicadores del hogar', ev.ROLES_SUPERVISION),
+                ('Analizar un evento (causas y acciones de mejora) y cerrarlo', ev.ROLES_ANALIZAR),
+                ('Registrar las revisiones después de una caída', ev.ROLES_VIGILANCIA),
+                ('Elegir si se identifica a quien reporta y la vigilancia después de una caída', ev.ROLES_CONFIGURAR),
+            ],
+            ['Reportar no es buscar culpables: sirve para entender qué pasó y evitar que se repita.',
+             'El reporte no se modifica; lo que se averigüe después se agrega como nota de seguimiento.',
+             'Un evento con daño moderado o mayor genera una alerta para el médico y el jefe de enfermería.',
+             'Una lesión por presión del hogar y un suministro corregido proponen el reporte con los datos ya puestos.'],
+        ),
+        Seccion(
             'examenes', 'Exámenes médicos',
             'Órdenes de laboratorio, imágenes y otros exámenes; sus resultados (archivo y valores) y la revisión del médico.',
             [
@@ -319,6 +337,7 @@ PANTALLAS = {
     'heridas': ['cuidados_heridas', 'cuidados_herida_crear', 'cuidados_herida_detalle', 'cuidados_seguimiento_crear'],
     'nutricion': ['nutricion_planilla', 'nutricion_configuracion'],
     'dietas': ['nutricion_residente', 'nutricion_dieta', 'nutricion_cocina'],
+    'eventos': ['eventos_bandeja', 'eventos_reportar', 'eventos_detalle', 'eventos_indicadores', 'eventos_configuracion'],
     'examenes': ['examenes_bandeja', 'examenes_residente', 'examen_crear', 'examenes_tendencias', 'examen_detalle',
                  'examen_editar', 'examen_resultado', 'examen_adenda', 'examen_revisar', 'examen_cancelar',
                  'valor_corregir'],
